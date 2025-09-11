@@ -2,6 +2,7 @@ import React from 'react'
 import { Link } from 'react-router-dom';
 
 import Guide from '../../assets/Guide(Light).svg';
+import FullLogo from "../../assets/New-FullBlack-TrackEdLogo.svg";
 
 export default function Login() {
   return (
@@ -12,7 +13,7 @@ export default function Login() {
           <img src={Guide} alt="Guide" className="cursor-pointer" />
         </div>
 
-        <h1 className="text-[1.5rem] font-black text-center">TrackED</h1>
+        <h1 className="text-center"> <img src={FullLogo} alt="TrackED Logo" className="h-13 w-auto mx-auto mb-4 cursor-pointer"/></h1>
         <p className="text-center mb-6 text-[0.875rem]">
           Cavite State University - Imus Campus
         </p>
@@ -31,7 +32,7 @@ export default function Login() {
         </p>
 
         {/* Button */}
-        <button type="submit" className="w-full h-12 bg-[#00A15D] hover:bg-green-700 text-white py-2 rounded-md font-bold mt-5 text-[1.5rem]">
+        <button type="submit" className="w-full h-12 bg-[#00A15D] hover:bg-green-700 text-white py-2 rounded-md font-bold mt-5 text-[1.5rem] cursor-pointer">
           Log In
         </button>
 

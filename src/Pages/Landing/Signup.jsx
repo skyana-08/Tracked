@@ -2,6 +2,7 @@ import React from 'react'
 import { Link } from 'react-router-dom';
 
 import Guide from '../../assets/Guide(Light).svg';
+import FullLogo from "../../assets/New-FullBlack-TrackEdLogo.svg";
 
 export default function Signup() {
   return (
@@ -13,7 +14,7 @@ export default function Signup() {
           <img src={Guide} alt="Guide" className="cursor-pointer" />
         </div>
 
-        <h1 className="text-2xl font-black text-center">TrackED</h1>
+        <h1 className="text-center"> <img src={FullLogo} alt="TrackED Logo" className="h-13 w-auto mx-auto mb-4 cursor-pointer"/></h1>
         <p className="text-center mb-2 text-[0.875rem]">
           Cavite State University - Imus Campus
         </p>

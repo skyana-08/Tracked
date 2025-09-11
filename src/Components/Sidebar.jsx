@@ -14,6 +14,7 @@ import Profile from '../assets/Profile.svg';
 import AccountSettings from '../assets/Settings.svg';
 import LogOut from '../assets/LogOut.svg';
 import Close from '../assets/Cross.svg';
+import TextLogo from "../assets/New-FullWhite-TrackEdLogo.svg";
 
 export default function Sidebar({ role, isOpen: isOpenProp, setIsOpen: setIsOpenProp }) {
   const [localOpen, setLocalOpen] = useState(true);
@@ -57,7 +58,7 @@ export default function Sidebar({ role, isOpen: isOpenProp, setIsOpen: setIsOpen
         <div className="p-5 flex flex-col h-full">
           {/* SIDEBAR CLOSE BUTTON */}
           <div className="flex items-center justify-between">
-            <p className="text-[#FFFFFF] text-[1.5rem] font-bold mb-2">TrackED</p>
+            <img src={TextLogo} alt="TrackEDLogo" className="h-12 w-auto mx-auto mb-4 cursor-pointer"/>
             <img src={Close} alt="CloseSidebar" className="mb-3 cursor-pointer" onClick={() => setIsOpen(false)} />
           </div>
 

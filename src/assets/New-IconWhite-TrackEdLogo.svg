@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   width="29.365553mm"
+   height="24.825712mm"
+   viewBox="0 0 29.365553 24.825712"
+   version="1.1"
+   id="svg1"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <defs
+     id="defs1">
+    <linearGradient
+       id="swatch108">
+      <stop
+         style="stop-color:#ffffff;stop-opacity:1;"
+         offset="0"
+         id="stop108" />
+    </linearGradient>
+  </defs>
+  <g
+     id="layer1"
+     transform="translate(-131.54341,-144.81033)">
+    <path
+       style="font-size:22.5778px;font-family:Lot;-inkscape-font-specification:'Lot, Normal';text-align:end;text-anchor:end;fill:none;fill-opacity:1;stroke:#ffffff;stroke-width:2.3865;stroke-linejoin:round;stroke-miterlimit:0;stroke-dasharray:none;stroke-opacity:1"
+       d="m 102.34587,58.935083 a 6.2733734,6.2733734 119.96157 0 0 5.3702,-9.31589 l -3.58527,-6.751777 a 1.5851256,1.5851256 0.13117618 0 0 -2.79655,-0.0064 l -4.069279,7.579262 a 5.7668927,5.7668927 59.115586 0 0 5.080899,8.494807 z"
+       id="path1"
+       transform="matrix(-1.046666,0,0,-1.0501273,253.5247,212.5617)" />
+    <path
+       id="path2"
+       style="fill:none;fill-opacity:1;stroke:#ffffff;stroke-width:2.25483;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1"
+       d="m 219.61001,115.51718 c -1.15843,0.0174 -2.30195,0.26285 -3.36467,0.72218 l -7.65848,3.31054 c -1.36021,0.5878 -1.44161,2.47774 -0.13694,3.1793 l 10.05083,5.4044 c 0.68377,0.36763 1.50916,0.36042 2.18634,-0.0191 l 10.28039,-5.7618 c 1.28026,-0.71761 1.15447,-2.59193 -0.21031,-3.1336 l -3.88105,-1.54063 -3.88104,-1.54063 c -1.07618,-0.42715 -2.22663,-0.63807 -3.38506,-0.62062 z"
+       transform="matrix(1.1086131,0,0,1.1106254,-97.321901,17.767232)" />
+    <path
+       style="font-size:22.5778px;font-family:Inner;-inkscape-font-specification:'Inner, Normal';fill:#ffffff;stroke:#ffffff;stroke-width:0.553178;stroke-linejoin:round;stroke-dasharray:none"
+       d="m 60.63695,43.573879 -1.670087,1.059738 v -7.662169 l 1.670087,-0.91468 z"
+       id="path3"
+       aria-label="i&#10;"
+       transform="matrix(0.84177318,0,0,0.83942479,108.39196,123.00454)" />
+  </g>
+</svg>
