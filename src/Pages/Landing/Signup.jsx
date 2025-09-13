@@ -1,127 +1,408 @@
-import React from 'react'
-import { Link } from 'react-router-dom';
+import React, { useState } from "react";
+import { Link } from "react-router-dom";
 
-import Guide from '../../assets/Guide(Light).svg';
+import Guide from "../../assets/Guide(Light).svg";
 import FullLogo from "../../assets/New-FullBlack-TrackEdLogo.svg";
+import Close from "../../assets/BackButton(Light).svg";
+import Expand from "../../assets/BackButton(Light).svg";
+import Collapse from "../../assets/BackButton(Light).svg";
 
 export default function Signup() {
-  return (
-    <div className="min-h-screen flex flex-col items-center justify-center text-[#465746]">
+  const [formData, setFormData] = useState({
+    tracked_ID: "",
+    tracked_email: "",
+    tracked_password: "",
+    tracked_fname: "",
+    tracked_lname: "",
+    tracked_mi: "",
+    tracked_program: "Information Technology", // default program
+    tracked_bday: "",
+    tracked_phone: "",
+  });
 
-      <div className="bg-white p-10 rounded-lg shadow-md w-full max-w-3xl text-[1.125rem]">
-        
+  const [confirmPassword, setConfirmPassword] = useState("");
+
+  const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    // password checker
+    if (formData.tracked_password !== confirmPassword) {
+      alert("Passwords do not match!");
+      return;
+    }
+
+    //connection sa php file
+    try {
+      const res = await fetch(
+        "http://localhost/TrackEd/src/Pages/Landing/Signup.php",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: new URLSearchParams(formData).toString(),
+        }
+      );
+
+      const text = await res.text();
+      alert(text);
+    } catch (err) {
+      console.error("Error:", err);
+      alert("Something went wrong. Check console.");
+    }
+  };
+
+  // for faqs
+  const [isGuideOpen, setIsGuideOpen] = useState(false);
+  const [openIndex, setOpenIndex] = useState(null);
+
+  const faqs = [
+    {
+      question: "How can I create an Account?",
+      answer: "- You can sign up using your school ID number and a valid email address. Fill out the registration form and follow the instructions sent to your email."
+    },
+    {
+      question: "I forgot my password. What shoud I do?",
+      answer: "- Click on 'Forgot Password?' on the login page, then enter your registered email. You’ll receive a link to reset your password."
+    },
+    {
+      question: "Can I use a personal email to sign up?",
+      answer: "- Yes, you can use either your school or personal email. Just make sure it’s an active email you can access."
+    },
+    {
+      question: "Who do I contact for account issues or bugs?",
+      answer: "- You can reach our support team at support@tracked.com or through the help section in the app."
+    },
+
+  ];
+
+  const toggleFAQ = (index) => {
+    setOpenIndex(openIndex === index ? null : index);
+  };
+
+  return (
+    <div className="min-h-screen flex flex-col items-center justify-center text-[#465746] px-6 sm:px-6 lg:px-8 py-10 sm:py-10">
+      <div className="bg-white p-6 sm:p-8 md:p-10 rounded-lg shadow-md w-full max-w-md">
         <div className="flex justify-end mb-2">
-          <img src={Guide} alt="Guide" className="cursor-pointer" />
+          <img
+            src={Guide}
+            alt="Guide"
+            className="cursor-pointer w-5 h-5 sm:w-5 sm:h-5 md:w-6 md:h-6"
+            onClick={() => setIsGuideOpen(true)}
+          />
         </div>
 
-        <h1 className="text-center"> <img src={FullLogo} alt="TrackED Logo" className="h-13 w-auto mx-auto mb-4 cursor-pointer"/></h1>
-        <p className="text-center mb-2 text-[0.875rem]">
+        <h1 className="text-center">
+          <img
+            src={FullLogo}
+            alt="TrackED Logo"
+            className="h-12 sm:h-10 md:h-10 lg:h-12 xl:h-12 w-auto mx-auto mb-2 sm:mb-2 md:mb-4 cursor-pointer"
+          />
+        </h1>
+        <p className="text-center mb-2 sm:mb-4 md:mb-6 text-base sm:text-base md:text-base">
           Cavite State University - Imus Campus
         </p>
 
-        <hr className="my-4 border-dotted border-gray-300" />
+        <hr className="my-3 sm:my-4 md:my-6 border-dotted border-gray-300" />
 
         {/* Section Title */}
-        <div className="flex items-center gap-2">
-          <img src={Guide} alt="Guide" className="h-5 w-5" />
-          <p className="font-semibold">Account Creation</p>
+        <div className="flex items-center gap-2 mb-2 sm:mb-2">
+          <img
+            src={Guide}
+            alt="Guide"
+            className="h-4 w-4 sm:w-5 md:h-6 md:w-6"
+          />
+          <p className="font-semibold text-base sm:text-base md:text-base">
+            Account Creation
+          </p>
         </div>
-        <p className="mb-6 ml-6 text-[0.875rem] text-gray-600">
+        <p className="mb-3 sm:mb-5 md:mb-6 ml-6 sm:ml-7 md:ml-8 text-sm sm:text-sm md:text-sm text-gray-600">
           Make sure your Student Number is recorded in CVSU - Imus Campus.
         </p>
 
-        {/* ID & Program */}
-        <div className="grid grid-cols-2 gap-4 mb-4">
-          <div>
-            <p className="text-[0.875rem] mb-1">ID Number:</p>
-            <input type="text" placeholder="202284596" required pattern="[0-9]*" inputMode="numeric" 
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#00A15D]"/>
-          </div>
-          <div>
-            <p className="text-[0.875rem] mb-1">Program:</p>
-            <input type="text" placeholder="Information Technology" disabled 
-            className="w-full px-3 py-2 border border-gray-200 rounded-md bg-gray-100 text-gray-500"/>
-          </div>
-        </div>
-
-        {/* Name Fields */}
-        <div className="grid grid-cols-3 gap-4 mb-4">
-
-          <div>
-            <p className="text-[0.875rem] mb-1">Firstname:</p>
-            <input type="text" placeholder="Firstname" required 
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#00A15D]" />
-          </div>
-
-          <div>
-            <p className="text-[0.875rem] mb-1">Lastname:</p>
-            <input type="text" placeholder="Lastname" required 
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#00A15D]" />
-          </div>
-
-          <div>
-            <p className="text-[0.875rem] mb-1">Middle Initial:</p>
-            <input type="text" placeholder="M.I" maxLength="1" 
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#00A15D]" />
+        <form onSubmit={handleSubmit}>
+          {/* ID & Program */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 md:gap-6 mb-2 sm:mb-2 md:mb-4">
+            <div>
+              <p className="text-sm sm:text-basmse md:text-sm mb-1 sm:mb-2">
+                ID Number
+              </p>
+              <input
+                type="text"
+                name="tracked_ID"
+                value={formData.tracked_ID}
+                onChange={handleChange}
+                placeholder="202284596"
+                required
+                pattern="[0-9]*"
+                inputMode="numeric"
+                className="w-full px-2 sm:px-3 md:px-4 py-2 sm:py-2 md:py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#00A15D] text-sm sm:text-sm"
+              />
+            </div>
+            <div>
+              <p className="text-sm sm:text-sm md:text-sm mb-1 sm:mb-2">
+                Program
+              </p>
+              <input
+                type="text"
+                name="tracked_program"
+                value={formData.tracked_program}
+                readOnly
+                className="w-full px-2 sm:px-3 md:px-4 py-2 sm:py-2 md:py-2 border border-gray-300 rounded-md bg-gray-100 text-gray-500 text-sm sm:text-sm"
+              />
+            </div>
           </div>
 
-        </div>
+          {/* Name Fields */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 mb-2 sm:mb-2 md:mb-4">
+            <div>
+              <p className="text-sm sm:text-sm md:text-sm mb-1 sm:mb-2">
+                Firstname
+              </p>
+              <input
+                type="text"
+                name="tracked_fname"
+                value={formData.tracked_fname}
+                onChange={handleChange}
+                placeholder="Firstname"
+                required
+                className="w-full px-2 sm:px-3 md:px-4 py-2 sm:py-2 md:py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#00A15D] text-sm sm:text-sm"
+              />
+            </div>
 
-        {/* DOB & Phone */}
-        <div className="grid grid-cols-2 gap-4 mb-4">
-          <div>
-            <p className="text-[0.875rem] mb-1">Date of Birth:</p>
-            <input type="date" required 
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#00A15D]" />
+            <div>
+              <p className="text-sm sm:text-sm md:text-sm mb-1 sm:mb-2">
+                Lastname
+              </p>
+              <input
+                type="text"
+                name="tracked_lname"
+                value={formData.tracked_lname}
+                onChange={handleChange}
+                placeholder="Lastname"
+                required
+                className="w-full px-2 sm:px-3 md:px-4 py-2 sm:py-2 md:py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#00A15D] text-sm sm:text-sm"
+              />
+            </div>
+
+            <div className="sm:col-span-2 lg:col-span-1">
+              <p className="text-sm sm:text-sm md:text-sm mb-1 sm:mb-2">
+                Middle Initial
+              </p>
+              <input
+                type="text"
+                name="tracked_mi"
+                value={formData.tracked_mi}
+                onChange={handleChange}
+                placeholder="M.I"
+                maxLength="1"
+                className="w-full px-2 sm:px-3 py-2 sm:py-2 md:py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#00A15D] text-sm sm:text-sm"
+              />
+            </div>
           </div>
 
-          <div>
-            <p className="text-[0.875rem] mb-1">Phone Number:</p>
-            <input type="text" placeholder="+63" required 
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#00A15D]" />
+          {/* DOB & Phone */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 md:gap-6 mb-2 sm:mb-2 md:mb-4">
+            <div>
+              <p className="text-sm sm:text-sm md:text-sm mb-1 sm:mb-2">
+                Date of Birth
+              </p>
+              <input
+                type="date"
+                required
+                name="tracked_bday"
+                value={formData.tracked_bday}
+                onChange={handleChange}
+                className="w-full px-2 sm:px-3 md:px-4 py-2 sm:py-2 md:py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#00A15D] text-sm sm:text-sm"
+              />
+            </div>
+
+            <div>
+              <p className="text-sm sm:text-sm md:text-sm mb-1 sm:mb-2">
+                Phone Number
+              </p>
+              <div className="relative">
+                <span className="absolute left-2 sm:left-3 md:left-4 top-1/2 transform -translate-y-1/2 text-gray-700 text-sm sm:text-sm pointer-events-none">
+                  (+63)
+                </span>
+                <input
+                  type="tel"
+                  name="tracked_phone"
+                  value={formData.tracked_phone}
+                  onChange={handleChange}
+                  onInput={(e) => {
+                    // Remove any non-digit characters
+                    e.target.value = e.target.value.replace(/[^0-9]/g, '');
+                  }}
+                  onKeyPress={(e) => {
+                    // Prevent non-numeric characters from being typed
+                    if (!/[0-9]/.test(e.key) && !['Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'Tab'].includes(e.key)) {
+                      e.preventDefault();
+                    }
+                  }}
+                  placeholder="912 345 6789"
+                  required
+                  maxLength="11"
+                  className="w-full pl-12 sm:pl-14 md:pl-16 pr-2 sm:pr-3 md:pr-4 py-2 sm:py-2 md:py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#00A15D] text-sm sm:text-sm"
+                />
+              </div>
+            </div>
           </div>
 
-        </div>
-
-        {/* Email */}
-        <div className="mb-4">
-          <p className="text-[0.875rem] mb-1">CVSU Email Address:</p>
-          <input type="email" placeholder="JaneDoe@cvsu.edu.ph" required 
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#00A15D]" />
-        </div>
-
-        {/* Password & Confirm */}
-        <div className="grid grid-cols-2 gap-4 mb-6">
-
-          <div>
-            <p className="text-[0.875rem] mb-1">Password:</p>
-            <input type="password" placeholder="Password" required 
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#00A15D]" />
+          {/* Email */}
+          <div className="mb-2 sm:mb-2 md:mb-4">
+            <p className="text-sm sm:text-sm md:text-sm mb-1 sm:mb-2">
+              CVSU Email Address
+            </p>
+            <input
+              type="email"
+              name="tracked_email"
+              value={formData.tracked_email}
+              onChange={handleChange}
+              placeholder="JaneDoe@cvsu.edu.ph"
+              required
+              className="w-full px-2 sm:px-3 md:px-4 py-2 sm:py-2 md:py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#00A15D] text-sm sm:text-sm"
+            />
           </div>
 
-          <div>
-            <p className="text-[0.875rem] mb-1">Confirm Password:</p>
-            <input type="password" placeholder="Re-enter password" required 
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#00A15D]" />
+          {/* Password & Confirm */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 md:gap-6 mb-2 sm:mb-2 md:mb-4">
+            <div>
+              <p className="text-sm sm:text-sm md:text-sm mb-1 sm:mb-2">
+                Password
+              </p>
+              <input
+                type="password"
+                name="tracked_password"
+                value={formData.tracked_password}
+                onChange={handleChange}
+                placeholder="Password"
+                required
+                className="w-full px-2 sm:px-3 md:px-4 py-2 sm:py-2 md:px-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#00A15D] text-sm sm:text-sm"
+              />
+            </div>
+
+            <div>
+              <p className="text-sm sm:text-sm md:text-sm mb-1 sm:mb-2">
+                Confirm Password
+              </p>
+              <input
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="Re-enter password"
+                required
+                className="w-full px-2 sm:px-3 md:px-4 py-2 sm:py-2 md:py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#00A15D] text-sm sm:text-sm"
+              />
+            </div>
           </div>
 
-        </div>
-
-        {/* Register Button */}
-        <button type="submit" className="w-full bg-[#00A15D] hover:bg-green-700 text-white py-2 rounded font-bold mb-4">
-          Register
-        </button>
+          {/* Register Button */}
+          <button
+            type="submit"
+            className="w-full h-9 sm:h-9 bg-[#00A15D] hover:bg-green-700 text-white py-1 rounded-md font-medium mt-2 sm:mt-2 text-sm sm:text-sm cursor-pointer transition-colors duration 200"
+          >
+            Register
+          </button>
+        </form>
 
         {/* Login */}
-        <div className="text-center text-sm">
+        <div className="text-center text-sm sm:text-sm md:text-sm mt-5">
           <span>Already have an account? </span>
-          <Link to="/Login" className="text-[#00A15D] font-semibold cursor-pointer">
+          <Link
+            to="/Login"
+            className="text-[#00A15D] font-semibold cursor-pointer hover:underline"
+          >
             Log In
           </Link>
         </div>
-
       </div>
-      
+
+      {/* GUIDE */}
+      {isGuideOpen && (
+        <div 
+          className="fixed inset-0 bg-white bg-opacity-50 flex justify-center items-center z-50 overlay-fade p-4"
+          style={{ backgroundColor: "rgba(0,0,0,0.5)" }}
+          onClick={(e) => {
+           // close only when clicking the backdrop (not when clicking inside the modal)
+          if (e.target === e.currentTarget) setIsGuideOpen(false);
+        }}
+        role="dialog"
+        aria-modal="true"
+        >
+          <div className="bg-white text-black rounded-lg shadow-lg w-full max-w-sm sm:max-w-md md:max-w-lg lg:mx-w-xl p-4 sm:p-6 md:p-8 relative modal-pop max-h-[90vh] overflow-y-auto">
+            <button
+              onClick={() => setIsGuideOpen(false)}
+              aria-label="Close guide"
+              className="absolute top-4 right-4 sm:top-4 sm:right-6 md:top-6 md:right-8 cursor-pointer"
+            >
+                      <img
+                      src={Close} 
+                      alt="Back"
+                      className="w-5 h-5 sm:w-5 sm:h-5 md:w-6 md:h-6"
+                      />
+            </button>
+
+            <h2 className="text-lg sm:text-xl md:text-2xl font-bold mb-3 sm:mb-4 pr-8">TrackED Guide</h2>
+            <hr className="border-gray-300 mb-3 sm:mb-4" />
+
+            <h3 className="font-semibold mb-3 sm:mb-4 md:mb-5 text-sm sm:text-base">Common Asked Questions</h3>
+            <div className="space-y-2 sm:space-y-3">
+              {faqs.map((faq, index) => (
+                <div key={index} className="border-b border-gray-300 pb-2 sm:pb-3">
+                  <button
+                    className="flex justify-between items-center w-full text-left text-green-700 sm:text-green-800 font-medium cursor-pointer text-xs sm:text-sm md:text-base hover:text-green-600 transition-colors"
+                    onClick={() => toggleFAQ(index)}
+                  >
+                    <span className="pr-2">{faq.question}</span>
+                    <span className="text-xs sm:text-sm flex-shrink-0">{openIndex === index ? 
+                    // ( <img src={Collapse} alt="Arrow Down" className="w-full h-full" />) 
+                    "▲" : "▼"
+                    // (<img src={Expand} alt="Arrow Up" className="w-full h-full" /> )
+                     }
+                    </span>
+                  </button>
+                  {openIndex === index && (
+                    <p className="text-black-600 mt-2 text-xs sm:text-sm leading-relaxed">{faq.answer}</p>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+
+              <style>{`
+                .overlay-fade { animation: overlayFade .18s ease-out both; }
+                @keyframes overlayFade { from { opacity: 0 } to { opacity: 1 } }
+
+                .modal-pop {
+                  transform-origin: top center;
+                  animation: popIn .22s cubic-bezier(.2,.8,.2,1) both;
+                }
+                @keyframes popIn {
+                  from { opacity: 0; transform: translateY(-8px) scale(.98); }
+                  to   { opacity: 1; transform: translateY(0)   scale(1);    }
+                }
+
+                /* Responsive scroll behavior */
+                @media (max-height: 600px) {
+                  .modal-pop {
+                    max-height: 85vh;
+                  }
+                }
+                
+                /* Enhanced mobile styles */
+                @media (max-width: 640px) {
+                  .modal-pop {
+                    margin: 1rem;
+                    max-height: calc(100vh - 2rem);
+                  }
+                }
+              `}</style>
+            
+        </div>
+      )}
     </div>
-  )
+  );
 }
