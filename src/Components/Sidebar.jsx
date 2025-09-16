@@ -34,8 +34,9 @@ export default function Sidebar({ role, isOpen: isOpenProp, setIsOpen: setIsOpen
     teacher: [
       { label: "", icon: Blank },
       { label: "Dashboard", icon: Dashboard },
-      { label: "My Classes", icon: Subjects },
-      { label: "Attendance", icon: Analytics },
+      { label: "ClassManagement", icon: Subjects },
+      { label: "Analytics", icon: Analytics },
+      { label: "Announcement", icon: Announcement },
     ],
 
     admin: [
@@ -111,7 +112,7 @@ export default function Sidebar({ role, isOpen: isOpenProp, setIsOpen: setIsOpen
                 <p className="text-[#FFFFFF] text-[1.125rem]">Profile</p>
               </div>
 
-              <div className="flex mt-3 mb-60 px-4 py-3 hover:bg-[#00A15D] hover:rounded-xl cursor-pointer">
+              <div className="flex mt-3 mb-10 px-4 py-3 hover:bg-[#00A15D] hover:rounded-xl cursor-pointer">
                 <img src={AccountSettings} alt="Settings" className="mr-5" />
                 <p className="text-[#FFFFFF] text-[1.125rem]">Account Settings</p>
               </div>
