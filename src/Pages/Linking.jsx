@@ -17,6 +17,12 @@ import Signup from './Landing/Signup.jsx';
 
 {/* Professor Links */}
 import DashboardProf from './Professor/DashboardProf.jsx';
+import ClassManagement from './Professor/ClassManagement.jsx';
+import AnalyticsProf from './Professor/AnalyticsProf.jsx';
+import Announcement from './Professor/Announcement.jsx';
+import NotificationProf from './Professor/NotificationProf.jsx';
+import ProfileProf from './Professor/ProfileProf.jsx';
+import AccountSettingProf from './Professor/AccountSettingProf.jsx';
 
 
 function Linking() {
@@ -26,6 +32,7 @@ function Linking() {
 
         {/* Starting Flow */} 
         <Route path="/" element={<DashboardProf />} />  
+        
 
         {/* Navigations for Landing */}
         <Route path ="/Login" element={<Login />} />
@@ -44,6 +51,12 @@ function Linking() {
         
         {/* Navigations for Professor  */} 
         <Route path="DashboardProf" element={<DashboardProf />} />  
+        <Route path="ClassManagement" element={<ClassManagement />} />  
+        <Route path="AnalyticsProf" element={<AnalyticsProf />} />  
+        <Route path="Announcement" element={<Announcement />} />  
+        <Route path="NotificationProf" element={<NotificationProf />} />  
+        <Route path="ProfileProf" element={<ProfileProf/>} />  
+        <Route path="AccountSettingProf" element={<AccountSettingProf/>} />  
       </Routes>
     </Router>
   );

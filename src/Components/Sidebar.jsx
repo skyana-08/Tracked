@@ -1,18 +1,18 @@
-import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { useState, useEffect } from "react"; 
+import { Link } from "react-router-dom"; 
 
-import Dashboard from "../assets/Dashboard.svg";
-import Subjects from "../assets/Subjects.svg";
-import Analytics from "../assets/Analytics.svg";
-import ClassManagement from "../assets/ClassManagement.svg";
-import Announcement from "../assets/Announcement.svg";
-import Report from "../assets/Report.svg";
-import AccountRequest from "../assets/AccountRequest.svg";
-import Import from "../assets/Import.svg";
-import Notification from "../assets/Notification.svg";
-import Profile from "../assets/Profile.svg";
-import AccountSettings from "../assets/Settings.svg";
-import LogOut from "../assets/LogOut.svg";
+import Dashboard from "../assets/Dashboard.svg"; 
+import Subjects from "../assets/Subjects.svg"; 
+import Analytics from "../assets/Analytics.svg"; 
+import ClassManagement from "../assets/ClassManagement.svg"; 
+import Announcement from "../assets/Announcement.svg"; 
+import Report from "../assets/Report.svg"; 
+import AccountRequest from "../assets/AccountRequest.svg"; 
+import Import from "../assets/Import.svg"; 
+import Notification from "../assets/Notification.svg"; 
+import Profile from "../assets/Profile.svg"; 
+import AccountSettings from "../assets/Settings.svg"; 
+import LogOut from "../assets/LogOut.svg"; 
 import TextLogo from "../assets/New-FullWhite-TrackEdLogo.svg";
 
 export default function Sidebar({ role, isOpen: isOpenProp, setIsOpen: setIsOpenProp }) {
@@ -23,25 +23,21 @@ export default function Sidebar({ role, isOpen: isOpenProp, setIsOpen: setIsOpen
   const isOpen = isControlled ? isOpenProp : localOpen;
   const setIsOpen = isControlled ? setIsOpenProp : setLocalOpen;
 
-  // Track screen size
   useEffect(() => {
     const checkScreenSize = () => {
-      setIsMobile(window.innerWidth < 1024); // lg breakpoint
+      setIsMobile(window.innerWidth < 1024);
     };
-
     checkScreenSize();
     window.addEventListener("resize", checkScreenSize);
     return () => window.removeEventListener("resize", checkScreenSize);
   }, []);
 
-  // Close sidebar when clicking outside on mobile
   useEffect(() => {
     const handleOutsideClick = (event) => {
       if (isMobile && isOpen && !event.target.closest("aside")) {
         setIsOpen(false);
       }
     };
-
     if (isMobile && isOpen) {
       document.addEventListener("mousedown", handleOutsideClick);
       return () => document.removeEventListener("mousedown", handleOutsideClick);
@@ -50,25 +46,41 @@ export default function Sidebar({ role, isOpen: isOpenProp, setIsOpen: setIsOpen
 
   // role menus
   const menus = {
-    student: [
-      { label: "Dashboard", icon: Dashboard, path: "/Dashboard" },
-      { label: "My Courses", icon: Subjects, path: "/MyCourses" },
-      { label: "Grades", icon: Analytics, path: "/Grades" },
-    ],
+    student: {
+      main: [
+        { label: "Dashboard", icon: Dashboard, path: "/Dashboard" },
+        { label: "My Courses", icon: Subjects, path: "/MyCourses" },
+        { label: "Grades", icon: Analytics, path: "/Grades" },
+      ],
+      extras: [
+        { label: "Notification", icon: Notification, path: "/Notification" },
+        { label: "Profile", icon: Profile, path: "/Profile" },
+        { label: "Account Settings", icon: AccountSettings, path: "/AccountSetting" },
+      ],
+    },
 
-    teacher: [
-      { label: "Dashboard", icon: Dashboard, path: "/Dashboard" },
-      { label: "Class Management", icon: ClassManagement, path: "/ClassManagement" },
-      { label: "Analytics", icon: Analytics, path: "/Analytics" },
-      { label: "Announcement", icon: Announcement, path: "/Announcement" },
-    ],
+    teacher: {
+      main: [
+        { label: "Dashboard", icon: Dashboard, path: "/DashboardProf" },
+        { label: "Class Management", icon: ClassManagement, path: "/ClassManagement" },
+        { label: "Analytics", icon: Analytics, path: "/AnalyticsProf" },
+        { label: "Announcement", icon: Announcement, path: "/Announcement" },
+      ],
+      extras: [
+        { label: "Notification", icon: Notification, path: "/NotificationProf" },
+        { label: "Profile", icon: Profile, path: "/ProfileProf" },
+        { label: "Account Settings", icon: AccountSettings, path: "/AccountSettingProf" },
+      ],
+    },
 
-    admin: [
-      { label: "User Management", icon: ClassManagement, path: "/UserManagement" },
-      { label: "Report", icon: Report, path: "/Report" },
-      { label: "Account Request", icon: AccountRequest, path: "/AccountRequest" },
-      { label: "Import", icon: Import, path: "/Import" },
-    ],
+    admin: {
+      main: [
+        { label: "User Management", icon: ClassManagement, path: "/UserManagement" },
+        { label: "Report", icon: Report, path: "/Report" },
+        { label: "Account Request", icon: AccountRequest, path: "/AccountRequest" },
+        { label: "Import", icon: Import, path: "/Import" },
+      ],
+    },
   };
 
   const handleLinkClick = () => {
@@ -77,7 +89,6 @@ export default function Sidebar({ role, isOpen: isOpenProp, setIsOpen: setIsOpen
 
   return (
     <>
-      {/* Backdrop overlay for mobile */}
       {isOpen && isMobile && (
         <div
           className="fixed inset-0 bg-black/50 z-40 lg:hidden"
@@ -103,9 +114,10 @@ export default function Sidebar({ role, isOpen: isOpenProp, setIsOpen: setIsOpen
 
           <hr className="border-[#DBDBDB] rounded border-1 opacity-50" />
 
-          {/* Render menus based on role */}
+          {/* Main Menus */}
           <div className="flex flex-col mt-8">
-            {menus[role]?.map((item, index) => (
+
+            {menus[role]?.main?.map((item, index) => (
               <Link key={index} to={item.path} onClick={handleLinkClick}>
                 <div className="flex mt-3 px-4 py-3 hover:bg-[#00A15D] hover:rounded-xl cursor-pointer">
                   <img src={item.icon} alt={item.label} className="mr-5" />
@@ -113,26 +125,23 @@ export default function Sidebar({ role, isOpen: isOpenProp, setIsOpen: setIsOpen
                 </div>
               </Link>
             ))}
+
           </div>
 
-          {/* Extra items for non-admin */}
-          {role !== "admin" && (
+          {/* Extras Section */}
+          {menus[role]?.extras?.length > 0 && (
             <div className="pt-20 lg:pt-40">
               <hr className="border-[#DBDBDB] rounded border-1 mt-6 opacity-50" />
-              <div className="flex mt-4 px-4 py-3 hover:bg-[#00A15D] hover:rounded-xl cursor-pointer">
-                <img src={Notification} alt="Notification" className="mr-5" />
-                <p className="text-[#FFFFFF] text-[1.125rem]">Notification</p>
-              </div>
 
-              <div className="flex mt-3 px-4 py-3 hover:bg-[#00A15D] hover:rounded-xl cursor-pointer">
-                <img src={Profile} alt="Profile" className="mr-5" />
-                <p className="text-[#FFFFFF] text-[1.125rem]">Profile</p>
-              </div>
+              {menus[role].extras.map((item, index) => (
+                <Link key={index} to={item.path} onClick={handleLinkClick}>
+                  <div className="flex mt-4 px-4 py-3 hover:bg-[#00A15D] hover:rounded-xl cursor-pointer">
+                    <img src={item.icon} alt={item.label} className="mr-5" />
+                    <p className="text-[#FFFFFF] text-[1.125rem]">{item.label}</p>
+                  </div>
+                </Link>
+              ))}
 
-              <div className="flex mt-3 mb-10 px-4 py-3 hover:bg-[#00A15D] hover:rounded-xl cursor-pointer">
-                <img src={AccountSettings} alt="Settings" className="mr-5" />
-                <p className="text-[#FFFFFF] text-[1.125rem]">Account Settings</p>
-              </div>
             </div>
           )}
 
