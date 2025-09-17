@@ -4,28 +4,26 @@ import { Link } from 'react-router-dom';
 
 import Sidebar from "../../Components/Sidebar";
 import Header from "../../Components/Header";
-import Popup from "../../Components/Popup";
 
 import ClassManagementLight from '../../assets/ClassManagement(Light).svg';
 import BackButton from '../../assets/BackButton(Light).svg';
 
 export default function UserManagement_StudentAccountDetails() {
   const [isOpen, setIsOpen] = useState(false);
-  const [popupType, setPopupType] = useState(null);
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-gray-300">
       <Sidebar role="admin" isOpen={isOpen} setIsOpen={setIsOpen} />
       <div
         className={`
         transition-all duration-300
-        ${isOpen ? "lg:ml-[250px] xl:ml-[250px] 2xl:ml-[300px]" : "ml-0"}
+        ${isOpen ? "lg:ml-[250px] xl:ml-[280px] 2xl:ml-[300px]" : "ml-0"}
       `}
       >
         <Header setIsOpen={setIsOpen} isOpen={isOpen} />
 
         {/* content of ADMIN USER MANAGEMENT STUDENT ACCOUNT DETAILS */}
-        <div className="p-3 sm:p-4 md:p-5 lg:p-5 xl:p-5">
+        <div className="p-3 sm:p-4 md:p-5 lg:p-6 xl:p-8">
           {/* "Header" */}
           <div className="flex flex-col sm:flex-row item-start sm:items-center mb-2 sm:mb-4">
             <div className="flex items-center mb-2 sm:mb-0">
@@ -154,46 +152,17 @@ export default function UserManagement_StudentAccountDetails() {
                   Edit
                 </button>
 
-                <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
-                  {/* Reset Password */}
-                  <button 
-                    onClick={() => setPopupType("reset")} 
-                    className="font-bold text-white py-2 px-4 bg-[#00874E] rounded-md shadow-md text-center hover:bg-[#465746] hover:border-2 text-sm sm:text-base w-full sm:w-auto transition-colors duration-200 cursor-pointer"
-                  >
-                    Reset Password
-                  </button>
+                {/* Reset Password */}
+                <button className="font-bold text-white py-2 px-4 bg-[#00874E] rounded-md shadow-md text-center hover:bg-[#465746] hover:border-2 text-sm sm:text-base w-full sm:w-auto transition-colors duration-200 cursor-pointer">
+                  Reset Password
+                </button>
 
-                  {/* Disable Account */}
-                  <button 
-                    onClick={() => setPopupType("disable")}  
-                    className="font-bold text-white py-2 px-4 bg-[#00874E] rounded-md shadow-md text-center hover:bg-[#465746] hover:border-2 text-sm sm:text-base w-full sm:w-auto transition-colors duration-200 cursor-pointer"
-                  >
-                    Disable Account
-                  </button>
-                </div>
+                {/* Disable Account */}
+                <button className="font-bold text-white py-2 px-4 bg-[#00874E] rounded-md shadow-md text-center hover:bg-[#465746] hover:border-2 text-sm sm:text-base w-full sm:w-auto transition-colors duration-200 cursor-pointer">
+                  Disable Account
+                </button>
               </div>
             </div>
-
-            {/* Popup */}
-            {popupType === "reset" && (
-              <Popup 
-                setOpen={() => setPopupType(null)} 
-                message="Do you really want to reset this password?" 
-                confirmText="Reset" 
-                buttonColor="#00874E" 
-                hoverColor="#006F3A" 
-              />
-            )}
-
-            {popupType === "disable" && (
-              <Popup 
-                setOpen={() => setPopupType(null)} 
-                message="Are you sure you want to disable this account?" 
-                confirmText="Disable" 
-                buttonColor="#FF6666" 
-                hoverColor="#C23535" 
-              />
-            )}
           </div>
         </div>
       </div>

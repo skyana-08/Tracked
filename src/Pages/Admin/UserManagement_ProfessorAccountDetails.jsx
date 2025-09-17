@@ -18,7 +18,7 @@ export default function UserManagement_ProfessorAccountDetails() {
       <div
         className={`
         transition-all duration-300
-        ${isOpen ? "lg:ml-[250px] xl:ml-[250px] 2xl:ml-[300px]" : "ml-0"}
+        ${isOpen ? "lg:ml-[250px] xl:ml-[280px] 2xl:ml-[300px]" : "ml-0"}
       `}
       >
         <Header setIsOpen={setIsOpen} isOpen={isOpen} />

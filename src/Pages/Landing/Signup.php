@@ -14,6 +14,37 @@ if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
 }
 
+// reCAPTCHA
+$captcha = $_POST['captcha'] ?? '';
+if (!$captcha) {
+    echo "CAPCTHA missing.";
+    exit;
+}
+
+$secretKey = "6LclQMwrAAAAAB9bcSEvD_48zHqCKaOt0KPQENUs";
+$responseData = json_decode($verifyResponse);
+
+// PPWEDE LANG TO PAG NAKA OFF UNG LINK SA MAY PHP.INI
+// $ch = curl_init();
+// curl_setopt($ch, CURLOPT_URL, "https://www.google.com/recaptcha/api/siteverify");
+// curl_setopt($ch, CURLOPT_POST, 1);
+// curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query([
+//     'secret' => $secretKey,
+//     'response' => $captcha
+// ]));
+// curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+
+// $verifyResponse = curl_exec($ch);
+// curl_close($ch);
+
+// $responseData = json_decode($verifyResponse);
+
+
+// if (!$responseData->success) {
+//     echo "CAPTCHA verification failed.";
+//     exit;
+// }
+
 $user_ID     = $_POST['tracked_ID'];
 $user_email  = $_POST['tracked_email'];
 $user_pass   = $_POST['tracked_password'];

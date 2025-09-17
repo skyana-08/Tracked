@@ -18,7 +18,7 @@ export default function AdminAccountArchive() {
   const [showPopup, setShowPopup] = useState(false);
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-gray-300">
       <Sidebar role="admin" isOpen={isOpen} setIsOpen={setIsOpen} />
       <div className={`
         transition-all duration-300
@@ -27,7 +27,7 @@ export default function AdminAccountArchive() {
         <Header setIsOpen={setIsOpen} isOpen={isOpen} />
 
         {/* main content of ADMIN ACCOUNT ARCHIVE */}
-        <div className="p-3 sm:p-4 md:p-5 lg:p-5 xl:p-5">
+        <div className="p-3 sm:p-4 md:p-5 lg:p-6 xl:p-8">
         
           {/* "Header" */}
           <div className="flex flex-col sm:flex-row item-start sm:items-center mb-2 sm:mb-4">
@@ -69,7 +69,7 @@ export default function AdminAccountArchive() {
                   className="flex items-center font-bold px-3 py-2 bg-[#fff] rounded-md w-32 sm:w-36 md:w-44 lg:w-40 shadow-md hover:border-[#00874E] hover:border-2 text-xs sm:text-sm cursor-pointer"
                 >
                   Filter
-                  <img src={ArrowDown} alt="ArrowDown" className="ml-15 h-5 w-5 sm:h-6 sm:w-6 md:h-6 md:w-6 lg:h-7 lg:w-7" />
+                  <img src={ArrowDown} alt="ArrowDown" className="ml-2 h-5 w-5 sm:h-6 sm:w-6 md:h-6 md:w-6 lg:h-7 lg:w-7" />
                 </button>
 
                 {open && (
@@ -130,7 +130,7 @@ export default function AdminAccountArchive() {
                 <thead>
                   <tr className="text-[#465746] font-bold">
                     <th className="py-2 px-2 sm:px-3">No.</th>
-                    <th className="py-2 px-2 sm:px-3">ID No.</th>
+                    <th className="py-2 px-2 sm:px-3">Student/Professor No.</th>
                     <th className="py-2 px-2 sm:px-3">Full Name</th>
                     <th className="py-2 px-2 sm:px-3">Email</th>
                     <th className="py-2 px-2 sm:px-3">Status</th>

@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
+import ReCAPTCHA from "react-google-recaptcha";
 
 import Guide from "../../assets/Guide(Light).svg";
 import FullLogo from "../../assets/New-FullBlack-TrackEdLogo.svg";
@@ -15,12 +16,13 @@ export default function Signup() {
     tracked_fname: "",
     tracked_lname: "",
     tracked_mi: "",
-    tracked_program: "Information Technology", // default program
+    tracked_program: "BSIT",
     tracked_bday: "",
     tracked_phone: "",
   });
 
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [captchaToken, setCaptchaToken] = useState(null); 
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -35,6 +37,11 @@ export default function Signup() {
       return;
     }
 
+    if (!captchaToken) {
+      alert("Please complete the CAPTCHA");
+      return;
+    }
+
     //connection sa php file
     try {
       const res = await fetch(
@@ -42,7 +49,10 @@ export default function Signup() {
         {
           method: "POST",
           headers: { "Content-Type": "application/x-www-form-urlencoded" },
-          body: new URLSearchParams(formData).toString(),
+          body: new URLSearchParams({
+              ...formData,
+            captcha: captchaToken,
+          }).toString(),
         }
       );
 
@@ -65,11 +75,11 @@ export default function Signup() {
     },
     {
       question: "I forgot my password. What shoud I do?",
-      answer: "- Click on 'Forgot Password?' on the login page, then enter your registered email. You’ll receive a link to reset your password."
+      answer: "- Click on 'Forgot Password?' on the login page, then enter your registered email. You'll receive a link to reset your password."
     },
     {
       question: "Can I use a personal email to sign up?",
-      answer: "- Yes, you can use either your school or personal email. Just make sure it’s an active email you can access."
+      answer: "- Yes, you can use either your school or personal email. Just make sure it's an active email you can access."
     },
     {
       question: "Who do I contact for account issues or bugs?",
@@ -81,10 +91,11 @@ export default function Signup() {
   const toggleFAQ = (index) => {
     setOpenIndex(openIndex === index ? null : index);
   };
+  
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center text-[#465746] px-6 sm:px-6 lg:px-8 py-10 sm:py-10">
-      <div className="bg-white p-6 sm:p-8 md:p-10 rounded-lg shadow-md w-full max-w-200 ">
+      <div className="bg-white p-6 sm:p-8 md:p-10 rounded-lg shadow-md w-full max-w-200">
         <div className="flex justify-end mb-2">
           <img
             src={Guide}
@@ -101,7 +112,7 @@ export default function Signup() {
             className="h-12 sm:h-10 md:h-10 lg:h-12 xl:h-12 w-auto mx-auto mb-2 sm:mb-2 md:mb-4 cursor-pointer"
           />
         </h1>
-        <p className="text-center mb-2 sm:mb-4 md:mb-6 text-base sm:text-base md:text-base">
+        <p className="text-center mb-2 sm:mb-4 md:mb-6 text-sm sm:text-base md:text-base">
           Cavite State University - Imus Campus
         </p>
 
@@ -118,7 +129,7 @@ export default function Signup() {
             Account Creation
           </p>
         </div>
-        <p className="mb-3 sm:mb-5 md:mb-6 ml-6 sm:ml-7 md:ml-8 text-sm sm:text-sm md:text-sm text-gray-600">
+        <p className="mb-3 sm:mb-5 md:mb-6 ml-6 sm:ml-7 md:ml-8 text-xs sm:text-sm md:text-sm text-gray-600">
           Make sure your Student Number is recorded in CVSU - Imus Campus.
         </p>
 
@@ -138,7 +149,7 @@ export default function Signup() {
                 required
                 pattern="[0-9]*"
                 inputMode="numeric"
-                className="w-full px-2 sm:px-3 md:px-4 py-2 sm:py-2 md:py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#00A15D] text-sm sm:text-sm"
+                className="w-full px-2 sm:px-3 md:px-4 py-2 sm:py-2 md:py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#00A15D] text-xs sm:text-sm"
               />
             </div>
             <div>
@@ -150,7 +161,7 @@ export default function Signup() {
                 name="tracked_program"
                 value={formData.tracked_program}
                 readOnly
-                className="w-full px-2 sm:px-3 md:px-4 py-2 sm:py-2 md:py-2 border border-gray-300 rounded-md bg-gray-100 text-gray-500 text-sm sm:text-sm"
+                className="w-full px-2 sm:px-3 md:px-4 py-2 sm:py-2 md:py-2 border border-gray-300 rounded-md bg-gray-100 text-gray-500 text-xs sm:text-sm"
               />
             </div>
           </div>
@@ -168,7 +179,7 @@ export default function Signup() {
                 onChange={handleChange}
                 placeholder="Firstname"
                 required
-                className="w-full px-2 sm:px-3 md:px-4 py-2 sm:py-2 md:py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#00A15D] text-sm sm:text-sm"
+                className="w-full px-2 sm:px-3 md:px-4 py-2 sm:py-2 md:py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#00A15D] text-xs sm:text-sm"
               />
             </div>
 
@@ -183,7 +194,7 @@ export default function Signup() {
                 onChange={handleChange}
                 placeholder="Lastname"
                 required
-                className="w-full px-2 sm:px-3 md:px-4 py-2 sm:py-2 md:py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#00A15D] text-sm sm:text-sm"
+                className="w-full px-2 sm:px-3 md:px-4 py-2 sm:py-2 md:py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#00A15D] text-xs sm:text-sm"
               />
             </div>
 
@@ -198,7 +209,7 @@ export default function Signup() {
                 onChange={handleChange}
                 placeholder="M.I"
                 maxLength="1"
-                className="w-full px-2 sm:px-3 py-2 sm:py-2 md:py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#00A15D] text-sm sm:text-sm"
+                className="w-full px-2 sm:px-3 py-2 sm:py-2 md:py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#00A15D] text-xs sm:text-sm"
               />
             </div>
           </div>
@@ -215,7 +226,7 @@ export default function Signup() {
                 name="tracked_bday"
                 value={formData.tracked_bday}
                 onChange={handleChange}
-                className="w-full px-2 sm:px-3 md:px-4 py-2 sm:py-2 md:py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#00A15D] text-sm sm:text-sm"
+                className="w-full px-2 sm:px-3 md:px-4 py-2 sm:py-2 md:py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#00A15D] text-xs sm:text-sm"
               />
             </div>
 
@@ -224,7 +235,7 @@ export default function Signup() {
                 Phone Number
               </p>
               <div className="relative">
-                <span className="absolute left-2 sm:left-3 md:left-4 top-1/2 transform -translate-y-1/2 text-gray-700 text-sm sm:text-sm pointer-events-none">
+                <span className="absolute left-2 sm:left-3 md:left-4 top-1/2 transform -translate-y-1/2 text-gray-700 text-xs sm:text-sm pointer-events-none">
                   (+63)
                 </span>
                 <input
@@ -245,7 +256,7 @@ export default function Signup() {
                   placeholder="912 345 6789"
                   required
                   maxLength="11"
-                  className="w-full pl-12 sm:pl-14 md:pl-16 pr-2 sm:pr-3 md:pr-4 py-2 sm:py-2 md:py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#00A15D] text-sm sm:text-sm"
+                  className="w-full pl-12 sm:pl-14 md:pl-16 pr-2 sm:pr-3 md:pr-4 py-2 sm:py-2 md:py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#00A15D] text-xs sm:text-sm"
                 />
               </div>
             </div>
@@ -263,7 +274,7 @@ export default function Signup() {
               onChange={handleChange}
               placeholder="JaneDoe@cvsu.edu.ph"
               required
-              className="w-full px-2 sm:px-3 md:px-4 py-2 sm:py-2 md:py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#00A15D] text-sm sm:text-sm"
+              className="w-full px-2 sm:px-3 md:px-4 py-2 sm:py-2 md:py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#00A15D] text-xs sm:text-sm"
             />
           </div>
 
@@ -280,7 +291,7 @@ export default function Signup() {
                 onChange={handleChange}
                 placeholder="Password"
                 required
-                className="w-full px-2 sm:px-3 md:px-4 py-2 sm:py-2 md:px-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#00A15D] text-sm sm:text-sm"
+                className="w-full px-2 sm:px-3 md:px-4 py-2 sm:py-2 md:py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#00A15D] text-xs sm:text-sm"
               />
             </div>
 
@@ -294,22 +305,35 @@ export default function Signup() {
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 placeholder="Re-enter password"
                 required
-                className="w-full px-2 sm:px-3 md:px-4 py-2 sm:py-2 md:py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#00A15D] text-sm sm:text-sm"
+                className="w-full px-2 sm:px-3 md:px-4 py-2 sm:py-2 md:py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#00A15D] text-xs sm:text-sm"
               />
+            </div>
+          </div>
+          
+          {/* RESPONSIVE RECAPTCHA */}
+          <div className="my-3 sm:my-4 flex justify-center">
+            <div className="w-full max-w-[320px] flex justify-center overflow-hidden">
+              <div className="transform scale-[0.70] sm:scale-[0.85] md:scale-95 lg:scale-95 origin-center">
+                <ReCAPTCHA 
+                  sitekey="6LclQMwrAAAAAPXrqY3nFvcNIkcioAbqng-GzxxA"
+                  onChange={(token) => setCaptchaToken(token)}
+                  theme="light"
+                />
+              </div>
             </div>
           </div>
 
           {/* Register Button */}
           <button
             type="submit"
-            className="w-full h-9 sm:h-9 bg-[#00A15D] hover:bg-green-700 text-white py-1 rounded-md font-medium mt-2 sm:mt-2 text-sm sm:text-sm cursor-pointer transition-colors duration 200"
+            className="w-full h-9 sm:h-9 bg-[#00A15D] hover:bg-green-700 text-white py-1 rounded-md font-medium mt-2 sm:mt-2 text-sm sm:text-sm cursor-pointer transition-colors duration-200"
           >
             Register
           </button>
         </form>
 
         {/* Login */}
-        <div className="text-center text-sm sm:text-sm md:text-sm mt-5">
+        <div className="text-center text-xs sm:text-sm md:text-sm mt-5">
           <span>Already have an account? </span>
           <Link
             to="/Login"

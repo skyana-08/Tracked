@@ -27,16 +27,16 @@ export default function Report() {
   const [showPopup, setShowPopup] = useState(false);
   
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-gray-300">
       <Sidebar role="admin" isOpen={isOpen} setIsOpen={setIsOpen} />
       <div className={`
         transition-all duration-300
-        ${isOpen ? 'lg:ml-[250px] xl:ml-[250px] 2xl:ml-[300px]' : 'ml-0'}
+        ${isOpen ? 'lg:ml-[250px] xl:ml-[280px] 2xl:ml-[300px]' : 'ml-0'}
       `}>
         <Header setIsOpen={setIsOpen} isOpen={isOpen} />
 
         {/* content of ADMIN REPORTS */}
-        <div className="p-3 sm:p-4 md:p-5 lg:p-5 xl:p-5">
+        <div className="p-3 sm:p-4 md:p-5 lg:p-6 xl:p-8">
 
           {/* Header */}
           <div className="flex flex-col sm:flex-row item-start sm:items-center mb-2 sm:mb-4">
@@ -63,7 +63,7 @@ export default function Report() {
           {/* main content of ADMIN REPORTS */}
           {/* Widgets TOTAL, PROFESSOR, & STUDENT */}
           <div className='flex justify-center items-center mt-5'>
-            <div className='grid grid-cols-3 md:grid-cols-3 lg:grid-cols-3 gap-1 sm:gap-4 lg:gap-6 w-full max-w-7xl'>
+            <div className='grid grid-cols-3 md:grid-cols-2 lg:grid-cols-3 gap-1 sm:gap-4 lg:gap-6 w-full max-w-7xl'>
 
               {/* Widgets TOTAL ACCOUNT CREATED */}
               <div className='bg-[#fff] h-24 sm:h-40 rounded-lg sm:rounded-xl p-2 sm:p-4 text-[#465746] shadow-md'> 
@@ -128,7 +128,7 @@ export default function Report() {
           {/* STUDENT ACCOUNT */}
           {/* Widgets ACTIVE PENDING DISABLED */}
           <div className='flex justify-center items-center mt-5'>
-            <div className='grid grid-cols-3 md:grid-cols-3 lg:grid-cols-3 gap-1 sm:gap-4 lg:gap-6 w-full max-w-7xl'>
+            <div className='grid grid-cols-3 md:grid-cols-2 lg:grid-cols-3 gap-1 sm:gap-4 lg:gap-6 w-full max-w-7xl'>
 
               {/* Widgets ACTIVE ACCOUNTS */}
               <div className='bg-[#fff] h-24 sm:h-40 rounded-lg sm:rounded-xl p-2 sm:p-4 text-[#465746] shadow-md'> 
@@ -189,8 +189,6 @@ export default function Report() {
 
           </div>
 
-          <hr className="opacity-60 border-[#465746] rounded border-1 mt-5" />
-
           <p className="text-sm sm:text-base lg:text-lg text-[#465746] mt-5 font-bold">
             Student Accounts
           </p>
@@ -204,7 +202,7 @@ export default function Report() {
                   className="flex items-center font-bold px-3 py-2 bg-[#fff] rounded-md w-32 sm:w-36 md:w-44 lg:w-40 shadow-md hover:border-[#00874E] hover:border-2 text-xs sm:text-sm cursor-pointer"
                 >
                   Filter
-                  <img src={ArrowDown} alt="ArrowDown" className="ml-15 h-5 w-5 sm:h-6 sm:w-6 md:h-6 md:w-6 lg:h-7 lg:w-7" />
+                  <img src={ArrowDown} alt="ArrowDown" className="ml-2 h-5 w-5 sm:h-6 sm:w-6 md:h-6 md:w-6 lg:h-7 lg:w-7" />
                 </button>
 
                 {studentFilterOpen && (
@@ -264,6 +262,7 @@ export default function Report() {
             </div>
           </div>
 
+          <hr className="opacity-60 border-[#465746] rounded border-1 mt-5" />
 
           {/* STUDENT ACCOUNT Table */}
           <div className="mt-5">
@@ -443,12 +442,9 @@ export default function Report() {
             )}
           </div>
 
-          <hr className="opacity-60 border-[#465746] rounded border-1 mt-5" />
-
           {/* PROFESSOR ACCOUNT */}
           <p className="text-sm sm:text-base lg:text-lg text-[#465746] mt-5 font-bold"> Professor Accounts</p>
           
-
           {/* PROFESSOR BUTTONS */}
           <div className="flex flex-col lg:flex-row mt-4 sm:mt-5 text-sm sm:text-sm md:text-base lg:text-base text-[#465746] gap-4 lg:justify-between lg:items-center">
              {/* Filter Dropdown */}
@@ -458,11 +454,29 @@ export default function Report() {
                   className="flex items-center font-bold px-3 py-2 bg-[#fff] rounded-md w-32 sm:w-36 md:w-44 lg:w-40 shadow-md hover:border-[#00874E] hover:border-2 text-xs sm:text-sm cursor-pointer"
                 >
                   Filter
-                  <img src={ArrowDown} alt="ArrowDown" className="ml-15 h-5 w-5 sm:h-6 sm:w-6 md:h-6 md:w-6 lg:h-7 lg:w-7" />
+                  <img src={ArrowDown} alt="ArrowDown" className="ml-2 h-5 w-5 sm:h-6 sm:w-6 md:h-6 md:w-6 lg:h-7 lg:w-7" />
                 </button>
 
                 {professorFilterOpen && (
                   <div className="absolute top-full mt-1 bg-white rounded-md w-32 sm:w-36 md:w-44 lg:w-40 shadow-lg border border-gray-200 z-10">
+                    <button 
+                      className="block px-3 py-2 w-full text-left hover:bg-gray-100 text-xs sm:text-sm md:text-base transition-colors duration-200 cursor-pointer"
+                      onClick={() => {
+                        setSelectedFilter("Year");
+                        setProfessorFilterOpen(false);
+                      }}
+                    >
+                      Year
+                    </button>
+                    <button 
+                      className="block px-3 py-2 w-full text-left hover:bg-gray-100 text-xs sm:text-sm md:text-base transition-colors duration-200 cursor-pointer"
+                      onClick={() => {
+                        setSelectedFilter("Section");
+                        setProfessorFilterOpen(false);
+                      }}
+                    >
+                      Section
+                    </button>
                     <button 
                       className="block px-3 py-2 w-full text-left hover:bg-gray-100 text-xs sm:text-sm md:text-base transition-colors duration-200 cursor-pointer"
                       onClick={() => {
@@ -500,6 +514,7 @@ export default function Report() {
             </div>
           </div>
 
+          <hr className="opacity-60 border-[#465746] rounded border-1 mt-5" />
 
           {/* PROFESSOR ACCOUNT Table */}
           <div className="mt-5">
