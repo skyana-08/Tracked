@@ -102,20 +102,18 @@ export default function Sidebar({ role = "student", isOpen: isOpenProp, setIsOpe
         <div
           className="fixed inset-0 bg-black/50 z-40 lg:hidden"
           onClick={() => setIsOpen(false)}
-          aria-hidden
         />
       )}
 
       <aside
-        className={`fixed top-0 left-0 h-screen bg-[#00874E] border-r border-[#acacac] select-none z-50 shadow-xl transform transition-transform duration-300 ease-in-out
+        className={`fixed top-0 left-0 h-screen bg-[#00874E] select-none z-50 shadow-xl transform transition-transform duration-300 ease-in-out
         ${isOpen ? "translate-x-0" : "-translate-x-full"}
-        w-[60%] sm:w-[200px] xl:w-[280px] 2xl:w-[300px]`}
+        w-[70%] sm:w-[240px] xl:w-[270px] 2xl:w-[270px]`}
         role="navigation"
-        aria-label="Main sidebar"
       >
         <div className="flex flex-col h-full p-4 safe-area pb-6">
-          <div className="flex items-center justify-between">
-            <img src={TextLogo} alt="TrackED Logo" className="h-10 w-auto" />
+          <div className="flex justify-center">
+            <img src={TextLogo} alt="TrackED Logo" className="h-10" />
           </div>
 
           <hr className="border-[#DBDBDB] rounded border-1 opacity-40 my-4" />
@@ -132,7 +130,7 @@ export default function Sidebar({ role = "student", isOpen: isOpenProp, setIsOpe
                     `${navItemBase} ${isActive ? "bg-[#00A15D]" : ""}`
                   }
                 >
-                  <img src={item.icon} alt={item.label} className="h-5 w-5 flex-shrink-0 mr-4" />
+                  <img src={item.icon} alt={item.label} className="h-5 w-5 mr-4" />
 
                   <p className="text-white text-[1.05rem] truncate whitespace-nowrap">{item.label}</p>
                 </NavLink>
