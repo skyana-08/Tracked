@@ -20,7 +20,7 @@ export default function UserManagementStudentAccounts () {
   const [showPopup, setShowPopup] = useState(false);
   
   return (
-    <div className="min-h-screen bg-gray-300">
+    <div>
       <Sidebar role="admin" isOpen={isOpen} setIsOpen={setIsOpen} />
       <div className={`
         transition-all duration-300
@@ -29,7 +29,7 @@ export default function UserManagementStudentAccounts () {
         <Header setIsOpen={setIsOpen} isOpen={isOpen} />
 
         {/* content of ADMIN USER MANAGEMENT STUDENT ACCOUNT LIST */}
-        <div className="p-3 sm:p-4 md:p-5 lg:p-6 xl:p-8">
+        <div className="p-3 sm:p-4 md:p-5 lg:p-5 xl:p-5">
           {/* "Header" */}
           <div className="flex flex-col sm:flex-row item-start sm:items-center mb-2 sm:mb-4">
             <div className="flex items-center mb-2 sm:mb-0">
@@ -71,7 +71,7 @@ export default function UserManagementStudentAccounts () {
                   className="flex items-center font-bold px-3 py-2 bg-[#fff] rounded-md w-32 sm:w-36 md:w-44 lg:w-40 shadow-md hover:border-[#00874E] hover:border-2 text-xs sm:text-sm cursor-pointer"
                 >
                   Filter
-                  <img src={ArrowDown} alt="ArrowDown" className="ml-2 h-5 w-5 sm:h-6 sm:w-6 md:h-6 md:w-6 lg:h-7 lg:w-7" />
+                  <img src={ArrowDown} alt="ArrowDown" className="ml-15 h-5 w-5 sm:h-6 sm:w-6 md:h-6 md:w-6 lg:h-7 lg:w-7" />
                 </button>
 
                 {open && (

@@ -13,7 +13,7 @@ export default function UserManagement_ProfessorAccountDetails() {
   const [popupType, setPopupType] = useState(null);
 
   return (
-    <div className="min-h-screen">
+    <div>
       <Sidebar role="admin" isOpen={isOpen} setIsOpen={setIsOpen} />
       <div
         className={`

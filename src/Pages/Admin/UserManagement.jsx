@@ -12,7 +12,7 @@ export default function UserManagement() {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <div className="min-h-screen bg-gray-300">
+    <div>
       <Sidebar role="admin" isOpen={isOpen} setIsOpen={setIsOpen} />
 
       <div className={`
@@ -22,7 +22,7 @@ export default function UserManagement() {
         <Header setIsOpen={setIsOpen} isOpen={isOpen} />
 
         {/* content of ADMIN USER MANAGEMENT */}
-        <div className="p-3 sm:p-4 md:p-5 lg:p-6 xl:p-8">
+        <div className="p-3 sm:p-4 md:p-5 lg:p-5 xl:p-5">
 
           {/* "Header" of ADMIN USER MANAGEMENT */}
           <div className="flex flex-col sm:flex-row item-start sm:items-center mb-2 sm:mb-4">

@@ -9,7 +9,7 @@ export default function AccountRequest() {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <div className="min-h-screen bg-gray-300">
+    <div>
       <Sidebar role="admin" isOpen={isOpen} setIsOpen={setIsOpen} />
       <div className={`
         transition-all duration-300
@@ -18,7 +18,7 @@ export default function AccountRequest() {
         <Header setIsOpen={setIsOpen} isOpen={isOpen} />
 
         {/* main content of ADMIN ACCOUNT REQUEST */}
-        <div className="p-3 sm:p-4 md:p-5 lg:p-6 xl:p-8">
+        <div className="p-3 sm:p-4 md:p-5 lg:p-5 xl:p-5">
         
           {/* "Header" */}
           <div className="flex flex-col sm:flex-row item-start sm:items-center mb-2 sm:mb-4">
