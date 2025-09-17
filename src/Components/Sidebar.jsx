@@ -108,7 +108,7 @@ export default function Sidebar({ role = "student", isOpen: isOpenProp, setIsOpe
       <aside
         className={`fixed top-0 left-0 h-screen bg-[#00874E] select-none z-50 shadow-xl transform transition-transform duration-300 ease-in-out
         ${isOpen ? "translate-x-0" : "-translate-x-full"}
-        w-[70%] sm:w-[240px] xl:w-[270px] 2xl:w-[270px]`}
+        w-[70%] sm:w-[240px] xl:w-[270px] 2xl:w-[290px]`}
         role="navigation"
       >
         <div className="flex flex-col h-full p-4 safe-area pb-6">
