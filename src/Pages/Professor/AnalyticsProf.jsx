@@ -22,7 +22,7 @@ export default function AnalyticsProf() {
       <div className={`transition-all duration-300 ${isOpen ? 'ml-[300px]' : 'ml-0'}`}>
         <Header setIsOpen={setIsOpen} isOpen={isOpen} userName="Jane Doe" />
 
-        {/* content of CLASS MANAGEMENT*/}
+        {/* content of ANALYTICS PROF*/}
         <div className="p-5 text-[#465746]">
 
           {/* "Header" of CLASS MANAGEMENT */}

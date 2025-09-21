@@ -24,13 +24,14 @@ import Announcement from './Professor/Announcement.jsx';
 import NotificationProf from './Professor/NotificationProf.jsx';
 import ProfileProf from './Professor/ProfileProf.jsx';
 import AccountSettingProf from './Professor/AccountSettingProf.jsx';
+import SubjectDetails from './Professor/SubjectDetails.jsx';
+import Attendance from './Professor/Attendance.jsx';
 
 
 function Linking() {
   return (
     <Router>
       <Routes>
-
         {/* Starting Flow */} 
         <Route path="/" element={<DashboardProf />} />  
         
@@ -58,6 +59,8 @@ function Linking() {
         <Route path="NotificationProf" element={<NotificationProf />} />  
         <Route path="ProfileProf" element={<ProfileProf/>} />  
         <Route path="AccountSettingProf" element={<AccountSettingProf/>} />  
+        <Route path="SubjectDetails" element={<SubjectDetails/>} />  
+        <Route path="Attendance" element={<Attendance/>} /> 
       </Routes>
     </Router>
   );

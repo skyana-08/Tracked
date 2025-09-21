@@ -38,7 +38,7 @@ export default function UserManagement() {
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center text-sm sm:text-base md:text-base lg:text-base text-[#465746] mb-4 sm:mb-5 ml-2">
+          <div className="flex flex-wrap items-center text-sm sm:text-base md:text-base lg:text-[1.125rem] text-[#465746] mb-4 sm:mb-5 ml-2">
             <span>Welcome back, </span>
             <span className="font-bold mx-1">ADMIN</span>
             <span>ready to manage accounts?</span>
@@ -59,16 +59,16 @@ export default function UserManagement() {
                     alt="Student"
                     className='h-6 w-6 sm:h-7 sm:w-7 mr-3 sm:mr-5'
                   />
-                  <h2 className="font-bold text-base sm:text-lg lg:text-lg text-[#465746]">
+                  <h2 className="font-bold text-base sm:text-lg lg:text-[1.125rem] text-[#465746]">
                     Professor Accounts
                   </h2>
                 </div>
 
                 <div className="flex flex-col sm:flex-row sm:items-center">
-                  <p className="font-bold text-sm sm:text-base lg-text-lg text-[#465746] mb-1 sm:mb-0">
+                  <p className="font-bold text-sm sm:text-base lg:text-[1.125rem] text-[#465746] mb-1 sm:mb-0">
                     Total of Professor Account Created:
                   </p>
-                  <p className="font-bold text-sm sm:text-base lg-text-lg text-[#00874E] sm:ml-2">
+                  <p className="font-bold text-sm sm:text-base lg:text-[1.125rem] text-[#00874E] sm:ml-2">
                     X
                   </p>
                 </div>
@@ -85,16 +85,16 @@ export default function UserManagement() {
                     alt="Student"
                     className='h-6 w-6 sm:h-7 sm:w-7 mr-3 sm:mr-5'
                   />
-                  <h2 className="font-bold text-base sm:text-lg lg:text-lg text-[#465746]">
+                  <h2 className="font-bold text-base sm:text-lg lg:text-[1.125rem] text-[#465746]">
                     Student Accounts
                   </h2>
                 </div>
 
                 <div className="flex flex-col sm:flex-row sm:items-center">
-                  <p className="font-bold text-sm sm:text-base lg:text-lg text-[#465746] mb-1 sm:mb-0">
+                  <p className="font-bold text-sm sm:text-base lg:text-[1.125rem] text-[#465746] mb-1 sm:mb-0">
                     Total of Student Account Created:
                   </p>
-                  <p className="font-bold text-sm sm:text-base lg-text-lg text-[#00874E] sm:ml-2">
+                  <p className="font-bold text-sm sm:text-base lg:text-[1.125rem] text-[#00874E] sm:ml-2">
                     X
                   </p>
                 </div>

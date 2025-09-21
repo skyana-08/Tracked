@@ -37,27 +37,27 @@ export default function AdminImport() {
                 alt="Import" 
                 className="h-7 w-7 sm:h-6 sm:w-7 md:h-7 md:w-7 mr-3 sm:mr-3 mt-0.5 ml-2"
               />
-              <h1 className="font-bold text-xl sm:text-xl md:text-xl lg:text-xl text-[#465746]">
+              <h1 className="font-bold text-xl sm:text-xl md:text-xl lg:text-[1.5rem] text-[#465746]">
                 Import
               </h1>
             </div>
           </div>
 
-          <div className="text-sm sm:text-base md:text-base lg:text-base text-[#465746] mb-4 sm:mb-5 ml-2">
+          <div className="text-sm sm:text-base md:text-base lg:text-[1.125rem] text-[#465746] mb-4 sm:mb-5 ml-2">
             <span className="mb-0 sm:mb-0">Import Databases for TrackED</span>
           </div>
 
           <hr className="opacity-60 border-[#465746] rounded border-1 mb-6" />
 
           {/* BUTTONS */}
-          <div className="flex flex-col lg:flex-row mt-4 sm:mt-5 text-sm sm:text-sm md:text-base lg:text-base text-[#465746] gap-4 lg:justify-between lg:items-center">
+          <div className="flex flex-col lg:flex-row mt-4 sm:mt-5 text-sm sm:text-sm md:text-base lg:text-[1.125rem] text-[#465746] gap-4 lg:justify-between lg:items-center">
             {/* Filter Import Backup BUTTONS */}
             <div className="flex flex-wrap gap-2">
              {/* Filter Dropdown */}
               <div className="relative">
                 <button
                   onClick={() => setOpen(!open)}
-                  className="flex items-center font-bold px-3 py-2 bg-[#fff] rounded-md w-32 sm:w-36 md:w-44 lg:w-40 shadow-md hover:border-[#00874E] hover:border-2 text-xs sm:text-sm cursor-pointer"
+                  className="flex items-center font-bold px-3 py-2 bg-[#fff] rounded-md w-32 sm:w-36 md:w-44 lg:w-40 shadow-md hover:border-[#00874E] hover:border-2 text-xs sm:text-sm lg:text-[1.125rem] cursor-pointer"
                 >
                   Filter
                   <img src={ArrowDown} alt="ArrowDown" className="ml-15 h-5 w-5 sm:h-6 sm:w-6 md:h-6 md:w-6 lg:h-7 lg:w-7" />
@@ -105,11 +105,11 @@ export default function AdminImport() {
                 )}
               </div>
 
-              <button className="font-bold px-3 py-2 bg-[#fff] rounded-md shadow-md hover:border-[#00874E] hover:border-2 text-xs sm:text-sm whitespace-nowrap cursor-pointer">
+              <button className="font-bold px-3 py-2 bg-[#fff] rounded-md shadow-md hover:border-[#00874E] hover:border-2 text-xs sm:text-sm whitespace-nowrap lg:text-[1.125rem] cursor-pointer">
                 Import Database
               </button>
 
-              <button className="font-bold px-3 py-2 bg-[#fff] rounded-md shadow-md hover:border-[#00874E] hover:border-2 text-xs sm:text-sm cursor-pointer">
+              <button className="font-bold px-3 py-2 bg-[#fff] rounded-md shadow-md hover:border-[#00874E] hover:border-2 text-xs sm:text-sm lg:text-[1.125rem] cursor-pointer">
                 Backup
               </button>
             </div>

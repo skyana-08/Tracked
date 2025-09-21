@@ -46,7 +46,7 @@ export default function Report() {
                 alt="Report"
                 className='h-7 w-7 sm:h-6 sm:w-7 md:h-7 md:w-7 mr-3 sm:mr-3 mt-0.5 ml-2'
               />
-              <h1 className="font-bold text-xl sm:text-xl md:text-xl lg:text-xl text-[#465746]">
+              <h1 className="font-bold text-xl sm:text-xl md:text-xl lg:text-[1.5rem] text-[#465746]">
                 Reports
               </h1>
             </div>
@@ -67,7 +67,7 @@ export default function Report() {
 
               {/* Widgets TOTAL ACCOUNT CREATED */}
               <div className='bg-[#fff] h-24 sm:h-40 rounded-lg sm:rounded-xl p-2 sm:p-4 text-[#465746] shadow-md'> 
-                <div className='font-bold text-[10px] sm:text-base lg:text-xl h-full flex flex-col'>
+                <div className='font-bold text-[10px] sm:text-base lg:text-[1.5rem] h-full flex flex-col'>
                   <p className='mb-1 sm:mb-2'> Accounts Imported </p>
                   <div className='flex justify-between items-end mt-auto'>
                     <div className='flex justify-center items-center bg-[#8DDEBC] h-8 w-8 sm:h-16 sm:w-16 lg:h-20 lg:w-20 rounded-lg sm:rounded-xl border-2 border-[#00874E]'>
@@ -86,7 +86,7 @@ export default function Report() {
 
               {/* Widgets STUDENT ACCOUNTS */}
               <div className='bg-[#fff] h-24 sm:h-40 rounded-lg sm:rounded-xl p-2 sm:p-4 text-[#465746] shadow-md'> 
-                <div className='font-bold text-[10px] sm:text-base lg:text-xl h-full flex flex-col'>
+                <div className='font-bold text-[10px] sm:text-base lg:text-[1.5rem] h-full flex flex-col'>
                   <p className='mb-1 sm:mb-2'> Student Accounts </p>
                   <div className='flex justify-between items-end mt-auto'>
                     <div className='flex justify-center items-center bg-[#ffd0b3] h-8 w-8 sm:h-16 sm:w-16 lg:h-20 lg:w-20 rounded-lg sm:rounded-xl border-2 border-[#FFA600]'>
@@ -105,7 +105,7 @@ export default function Report() {
 
               {/* Widgets PROFESSOR ACCOUNTS */}
               <div className='bg-[#fff] h-24 sm:h-40 rounded-lg sm:rounded-xl p-2 sm:p-4 text-[#465746] shadow-md'> 
-                <div className='font-bold text-[10px] sm:text-base lg:text-xl h-full flex flex-col'>
+                <div className='font-bold text-[10px] sm:text-base lg:text-[1.5rem] h-full flex flex-col'>
                   <p className='mb-1 sm:mb-2'> Professor Accounts </p>
                   <div className='flex justify-between items-end mt-auto'>
                     <div className='flex justify-center items-center bg-[#a7aef9] h-8 w-8 sm:h-16 sm:w-16 lg:h-20 lg:w-20 rounded-lg sm:rounded-xl border-2 border-[#4951AA]'>
@@ -132,7 +132,7 @@ export default function Report() {
 
               {/* Widgets ACTIVE ACCOUNTS */}
               <div className='bg-[#fff] h-24 sm:h-40 rounded-lg sm:rounded-xl p-2 sm:p-4 text-[#465746] shadow-md'> 
-                <div className='font-bold text-[10px] sm:text-base lg:text-xl h-full flex flex-col'>
+                <div className='font-bold text-[10px] sm:text-base lg:text-[1.5rem] h-full flex flex-col'>
                   <p className='mb-1 sm:mb-2'> Active Accounts </p>
                   <div className='flex justify-between items-end mt-auto'>
                     <div className='flex justify-center items-center bg-[#8DDEBC] h-8 w-8 sm:h-16 sm:w-16 lg:h-20 lg:w-20 rounded-lg sm:rounded-xl border-2 border-[#00874E]'>
@@ -150,7 +150,7 @@ export default function Report() {
               </div>
 
               <div className='bg-[#fff] h-24 sm:h-40 rounded-lg sm:rounded-xl p-2 sm:p-4 text-[#465746] shadow-md'> 
-                <div className='font-bold text-[10px] sm:text-base lg:text-xl h-full flex flex-col'>
+                <div className='font-bold text-[10px] sm:text-base lg:text-[1.5rem] h-full flex flex-col'>
                   <p className='mb-1 sm:mb-2'> Pending Accounts </p>
                   <div className='flex justify-between items-end mt-auto'>
                     <div className='flex justify-center items-center bg-[#a7aef9] h-8 w-8 sm:h-16 sm:w-16 lg:h-20 lg:w-20 rounded-lg sm:rounded-xl border-2 border-[#4951AA]'>
@@ -168,7 +168,7 @@ export default function Report() {
               </div>
 
               <div className='bg-[#fff] h-24 sm:h-40 rounded-lg sm:rounded-xl p-2 sm:p-4 text-[#465746] shadow-md'> 
-                <div className='font-bold text-[10px] sm:text-base lg:text-xl h-full flex flex-col'>
+                <div className='font-bold text-[10px] sm:text-base lg:text-[1.5rem] h-full flex flex-col'>
                   <p className='mb-1 sm:mb-2'> Disabled Accounts </p>
                   <div className='flex justify-between items-end mt-auto'>
                     <div className='flex justify-center items-center bg-[#ffb1b1] h-8 w-8 sm:h-16 sm:w-16 lg:h-20 lg:w-20 rounded-lg sm:rounded-xl border-2 border-[#FF6666]'>
@@ -195,59 +195,58 @@ export default function Report() {
             Student Accounts
           </p>
           {/* STUDENT BUTTONS */}
-          <div className="flex flex-col lg:flex-row mt-4 sm:mt-5 text-sm sm:text-sm md:text-base lg:text-base text-[#465746] gap-4 lg:justify-between lg:items-center">
-             
-             {/* Filter Dropdown */}
-              <div className="relative">
-                <button
-                  onClick={() => setStudentFilterOpen(!studentFilterOpen)}
-                  className="flex items-center font-bold px-3 py-2 bg-[#fff] rounded-md w-32 sm:w-36 md:w-44 lg:w-40 shadow-md hover:border-[#00874E] hover:border-2 text-xs sm:text-sm cursor-pointer"
-                >
-                  Filter
-                  <img src={ArrowDown} alt="ArrowDown" className="ml-15 h-5 w-5 sm:h-6 sm:w-6 md:h-6 md:w-6 lg:h-7 lg:w-7" />
-                </button>
+          <div className="flex flex-col lg:flex-row mt-4 sm:mt-5 text-sm sm:text-sm md:text-base lg:text-base text-[#465746] gap-4 lg:justify-between lg:items-center">           
+            {/* Filter Dropdown */}
+            <div className="relative">
+              <button
+                onClick={() => setStudentFilterOpen(!studentFilterOpen)}
+                className="flex items-center font-bold px-3 py-2 bg-[#fff] rounded-md w-32 sm:w-36 md:w-44 lg:w-40 shadow-md hover:border-[#00874E] hover:border-2 text-xs sm:text-sm lg:text-[1.125rem] cursor-pointer"
+              >
+                Filter
+                <img src={ArrowDown} alt="ArrowDown" className="ml-15 h-5 w-5 sm:h-6 sm:w-6 md:h-6 md:w-6 lg:h-7 lg:w-7" />
+              </button>
 
-                {studentFilterOpen && (
-                  <div className="absolute top-full mt-1 bg-white rounded-md w-32 sm:w-36 md:w-44 lg:w-40 shadow-lg border border-gray-200 z-10">
-                    <button 
-                      className="block px-3 py-2 w-full text-left hover:bg-gray-100 text-xs sm:text-sm md:text-base transition-colors duration-200 cursor-pointer"
-                      onClick={() => {
-                        setSelectedFilter("Year");
-                        setStudentFilterOpen(false);
-                      }}
-                    >
-                      Year
-                    </button>
-                    <button 
-                      className="block px-3 py-2 w-full text-left hover:bg-gray-100 text-xs sm:text-sm md:text-base transition-colors duration-200 cursor-pointer"
-                      onClick={() => {
-                        setSelectedFilter("Section");
-                        setStudentFilterOpen(false);
-                      }}
-                    >
-                      Section
-                    </button>
-                    <button 
-                      className="block px-3 py-2 w-full text-left hover:bg-gray-100 text-xs sm:text-sm md:text-base transition-colors duration-200 cursor-pointer"
-                      onClick={() => {
-                        setSelectedFilter("Active");
-                        setStudentFilterOpen(false);
-                      }}
-                    >
-                      Active
-                    </button>
-                    <button 
-                      className="block px-3 py-2 w-full text-left hover:bg-gray-100 text-xs sm:text-sm md:text-base transition-colors duration-200 cursor-pointer"
-                      onClick={() => {
-                        setSelectedFilter("Deactivated");
-                        setStudentFilterOpen(false);
-                      }}
-                    >
-                      Deactivated
-                    </button>
-                  </div>
-                )}
-              </div>
+              {studentFilterOpen && (
+                <div className="absolute top-full mt-1 bg-white rounded-md w-32 sm:w-36 md:w-44 lg:w-40 shadow-lg border border-gray-200 z-10">
+                  <button 
+                    className="block px-3 py-2 w-full text-left hover:bg-gray-100 text-xs sm:text-sm md:text-base transition-colors duration-200 cursor-pointer"
+                    onClick={() => {
+                      setSelectedFilter("Year");
+                      setStudentFilterOpen(false);
+                    }}
+                  >
+                    Year
+                  </button>
+                  <button 
+                    className="block px-3 py-2 w-full text-left hover:bg-gray-100 text-xs sm:text-sm md:text-base transition-colors duration-200 cursor-pointer"
+                    onClick={() => {
+                      setSelectedFilter("Section");
+                      setStudentFilterOpen(false);
+                    }}
+                  >
+                    Section
+                  </button>
+                  <button 
+                    className="block px-3 py-2 w-full text-left hover:bg-gray-100 text-xs sm:text-sm md:text-base transition-colors duration-200 cursor-pointer"
+                    onClick={() => {
+                      setSelectedFilter("Active");
+                      setStudentFilterOpen(false);
+                    }}
+                  >
+                    Active
+                  </button>
+                  <button 
+                    className="block px-3 py-2 w-full text-left hover:bg-gray-100 text-xs sm:text-sm md:text-base transition-colors duration-200 cursor-pointer"
+                    onClick={() => {
+                      setSelectedFilter("Deactivated");
+                      setStudentFilterOpen(false);
+                    }}
+                  >
+                    Deactivated
+                  </button>
+                </div>
+              )}
+            </div>
 
             {/* Search Button */}
             <div className="flex items-center gap-2">
@@ -454,7 +453,7 @@ export default function Report() {
               <div className="relative">
                 <button
                   onClick={() => setProfessorFilterOpen(!professorFilterOpen)}
-                  className="flex items-center font-bold px-3 py-2 bg-[#fff] rounded-md w-32 sm:w-36 md:w-44 lg:w-40 shadow-md hover:border-[#00874E] hover:border-2 text-xs sm:text-sm cursor-pointer"
+                  className="flex items-center font-bold px-3 py-2 bg-[#fff] rounded-md w-32 sm:w-36 md:w-44 lg:w-40 shadow-md hover:border-[#00874E] hover:border-2 text-xs sm:text-sm lg:text-[1.125rem] cursor-pointer"
                 >
                   Filter
                   <img src={ArrowDown} alt="ArrowDown" className="ml-15 h-5 w-5 sm:h-6 sm:w-6 md:h-6 md:w-6 lg:h-7 lg:w-7" />

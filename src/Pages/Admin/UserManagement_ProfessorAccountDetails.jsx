@@ -33,13 +33,13 @@ export default function UserManagement_ProfessorAccountDetails() {
                 alt="ClassManagement"
                 className="h-7 w-7 sm:h-6 sm:w-7 md:h-7 md:w-7 mr-3 sm:mr-3 mt-0.5 ml-2"
               />
-              <h1 className="font-bold text-xl sm:text-xl md:text-xl lg:text-xl text-[#465746]">
+              <h1 className="font-bold text-xl sm:text-xl md:text-xl lg:text-[1.5rem] text-[#465746]">
                 User Management
               </h1>
             </div>
           </div>
 
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between text-sm sm:text-base md:text-base lg:text-base text-[#465746] mb-4 sm:mb-5 ml-2">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between text-sm sm:text-base md:text-base lg:text-[1.125rem] text-[#465746] mb-4 sm:mb-5 ml-2">
             <div className="flex items-center justify-between sm:justify-start w-full sm:w-auto">
               <span className="mb-0 sm:mb-0">
                 Professor Account Details

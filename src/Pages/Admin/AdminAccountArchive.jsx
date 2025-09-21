@@ -37,13 +37,13 @@ export default function AdminAccountArchive() {
                 alt="Archive" 
                 className="h-7 w-7 sm:h-6 sm:w-7 md:h-7 md:w-7 mr-3 sm:mr-3 mt-0.5 ml-2"
               />
-              <h1 className="font-bold text-xl sm:text-base md:text-xl lg:text-xl text-[#465746]">
+              <h1 className="font-bold text-xl sm:text-base md:text-xl lg:text-[1.5rem] text-[#465746]">
                 Archives
               </h1>
             </div>
           </div>
 
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between text-sm sm:text-sm md:text-base lg:text-base text-[#465746] mb-4 sm:mb-5 ml-2">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between text-sm sm:text-sm md:text-base lg:text-[1.125rem] text-[#465746] mb-4 sm:mb-5 ml-2">
             <div className="flex items-center justify-between sm:justify-start w-full sm:w-auto">
               <span className="mb-0 sm:mb-0">Accounts Archived</span>
               <Link to="/UserManagement" className="sm:hidden">
@@ -58,7 +58,7 @@ export default function AdminAccountArchive() {
           <hr className="opacity-60 border-[#465746] rounded border-1 mb-6" />
 
           {/* BUTTONS */}
-          <div className="flex flex-col lg:flex-row mt-4 sm:mt-5 text-sm sm:text-sm md:text-base lg:text-base text-[#465746] gap-4 lg:justify-between lg:items-center">
+          <div className="flex flex-col lg:flex-row mt-4 sm:mt-5 text-sm sm:text-sm md:text-base lg:text-[1.125rem] text-[#465746] gap-4 lg:justify-between lg:items-center">
             {/* Filter and Backup BUTTONS */}
             <div className="flex flex-wrap gap-2">
               
@@ -66,7 +66,7 @@ export default function AdminAccountArchive() {
               <div className="relative">
                 <button
                   onClick={() => setOpen(!open)}
-                  className="flex items-center font-bold px-3 py-2 bg-[#fff] rounded-md w-32 sm:w-36 md:w-44 lg:w-40 shadow-md hover:border-[#00874E] hover:border-2 text-xs sm:text-sm cursor-pointer"
+                  className="flex items-center font-bold px-3 py-2 bg-[#fff] rounded-md w-32 sm:w-36 md:w-44 lg:w-40 shadow-md hover:border-[#00874E] hover:border-2 text-xs sm:text-sm lg:text-[1.125rem] cursor-pointer"
                 >
                   Filter
                   <img src={ArrowDown} alt="ArrowDown" className="ml-15 h-5 w-5 sm:h-6 sm:w-6 md:h-6 md:w-6 lg:h-7 lg:w-7" />
@@ -96,7 +96,7 @@ export default function AdminAccountArchive() {
                 )}
               </div>
 
-              <button className="font-bold px-3 py-2 bg-[#fff] rounded-md shadow-md hover:border-[#00874E] hover:border-2 text-xs sm:text-sm cursor-pointer">
+              <button className="font-bold px-3 py-2 bg-[#fff] rounded-md shadow-md hover:border-[#00874E] hover:border-2 text-xs sm:text-sm lg:text-[1.125rem] cursor-pointer">
                 Backup
               </button>
             </div>

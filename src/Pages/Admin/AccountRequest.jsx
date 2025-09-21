@@ -28,13 +28,13 @@ export default function AccountRequest() {
                 alt="AccountRequest" 
                 className="h-7 w-7 sm:h-6 sm:w-7 md:h-7 md:w-7 mr-3 sm:mr-3 mt-0.5 ml-2"
               />
-              <h1 className="font-bold text-xl sm:text-base md:text-xl lg:text-xl text-[#465746]">
+              <h1 className="font-bold text-xl sm:text-base md:text-xl lg:text-[1.5rem] text-[#465746]">
                 Account Request
               </h1>
             </div>
           </div>
 
-          <div className="text-sm sm:text-sm md:text-base lg:text-base text-[#465746] mb-4 sm:mb-5 ml-2">
+          <div className="text-sm sm:text-sm md:text-base lg:text-[1.125rem] text-[#465746] mb-4 sm:mb-5 ml-2">
             <span className="mb-0 sm:mb-0">Account creation request</span>
           </div>
 
