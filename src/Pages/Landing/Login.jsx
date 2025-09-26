@@ -130,10 +130,14 @@ export default function Login() {
             type="text"
             placeholder="202284596"
             required
-            pattern="[0-9]*"
             inputMode="numeric"
+            pattern="[0-9]*"
+            maxLength="9"
             value={idNumber}
-            onChange={(e) => setIdNumber(e.target.value)}
+            onChange={(e) => {
+              const numericValue = e.target.value.replace(/\D/g, '');
+              setIdNumber(numericValue);
+            }}
             className="w-full px-4 sm:px-4 py-2 sm:py-2 border border-gray-300 rounded-md mb-2 sm:mb-2 md:mb-4 focus:outline-none focus:ring-2 focus:ring-[#00A15D] text-xs sm:text-sm"
             disabled={isLoading}
           />

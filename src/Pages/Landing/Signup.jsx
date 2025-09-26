@@ -42,6 +42,20 @@ export default function Signup() {
       return;
     }
 
+    // // ID number checker
+    // if (formData.tracked_ID.length !== 9) {
+    //   setError("ID Number must be 9 digits!");
+    //   setIsLoading(false);
+    //   return;
+    // }
+
+    // Phone number checker
+    if (formData.tracked_phone.length !== 10) {
+      setError("Phone number must be 10 digits");
+      setIsLoading(false);
+      return;
+    }
+
     if (!captchaToken) {
       setError("Please complete the CAPTCHA");
       setIsLoading(false);
@@ -296,20 +310,39 @@ export default function Signup() {
                   type="tel"
                   name="tracked_phone"
                   value={formData.tracked_phone}
-                  onChange={handleChange}
-                  onInput={(e) => {
+                  // onChange={handleChange}
+                  onChange={(e) => {
                     // Remove any non-digit characters
-                    e.target.value = e.target.value.replace(/[^0-9]/g, '');
-                  }}
-                  onKeyPress={(e) => {
-                    // Prevent non-numeric characters from being typed
-                    if (!/[0-9]/.test(e.key) && !['Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'Tab'].includes(e.key)) {
-                      e.preventDefault();
+                    let digits = e.target.value.replace(/\D/g, '');
+
+                    // max 10 digits
+                    digits = digits.slice(0, 10);
+
+                    // phone format
+                    let formatted = digits;
+                    if (digits.legnth > 3 && digits.length <= 6){
+                      formatted = digits.slice(0, 3) + " " + digits.slice(3);
+                    } else if (digits.length > 6){
+                      formatted =
+                        digits.slice(0, 3) +
+                        " " +
+                        digits.slice(3, 6) +
+                        " " +
+                        digits.slice(6);
                     }
+
+                    setFormData({ ...formData, tracked_phone: formatted});
                   }}
+                  // onKeyPress={(e) => {
+                  //   // Prevent non-numeric characters from being typed
+                  //   if (!/[0-9]/.test(e.key) && !['Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'Tab'].includes(e.key)) {
+                  //     e.preventDefault();
+                  //   }
+                  // }}
                   placeholder="912 345 6789"
                   required
-                  maxLength="11"
+                  inputMode="numeric"
+                  pattern="[0-9 ]*"
                   className="w-full pl-12 sm:pl-14 md:pl-16 pr-2 sm:pr-3 md:pr-4 py-2 sm:py-2 md:py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#00A15D] text-xs sm:text-sm"
                   disabled={isLoading}
                 />
