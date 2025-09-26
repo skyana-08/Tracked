@@ -5,7 +5,7 @@ import Guide from "../../assets/Guide(Light).svg";
 import FullLogo from "../../assets/New-FullBlack-TrackEdLogo.svg";
 import Close from "../../assets/BackButton(Light).svg";
 
-export default function ForgotPass() {
+export default function VerifyAcc() {
   // for faqs
   const [isGuideOpen, setIsGuideOpen] = useState(false);
   const [openIndex, setOpenIndex] = useState(null);

@@ -78,8 +78,8 @@ export default function Signup() {
     //connection sa php file
     try {
       const res = await fetch(
-        "http://localhost/TrackEd/src/Pages/Landing/Signup.php",
-        // "http://localhost/CAPSTONE/src/Pages/Landing/Signup.php",
+        // "http://localhost/TrackEd/src/Pages/Landing/Signup.php",
+        "http://localhost/CAPSTONE/src/Pages/Landing/Signup.php",
         {
           method: "POST",
           headers: { "Content-Type": "application/x-www-form-urlencoded" },

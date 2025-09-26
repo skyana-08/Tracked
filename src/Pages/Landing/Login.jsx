@@ -36,8 +36,8 @@ export default function Login() {
     try {
       console.log("Sending login request...", { idNumber, password });
       
-      const response = await fetch("http://localhost/TrackEd/src/Pages/Landing/Login.php", {
-      // const response = await fetch("http://localhost/CAPSTONE/src/Pages/Landing/Login.php", {
+      // const response = await fetch("http://localhost/TrackEd/src/Pages/Landing/Login.php", {
+      const response = await fetch("http://localhost/CAPSTONE/src/Pages/Landing/Login.php", {
         method: "POST",
         headers: { 
           "Content-Type": "application/json",
@@ -156,7 +156,7 @@ export default function Login() {
             disabled={isLoading}
           />
 
-          <Link to={"/ForgotPass"}>
+          <Link to={"/VerifyAcc"}>
             <p className="text-xs sm:text-sm text-[#00A15D] cursor-pointer mb-3 sm:mb-2 md:mb-4 hover:underline">
               Forgot Password?
             </p>

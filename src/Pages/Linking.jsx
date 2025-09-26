@@ -14,7 +14,7 @@ import Import from './Admin/AdminImport.jsx';
 {/* Landing Links */}
 import Login from './Landing/Login.jsx';
 import Signup from './Landing/Signup.jsx';
-import ForgotPass from './Landing/ForgotPass.jsx';
+import VerifyAcc from './Landing/VerifyAcc.jsx';
 
 {/* Professor Links */}
 import DashboardProf from './Professor/DashboardProf.jsx';
@@ -38,7 +38,7 @@ function Linking() {
         {/* Navigations for Landing */}
         <Route path ="/Login" element={<Login />} />
         <Route path ="/Signup" element={<Signup />} />
-        <Route path="/ForgotPass" element={<ForgotPass />} />
+        <Route path="/VerifyAcc" element={<VerifyAcc />} />
 
         {/* Navigations for ADMIN */} 
         <Route path ="/UserManagement" element={<UserManagement />} />
