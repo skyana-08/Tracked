@@ -1,6 +1,7 @@
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import ReCAPTCHA from "react-google-recaptcha";
+import Popup from "../../Components/Popup";
 
 import Guide from "../../assets/Guide(Light).svg";
 import FullLogo from "../../assets/New-FullBlack-TrackEdLogo.svg";
@@ -22,9 +23,13 @@ export default function Signup() {
   });
 
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [captchaToken, setCaptchaToken] = useState(null); 
+  const [captchaToken, setCaptchaToken] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+
+  const navigate = useNavigate();
+  const [showSuccessPopup, setShowSuccessPopup] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -42,7 +47,7 @@ export default function Signup() {
       return;
     }
 
-    // // ID number checker
+    // ID number checker
     // if (formData.tracked_ID.length !== 9) {
     //   setError("ID Number must be 9 digits!");
     //   setIsLoading(false);
@@ -50,8 +55,9 @@ export default function Signup() {
     // }
 
     // Phone number checker
-    if (formData.tracked_phone.length !== 10) {
-      setError("Phone number must be 10 digits");
+    const digitsOnly = formData.tracked_phone.replace(/\D/g, "");
+    if (digitsOnly.length !== 11) {
+      setError("Phone number must be 11 digits");
       setIsLoading(false);
       return;
     }
@@ -62,15 +68,23 @@ export default function Signup() {
       return;
     }
 
+    // email checker must be @cvsu.edu.ph to sign up
+    if (!formData.tracked_email.endsWith("@cvsu.edu.ph")) {
+      setError("Email must be a valid CVSU email");
+      setIsLoading(false);
+      return;
+    }
+
     //connection sa php file
     try {
       const res = await fetch(
-        "http://localhost/TrackEd/src/Pages/Landing/Signup.php",
+        // "http://localhost/TrackEd/src/Pages/Landing/Signup.php",
+        "http://localhost/CAPSTONE/src/Pages/Landing/Signup.php",
         {
           method: "POST",
           headers: { "Content-Type": "application/x-www-form-urlencoded" },
           body: new URLSearchParams({
-              ...formData,
+            ...formData,
             captcha: captchaToken,
           }).toString(),
         }
@@ -79,7 +93,7 @@ export default function Signup() {
       // First, try to parse as JSON
       const text = await res.text();
       let data;
-      
+
       try {
         data = JSON.parse(text);
       } catch (err) {
@@ -91,10 +105,11 @@ export default function Signup() {
       }
 
       if (data.success) {
-        alert(data.message);
+        setShowSuccessPopup(true);
+        setSuccessMessage(data.message);
         // Optional: Redirect to login page after successful registration
         // window.location.href = "/Login";
-        
+
         // Clear form
         setFormData({
           tracked_ID: "",
@@ -127,26 +142,29 @@ export default function Signup() {
   const faqs = [
     {
       question: "How can I create an Account?",
-      answer: "- You can sign up using your school ID number and a valid email address. Fill out the registration form and follow the instructions sent to your email."
+      answer:
+        "- You can sign up using your school ID number and a valid email address. Fill out the registration form and follow the instructions sent to your email.",
     },
     {
       question: "I forgot my password. What shoud I do?",
-      answer: "- Click on 'Forgot Password?' on the login page, then enter your registered email. You'll receive a link to reset your password."
+      answer:
+        "- Click on 'Forgot Password?' on the login page, then enter your registered email. You'll receive a link to reset your password.",
     },
     {
       question: "Can I use a personal email to sign up?",
-      answer: "- Yes, you can use either your school or personal email. Just make sure it's an active email you can access."
+      answer:
+        "- Yes, you can use either your school or personal email. Just make sure it's an active email you can access.",
     },
     {
       question: "Who do I contact for account issues or bugs?",
-      answer: "- You can reach our support team at support@tracked.com or through the help section in the app."
+      answer:
+        "- You can reach our support team at support@tracked.com or through the help section in the app.",
     },
   ];
 
   const toggleFAQ = (index) => {
     setOpenIndex(openIndex === index ? null : index);
   };
-  
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center text-[#465746] px-5 sm:px-5 lg:px-5 py-5 sm:py-5">
@@ -206,11 +224,14 @@ export default function Signup() {
                 type="text"
                 name="tracked_ID"
                 value={formData.tracked_ID}
-                onChange={handleChange}
+                onChange={(e) => {
+                  const digits = e.target.value.replace(/\D/g, "").slice(0, 9);
+                  setFormData({ ...formData, tracked_ID: digits });
+                }}
                 placeholder="202284596"
                 required
-                pattern="[0-9]*"
                 inputMode="numeric"
+                maxLength="9"
                 className="w-full px-2 sm:px-3 md:px-4 py-2 sm:py-2 md:py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#00A15D] text-xs sm:text-sm"
                 disabled={isLoading}
               />
@@ -310,39 +331,29 @@ export default function Signup() {
                   type="tel"
                   name="tracked_phone"
                   value={formData.tracked_phone}
-                  // onChange={handleChange}
-                  onChange={(e) => {
+                  onChange={handleChange}
+                  onInput={(e) => {
                     // Remove any non-digit characters
-                    let digits = e.target.value.replace(/\D/g, '');
-
-                    // max 10 digits
-                    digits = digits.slice(0, 10);
-
-                    // phone format
-                    let formatted = digits;
-                    if (digits.legnth > 3 && digits.length <= 6){
-                      formatted = digits.slice(0, 3) + " " + digits.slice(3);
-                    } else if (digits.length > 6){
-                      formatted =
-                        digits.slice(0, 3) +
-                        " " +
-                        digits.slice(3, 6) +
-                        " " +
-                        digits.slice(6);
-                    }
-
-                    setFormData({ ...formData, tracked_phone: formatted});
+                    e.target.value = e.target.value.replace(/[^0-9]/g, "");
                   }}
-                  // onKeyPress={(e) => {
-                  //   // Prevent non-numeric characters from being typed
-                  //   if (!/[0-9]/.test(e.key) && !['Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'Tab'].includes(e.key)) {
-                  //     e.preventDefault();
-                  //   }
-                  // }}
-                  placeholder="912 345 6789"
+                  onKeyPress={(e) => {
+                    // Prevent non-numeric characters from being typed
+                    if (
+                      !/[0-9]/.test(e.key) &&
+                      ![
+                        "Backspace",
+                        "Delete",
+                        "ArrowLeft",
+                        "ArrowRight",
+                        "Tab",
+                      ].includes(e.key)
+                    ) {
+                      e.preventDefault();
+                    }
+                  }}
+                  placeholder="0912 345 6789"
                   required
-                  inputMode="numeric"
-                  pattern="[0-9 ]*"
+                  maxLength="11"
                   className="w-full pl-12 sm:pl-14 md:pl-16 pr-2 sm:pr-3 md:pr-4 py-2 sm:py-2 md:py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#00A15D] text-xs sm:text-sm"
                   disabled={isLoading}
                 />
@@ -362,6 +373,8 @@ export default function Signup() {
               onChange={handleChange}
               placeholder="JaneDoe@cvsu.edu.ph"
               required
+              // pattern=".+@cvsu\.edu\.ph"
+              // title="Email must end with @cvsu.edu.ph"
               className="w-full px-2 sm:px-3 md:px-4 py-2 sm:py-2 md:py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#00A15D] text-xs sm:text-sm"
               disabled={isLoading}
             />
@@ -400,12 +413,12 @@ export default function Signup() {
               />
             </div>
           </div>
-          
+
           {/* RESPONSIVE RECAPTCHA */}
           <div className="my-3 sm:my-4 flex justify-center">
             <div className="w-full max-w-[320px] flex justify-center overflow-hidden">
               <div className="transform scale-[0.70] sm:scale-[0.85] md:scale-95 lg:scale-95 origin-center">
-                <ReCAPTCHA 
+                <ReCAPTCHA
                   sitekey="6LclQMwrAAAAAPXrqY3nFvcNIkcioAbqng-GzxxA"
                   onChange={(token) => setCaptchaToken(token)}
                   theme="light"
@@ -440,15 +453,15 @@ export default function Signup() {
 
       {/* GUIDE */}
       {isGuideOpen && (
-        <div 
+        <div
           className="fixed inset-0 bg-white bg-opacity-50 flex justify-center items-center z-50 overlay-fade p-4"
           style={{ backgroundColor: "rgba(0,0,0,0.5)" }}
           onClick={(e) => {
-           // close only when clicking the backdrop (not when clicking inside the modal)
-          if (e.target === e.currentTarget) setIsGuideOpen(false);
-        }}
-        role="dialog"
-        aria-modal="true"
+            // close only when clicking the backdrop (not when clicking inside the modal)
+            if (e.target === e.currentTarget) setIsGuideOpen(false);
+          }}
+          role="dialog"
+          aria-modal="true"
         >
           <div className="bg-white text-black rounded-lg shadow-lg w-full max-w-sm sm:max-w-md md:max-w-lg lg:mx-w-xl p-4 sm:p-6 md:p-8 relative modal-pop max-h-[90vh] overflow-y-auto">
             <button
@@ -456,39 +469,47 @@ export default function Signup() {
               aria-label="Close guide"
               className="absolute top-4 right-4 sm:top-4 sm:right-6 md:top-6 md:right-8 cursor-pointer"
             >
-                      <img
-                      src={Close} 
-                      alt="Back"
-                      className="w-5 h-5 sm:w-5 sm:h-5 md:w-6 md:h-6"
-                      />
+              <img
+                src={Close}
+                alt="Back"
+                className="w-5 h-5 sm:w-5 sm:h-5 md:w-6 md:h-6"
+              />
             </button>
 
-            <h2 className="text-lg sm:text-xl md:text-2xl font-bold mb-3 sm:mb-4 pr-8">TrackED Guide</h2>
+            <h2 className="text-lg sm:text-xl md:text-2xl font-bold mb-3 sm:mb-4 pr-8">
+              TrackED Guide
+            </h2>
             <hr className="border-gray-300 mb-3 sm:mb-4" />
 
-            <h3 className="font-semibold mb-3 sm:mb-4 md:mb-5 text-sm sm:text-base">Common Asked Questions</h3>
+            <h3 className="font-semibold mb-3 sm:mb-4 md:mb-5 text-sm sm:text-base">
+              Common Asked Questions
+            </h3>
             <div className="space-y-2 sm:space-y-3">
               {faqs.map((faq, index) => (
-                <div key={index} className="border-b border-gray-300 pb-2 sm:pb-3">
+                <div
+                  key={index}
+                  className="border-b border-gray-300 pb-2 sm:pb-3"
+                >
                   <button
                     className="flex justify-between items-center w-full text-left text-green-700 sm:text-green-800 font-medium cursor-pointer text-xs sm:text-sm md:text-base hover:text-green-600 transition-colors"
                     onClick={() => toggleFAQ(index)}
                   >
                     <span className="pr-2">{faq.question}</span>
-                    <span className="text-xs sm:text-sm flex-shrink-0">{openIndex === index ? 
-                    "▲" : "▼"
-                     }
+                    <span className="text-xs sm:text-sm flex-shrink-0">
+                      {openIndex === index ? "▲" : "▼"}
                     </span>
                   </button>
                   {openIndex === index && (
-                    <p className="text-black-600 mt-2 text-xs sm:text-sm leading-relaxed">{faq.answer}</p>
+                    <p className="text-black-600 mt-2 text-xs sm:text-sm leading-relaxed">
+                      {faq.answer}
+                    </p>
                   )}
                 </div>
               ))}
             </div>
           </div>
 
-              <style>{`
+          <style>{`
                 .overlay-fade { animation: overlayFade .18s ease-out both; }
                 @keyframes overlayFade { from { opacity: 0 } to { opacity: 1 } }
 
@@ -516,8 +537,23 @@ export default function Signup() {
                   }
                 }
               `}</style>
-            
         </div>
+      )}
+
+      {/* Success Popup */}
+      {showSuccessPopup && (
+        <Popup
+          setOpen={(isOpen) => {
+            setShowSuccessPopup(isOpen);
+            if (!isOpen) {
+              navigate("/Login");
+            }
+          }}
+          message={successMessage}
+          confirmText="Continue"
+          buttonColor="#00A15D"
+          hoverColor="#00874E"
+        />
       )}
     </div>
   );

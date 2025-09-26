@@ -12,7 +12,7 @@ export default function Popup({
       <div className="bg-white rounded-lg shadow-lg w-full max-w-md mx-4 p-4 sm:p-5 md:p-6 relative flex flex-col items-center text-center">
 
         {/* Close Button */}
-        <button 
+        {/* <button 
           onClick={() => setOpen(false)} 
           className="absolute top-3 right-3 sm:top-4 sm:right-4 md:top-5 md:right-5 p-1 hover:bg-gray-100 rounded-full transition-colors duration-200"
         >
@@ -21,7 +21,7 @@ export default function Popup({
             alt="Close Pop up" 
             className="cursor-pointer h-5 w-5 sm:h-6 sm:w-6" 
           />
-        </button>
+        </button> */}
 
         {/* Dynamic Message */}
         <div className="text-[#465746] mb-4 sm:mb-5 md:mb-6 mt-6 sm:mt-7 md:mt-8 text-sm sm:text-base md:text-lg leading-relaxed px-2">
@@ -34,6 +34,8 @@ export default function Popup({
           style={{ backgroundColor: buttonColor }}
           onMouseEnter={e => e.currentTarget.style.backgroundColor = hoverColor}
           onMouseLeave={e => e.currentTarget.style.backgroundColor = buttonColor}
+
+          onClick={() => setOpen(false)}
         >
           {confirmText}
         </button>

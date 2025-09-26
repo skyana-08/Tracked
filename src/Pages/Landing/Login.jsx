@@ -36,7 +36,8 @@ export default function Login() {
     try {
       console.log("Sending login request...", { idNumber, password });
       
-      const response = await fetch("http://localhost/TrackEd/src/Pages/Landing/Login.php", {
+      // const response = await fetch("http://localhost/TrackEd/src/Pages/Landing/Login.php", {
+      const response = await fetch("http://localhost/CAPSTONE/src/Pages/Landing/Login.php", {
         method: "POST",
         headers: { 
           "Content-Type": "application/json",
@@ -131,7 +132,6 @@ export default function Login() {
             placeholder="202284596"
             required
             inputMode="numeric"
-            pattern="[0-9]*"
             maxLength="9"
             value={idNumber}
             onChange={(e) => {
