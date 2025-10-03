@@ -51,7 +51,7 @@ export default function NotificationProf() {
             <div className="relative">
               <button
                 onClick={() => setOpen(!open)}
-                className="flex items-center font-bold px-3 py-2 bg-[#fff] rounded-md cursor-pointer shadow-md hover:border-[#00874E] hover:border-2 text-xs sm:text-sm lg:text-base min-w-[100px] sm:min-w-[140px]"
+                className="flex items-center font-bold px-3 py-2 bg-[#fff] rounded-md cursor-pointer shadow-md border-2 border-transparent hover:border-[#00874E] transition-all duration-200 text-xs sm:text-sm lg:text-base min-w-[100px] sm:min-w-[140px]"
               >
                 <span className="flex-1 text-left">Filter</span>
                 <img

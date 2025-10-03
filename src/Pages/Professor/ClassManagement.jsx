@@ -75,7 +75,7 @@ export default function ClassManagement() {
             <div className="relative">
               <button
                 onClick={() => setOpen(!open)}
-                className="flex items-center font-bold px-3 py-2 bg-[#fff] rounded-md cursor-pointer shadow-md hover:border-[#00874E] hover:border-2 text-xs sm:text-sm lg:text-base min-w-[100px] sm:min-w-[140px]"
+                className="flex items-center font-bold px-3 py-2 bg-[#fff] rounded-md cursor-pointer shadow-md border-2 border-transparent hover:border-[#00874E] transition-all duration-200 text-xs sm:text-sm lg:text-base min-w-[100px] sm:min-w-[140px]"
               >
                 <span className="flex-1 text-left">Year Level</span>
                 <img
@@ -108,7 +108,7 @@ export default function ClassManagement() {
             {/* Add and Archive Buttons */}
             <div className="flex items-center gap-2">
               <Link to="/AdminAccountArchive">
-                <button className="font-bold py-2 bg-[#fff] rounded-md w-10 sm:w-12 h-10 sm:h-12 shadow-md flex items-center justify-center hover:border-[#00874E] hover:border-2 cursor-pointer transition-all duration-200">
+                <button className="font-bold py-2 bg-[#fff] rounded-md w-10 sm:w-12 h-10 sm:h-12 shadow-md flex items-center justify-center border-2 border-transparent hover:border-[#00874E] transition-all duration-200 cursor-pointer">
                   <img
                     src={Archive}
                     alt="Archive"
@@ -117,7 +117,7 @@ export default function ClassManagement() {
                 </button>
               </Link>
               <Link to="/AdminAccountArchive">
-                <button className="font-bold py-2 bg-[#fff] rounded-md w-10 sm:w-12 h-10 sm:h-12 shadow-md flex items-center justify-center hover:border-[#00874E] hover:border-2 cursor-pointer">
+                <button className="font-bold py-2 bg-[#fff] rounded-md w-10 sm:w-12 h-10 sm:h-12 shadow-md flex items-center justify-center border-2 border-transparent hover:border-[#00874E] transition-all duration-200 cursor-pointer">
                   <img
                     src={Add}
                     alt="Add"
@@ -131,7 +131,7 @@ export default function ClassManagement() {
           {/* 1ST SUBJECT CARD */}
           <Link to={"/SubjectDetails"}>
             <div
-              className="text-white text-sm sm:text-base lg:text-[1.125rem] rounded-lg p-4 sm:p-5 space-y-2 sm:space-y-3 mt-4 sm:mt-5 hover:border-[#351111] hover:border-2 cursor-pointer shadow-md transition-all duration-200"
+              className="text-white text-sm sm:text-base lg:text-[1.125rem] rounded-lg p-4 sm:p-5 space-y-2 sm:space-y-3 mt-4 sm:mt-5 border-2 border-transparent hover:border-[#351111] transition-all duration-200"
               style={{ backgroundColor: bgOptions[bgIndex1] }}
             >
               <div className="flex items-center font-bold flex-wrap gap-2">
@@ -149,7 +149,7 @@ export default function ClassManagement() {
                 <div className="ml-auto flex gap-2 sm:gap-3">
                   <button
                     onClick={(e) => handlePaletteClick(e, 1)}
-                    className="font-bold py-1 sm:py-2 bg-white rounded-md w-8 sm:w-10 lg:w-12 h-8 sm:h-10 lg:h-12 shadow-md flex items-center justify-center hover:border-[#00874E] hover:border-2 cursor-pointer transition-all duration-200"
+                    className="font-bold py-1 sm:py-2 bg-white rounded-md w-8 sm:w-10 lg:w-12 h-8 sm:h-10 lg:h-12 shadow-md flex items-center justify-center border-2 border-transparent hover:border-[#00874E] transition-all duration-200 cursor-pointer"
                   >
                     <img 
                       src={Palette} 
@@ -157,7 +157,7 @@ export default function ClassManagement() {
                       className="h-4 w-4 sm:h-5 sm:w-5 lg:h-6 lg:w-6" 
                     />
                   </button>
-                  <button className="font-bold py-1 sm:py-2 bg-white rounded-md w-8 sm:w-10 lg:w-12 h-8 sm:h-10 lg:h-12 shadow-md flex items-center justify-center hover:border-[#00874E] hover:border-2 cursor-pointer transition-all duration-200">
+                  <button className="font-bold py-1 sm:py-2 bg-white rounded-md w-8 sm:w-10 lg:w-12 h-8 sm:h-10 lg:h-12 shadow-md flex items-center justify-center border-2 border-transparent hover:border-[#00874E] transition-all duration-200 cursor-pointer">
                     <img 
                       src={Archive} 
                       alt="Archive" 
@@ -190,7 +190,7 @@ export default function ClassManagement() {
           {/* 2ND SUBJECT CARD */}
           <Link to={"/SubjectDetails"}>
             <div
-              className="text-white text-sm sm:text-base lg:text-[1.125rem] rounded-lg p-4 sm:p-5 space-y-2 sm:space-y-3 mt-4 sm:mt-5 hover:border-[#191e54] hover:border-2 cursor-pointer shadow-md transition-all duration-200"
+              className="text-white text-sm sm:text-base lg:text-[1.125rem] rounded-lg p-4 sm:p-5 space-y-2 sm:space-y-3 mt-4 sm:mt-5 border-2 border-transparent hover:border-[#191e54] transition-all duration-200"
               style={{ backgroundColor: bgOptions[bgIndex2] }}
             >
               <div className="flex items-center font-bold flex-wrap gap-2">
@@ -208,7 +208,7 @@ export default function ClassManagement() {
                 <div className="ml-auto flex gap-2 sm:gap-3">
                   <button
                     onClick={(e) => handlePaletteClick(e, 2)}
-                    className="font-bold py-1 sm:py-2 bg-white rounded-md w-8 sm:w-10 lg:w-12 h-8 sm:h-10 lg:h-12 shadow-md flex items-center justify-center hover:border-[#00874E] hover:border-2 cursor-pointer transition-all duration-200"
+                    className="font-bold py-1 sm:py-2 bg-white rounded-md w-8 sm:w-10 lg:w-12 h-8 sm:h-10 lg:h-12 shadow-md flex items-center justify-center border-2 border-transparent hover:border-[#00874E] transition-all duration-200 cursor-pointer"
                   >
                     <img 
                       src={Palette} 
@@ -216,7 +216,7 @@ export default function ClassManagement() {
                       className="h-4 w-4 sm:h-5 sm:w-5 lg:h-6 lg:w-6" 
                     />
                   </button>
-                  <button className="font-bold py-1 sm:py-2 bg-white rounded-md w-8 sm:w-10 lg:w-12 h-8 sm:h-10 lg:h-12 shadow-md flex items-center justify-center hover:border-[#00874E] hover:border-2 cursor-pointer transition-all duration-200">
+                  <button className="font-bold py-1 sm:py-2 bg-white rounded-md w-8 sm:w-10 lg:w-12 h-8 sm:h-10 lg:h-12 shadow-md flex items-center justify-center border-2 border-transparent hover:border-[#00874E] transition-all duration-200 cursor-pointer">
                     <img 
                       src={Archive} 
                       alt="Archive" 

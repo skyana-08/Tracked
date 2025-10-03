@@ -80,9 +80,9 @@ export default function AccountSettingProf() {
                 />
               </div>
 
-              <button className="w-full sm:w-auto bg-[#00A15D] text-white font-bold py-2 px-6 sm:px-8 rounded-md hover:bg-green-800 transition-colors text-sm sm:text-base cursor-pointer">
+              <button className="w-full sm:w-auto bg-[#00A15D] text-white font-bold py-2 px-6 sm:px-8 rounded-md hover:bg-green-800 transition-colors duration-200 text-sm sm:text-base cursor-pointer">
                 Submit
-              </button>
+              </button> 
             </div>
 
             {/* CHANGE PASSWORD CARD */}
@@ -116,7 +116,7 @@ export default function AccountSettingProf() {
                 />
               </div>
 
-              <button className="w-full sm:w-auto bg-[#00A15D] text-white font-bold py-2 px-6 sm:px-8 rounded-md hover:bg-green-800 transition-colors text-sm sm:text-base cursor-pointer">
+              <button className="w-full sm:w-auto bg-[#00A15D] text-white font-bold py-2 px-6 sm:px-8 rounded-md hover:bg-green-800 transition-colors duration-200 text-sm sm:text-base cursor-pointer">
                 Submit
               </button>
             </div>

@@ -80,7 +80,7 @@ export default function Attendance() {
 
             <div className="flex items-center justify-end gap-3">
               <Link to={"/AttendanceHistory"}>
-                <button className="font-bold px-4 sm:px-5 py-2 bg-white rounded-md shadow-md hover:border-[#00874E] hover:border-2 text-sm sm:text-base lg:text-[1.125rem] whitespace-nowrap cursor-pointer">
+                <button className="font-bold px-4 sm:px-5 py-2 bg-white rounded-md shadow-md border-2 border-transparent hover:border-[#00874E] transition-all duration-200 text-sm sm:text-base lg:text-[1.125rem] whitespace-nowrap cursor-pointer">
                   History
                 </button>
               </Link>

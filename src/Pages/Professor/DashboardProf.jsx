@@ -55,7 +55,7 @@ export default function DashboardProf() {
           {/* main content of PROFESSOR ADMIN */}
 
           {/* WIDGETS */}
-          <div className='flex items-center mt-5'>
+          <div className='flex justify-center items-center mt-5'>
             <div className='grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-4 lg:gap-6 w-full max-w-7xl'>
 
               {/* Widgets ACTIVE ACCOUNTS */}
@@ -135,7 +135,7 @@ export default function DashboardProf() {
 
         {/* Student Attendance Details Card */}
         <Link to={"/AnalyticsProf"}>
-          <div className="bg-[#FFFFFF] text-[#465746] text-sm sm:text-base lg:text-[1.125rem] rounded-lg sm:rounded-xl shadow-md mt-5 p-3 sm:p-4 hover:border-2 hover:border-[#00874E] transition-all duration-200">
+          <div className="bg-[#FFFFFF] text-[#465746] text-sm sm:text-base lg:text-[1.125rem] rounded-lg sm:rounded-xl shadow-md mt-5 p-3 sm:p-4 border-2 border-transparent hover:border-[#00874E] transition-all duration-200">
             <div className="flex items-center">
               <img
                 src={Pie}
@@ -156,7 +156,7 @@ export default function DashboardProf() {
 
         {/* Archive Subjects Card */}
         <Link to={"/AnalyticsProf"}>
-          <div className="bg-[#FFFFFF] text-[#465746] text-sm sm:text-base lg:text-[1.125rem] rounded-lg sm:rounded-xl shadow-md mt-5 p-3 sm:p-4 hover:border-2 hover:border-[#00874E] transition-all duration-200">
+          <div className="bg-[#FFFFFF] text-[#465746] text-sm sm:text-base lg:text-[1.125rem] rounded-lg sm:rounded-xl shadow-md mt-5 p-3 sm:p-4 border-2 border-transparent hover:border-[#00874E] transition-all duration-200">
             <div className="flex items-center">
               <img 
                 src={Archive}

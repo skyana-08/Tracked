@@ -67,12 +67,12 @@ export default function SubjectDetails() {
           <div className="flex items-center justify-between w-full mt-4 sm:mt-5 gap-3">
 
             <Link to={"/Attendance"} className="flex-1 sm:flex-initial">
-              <button className="px-4 sm:px-5 py-2 bg-white font-semibold text-sm sm:text-base rounded-md shadow-md hover:border-[#00874E] hover:border-2 cursor-pointer">
+              <button className="px-4 sm:px-5 py-2 bg-white font-semibold text-sm sm:text-base rounded-md shadow-md border-2 border-transparent hover:border-[#00874E] transition-all duration-200 cursor-pointer">
                 ATTENDANCE
               </button>
             </Link>
 
-            <button className="p-2 bg-[#fff] rounded-md shadow-md hover:border-[#00874E] hover:border-2 flex-shrink-0 cursor-pointer">
+            <button className="p-2 bg-[#fff] rounded-md shadow-md border-2 border-transparent hover:border-[#00874E] transition-all duration-200 flex-shrink-0 cursor-pointer">
               <img src={Add} alt="Add" className="h-5 w-5 sm:h-6 sm:w-6" />
             </button>
           </div>

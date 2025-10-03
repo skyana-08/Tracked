@@ -45,9 +45,6 @@ export default function ProfileProf() {
                 <img src={BackButton} alt="BackButton" className="h-6 w-6" />
               </Link>
             </div>
-            <Link to="/UserManagementProfessorAccounts" className="hidden sm:block">
-              <img src={BackButton} alt="BackButton" className="h-6 w-6 sm:h-7 sm:w-7" />
-            </Link>
           </div>
 
           <hr className="opacity-60 border-[#465746] rounded border-1 mb-6" />
@@ -149,7 +146,7 @@ export default function ProfileProf() {
                 {/* Reset Password */}
                 <button 
                   onClick={() => setPopupType("reset")} 
-                  className="font-bold text-white py-2 px-4 bg-[#00874E] rounded-md shadow-md text-center hover:bg-[#465746] hover:border-2 text-xs sm:text-sm lg:text-[1.125rem] w-full sm:w-auto transition-colors duration-200 cursor-pointer"
+                  className="font-bold text-white py-2 px-4 bg-[#00874E] rounded-md shadow-md text-center border-2 border-transparent hover:bg-green-800 transition-colors duration-200 text-xs sm:text-sm lg:text-[1.125rem] w-full sm:w-auto transition-colors duration-200 cursor-pointer"
                 >
                   Reset Password
                 </button>
@@ -157,7 +154,7 @@ export default function ProfileProf() {
                 {/* Disable Account */}
                 <button 
                   onClick={() => setPopupType("disable")}  
-                  className="font-bold text-white py-2 px-4 bg-[#00874E] rounded-md shadow-md text-center hover:bg-[#465746] hover:border-2 text-xs sm:text-sm lg:text-[1.125rem] w-full sm:w-auto transition-colors duration-200 cursor-pointer"
+                  className="font-bold text-white py-2 px-4 bg-[#00874E] rounded-md shadow-md text-center border-2 border-transparent hover:bg-green-800 transition-colors duration-200 text-xs sm:text-sm lg:text-[1.125rem] w-full sm:w-auto transition-colors duration-200 cursor-pointer"
                 >
                   Disable Account
                 </button>
