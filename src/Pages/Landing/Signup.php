@@ -46,7 +46,7 @@ error_log("Plain password: " . $user_pass);
 error_log("Hashed password: " . $hashed_pass);
 
 // Step 1: Check if user exists in whitelist (users table)
-$check = $conn->prepare("SELECT user_ID, user_Role, user_Gender FROM users WHERE user_ID = ?");
+$check = $conn->prepare("SELECT user_ID, user_Role, user_Gender, YearandSection FROM users WHERE user_ID = ?");
 if (!$check) {
     echo json_encode(["success" => false, "message" => "Database error"]);
     $conn->close();
@@ -60,6 +60,7 @@ $result = $check->get_result();
 if ($row = $result->fetch_assoc()) {
     $role   = $row['user_Role'] ?? 'Student';
     $gender = $row['user_Gender'] ?? '';
+    $yas = $row['YearandSection'] ?? '';
     
     // Step 2: Check if user already registered in tracked_users
     $check_tracked = $conn->prepare("SELECT tracked_ID FROM tracked_users WHERE tracked_ID = ?");
@@ -85,8 +86,8 @@ if ($row = $result->fetch_assoc()) {
 
     // Step 3: Insert into tracked_users
     $insert = $conn->prepare("INSERT INTO tracked_users 
-        (tracked_ID, tracked_Role, tracked_email, tracked_password, tracked_fname, tracked_lname, tracked_mi, tracked_program, tracked_bday, tracked_gender, tracked_phone, tracked_Status)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Active')");
+        (tracked_ID, tracked_Role, tracked_email, tracked_password, tracked_fname, tracked_lname, tracked_mi, tracked_program,tracked_yearandsec, tracked_bday, tracked_gender, tracked_phone, tracked_Status)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?,? , ?, ?, 'Active')");
     
     if (!$insert) {
         echo json_encode(["success" => false, "message" => "Database error: " . $conn->error]);
@@ -96,15 +97,16 @@ if ($row = $result->fetch_assoc()) {
     }
 
     $insert->bind_param(
-        "sssssssssss",
+        "ssssssssssss",
         $user_ID,
         $role,
         $user_email,
-        $hashed_pass,  // This should be the PROPERLY hashed password
+        $hashed_pass,
         $user_fname,
         $user_lname,
         $user_mi,
         $user_prog,
+        $yas,
         $user_bday,
         $gender,
         $user_phone
