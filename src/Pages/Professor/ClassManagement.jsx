@@ -10,10 +10,20 @@ import Archive from "../../assets/Archive(Light).svg";
 import Palette from "../../assets/Palette(Light).svg";
 import Add from "../../assets/Add(Light).svg";
 import Book from "../../assets/ClassManagementSubject(Light).svg";
+import BackButton from "../../assets/BackButton(Light).svg";
 
 export default function ClassManagement() {
   const [isOpen, setIsOpen] = useState(false);
   const [open, setOpen] = useState(false);
+  const [showModal, setShowModal] = useState(false);
+
+  // Modal form states
+  const [selectedYearLevel, setSelectedYearLevel] = useState("");
+  const [subject, setSubject] = useState("");
+  const [section, setSection] = useState("");
+
+  // Dropdown state for modal
+  const [yearLevelDropdownOpen, setYearLevelDropdownOpen] = useState(false);
 
   // background colors
   const bgOptions = [
@@ -26,6 +36,8 @@ export default function ClassManagement() {
 
   const [bgIndex1, setBgIndex1] = useState(0);
   const [bgIndex2, setBgIndex2] = useState(1);
+
+  const yearLevels = ["1st Year", "2nd Year", "3rd Year", "4th Year"];
   
   const handlePaletteClick = (e, card) => {
     e.preventDefault();
@@ -34,6 +46,23 @@ export default function ClassManagement() {
     } else if (card === 2) {
       setBgIndex2((prev) => (prev + 1) % bgOptions.length);
     }
+  };
+
+  const handleCreate = () => {
+    // Validate required fields
+    if (!selectedYearLevel || !subject || !section) {
+      alert("Please fill in all required fields");
+      return;
+    }
+
+    // Here you would add logic to create the new class
+    console.log("Creating class:", { selectedYearLevel, subject, section });
+    
+    // Reset form and close modal
+    setSelectedYearLevel("");
+    setSubject("");
+    setSection("");
+    setShowModal(false);
   };
 
   return (
@@ -107,7 +136,7 @@ export default function ClassManagement() {
 
             {/* Add and Archive Buttons */}
             <div className="flex items-center gap-2">
-              <Link to="/AdminAccountArchive">
+              <Link to="/ArchiveClass">
                 <button className="font-bold py-2 bg-[#fff] rounded-md w-10 sm:w-12 h-10 sm:h-12 shadow-md flex items-center justify-center border-2 border-transparent hover:border-[#00874E] transition-all duration-200 cursor-pointer">
                   <img
                     src={Archive}
@@ -116,15 +145,15 @@ export default function ClassManagement() {
                   />
                 </button>
               </Link>
-              <Link to="/AdminAccountArchive">
-                <button className="font-bold py-2 bg-[#fff] rounded-md w-10 sm:w-12 h-10 sm:h-12 shadow-md flex items-center justify-center border-2 border-transparent hover:border-[#00874E] transition-all duration-200 cursor-pointer">
-                  <img
-                    src={Add}
-                    alt="Add"
-                    className="h-6 w-6 sm:h-5 sm:w-5 lg:h-6 lg:w-6"
-                  />
-                </button>
-              </Link>
+              <button 
+                onClick={() => setShowModal(true)}
+                className="font-bold py-2 bg-[#fff] rounded-md w-10 sm:w-12 h-10 sm:h-12 shadow-md flex items-center justify-center border-2 border-transparent hover:border-[#00874E] transition-all duration-200 cursor-pointer">
+                <img
+                  src={Add}
+                  alt="Add"
+                  className="h-6 w-6 sm:h-5 sm:w-5 lg:h-6 lg:w-6"
+                />
+              </button>
             </div>
           </div>
 
@@ -247,6 +276,115 @@ export default function ClassManagement() {
           </Link>
         </div>
       </div>
+
+      {/* Create Class Modal */}
+      {showModal && (
+        <div
+          className="fixed inset-0 bg-white bg-opacity-50 flex justify-center items-center z-50 overlay-fade p-4"
+          style={{ backgroundColor: "rgba(0,0,0,0.5)" }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShowModal(false);
+          }}
+          role="dialog"
+          aria-modal="true"
+        >
+          <div className="bg-white text-black rounded-lg shadow-lg w-full max-w-sm sm:max-w-md md:max-w-lg p-4 sm:p-6 md:p-8 relative modal-pop max-h-[90vh] overflow-y-auto">
+            <button
+              onClick={() => setShowModal(false)}
+              aria-label="Close modal"
+              className="absolute top-4 right-4 sm:right-6 md:right-8 top-5 sm:hidden cursor-pointer"
+            >
+              <img
+                src={BackButton}
+                alt="BackButton"
+                className="w-5 h-5 sm:w-5 sm:h-5 md:w-6 md:h-6"
+              />
+            </button>
+
+            <h2 className="text-lg sm:text-xl md:text-2xl font-bold mb-3 sm:mb-4 pr-8">
+              Create class
+            </h2>
+            <hr className="border-gray-300 mb-3 sm:mb-4" />
+
+            {/* Modal Body */}
+            <div className="space-y-4">
+              {/* Year Level Dropdown */}
+              <div className="relative">
+                <label className="text-sm font-semibold mb-1 block">Year Level</label>
+                <button
+                  onClick={() => setYearLevelDropdownOpen(!yearLevelDropdownOpen)}
+                  className="w-full bg-white border border-gray-300 text-black rounded-md px-4 py-2.5 flex items-center justify-between hover:border-[#00874E] transition-colors"
+                >
+                  <span className="text-sm">{selectedYearLevel || "Year Level"}</span>
+                  <img src={ArrowDown} alt="Arrow" className="h-4 w-4" />
+                </button>
+                {yearLevelDropdownOpen && (
+                  <div className="absolute top-full mt-1 w-full bg-white rounded-md shadow-lg border border-gray-200 z-10">
+                    {yearLevels.map((year) => (
+                      <button
+                        key={year}
+                        onClick={() => {
+                          setSelectedYearLevel(year);
+                          setYearLevelDropdownOpen(false);
+                        }}
+                        className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100"
+                      >
+                        {year}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Subject Input */}
+              <div>
+                <label className="text-sm font-semibold mb-1 block">Subject:</label>
+                <input
+                  type="text"
+                  placeholder=""
+                  value={subject}
+                  onChange={(e) => setSubject(e.target.value)}
+                  className="w-full border border-gray-300 rounded-md px-4 py-2.5 outline-none text-sm focus:border-[#00874E] transition-colors"
+                />
+              </div>
+
+              {/* Section Input */}
+              <div>
+                <label className="text-sm font-semibold mb-1 block">Section:</label>
+                <input
+                  type="text"
+                  placeholder=""
+                  value={section}
+                  onChange={(e) => setSection(e.target.value)}
+                  className="w-full border border-gray-300 rounded-md px-4 py-2.5 outline-none text-sm focus:border-[#00874E] transition-colors"
+                />
+              </div>
+
+              {/* Create Button */}
+              <button
+                onClick={handleCreate}
+                className="w-full bg-[#00A15D] text-white font-bold py-2.5 rounded-md hover:bg-[#00874E] transition-colors text-sm sm:text-base cursor-pointer"
+              >
+                Create
+              </button>
+            </div>
+          </div>
+
+          <style>{`
+            .overlay-fade { animation: overlayFade .18s ease-out both; }
+            @keyframes overlayFade { from { opacity: 0 } to { opacity: 1 } }
+
+            .modal-pop {
+              transform-origin: top center;
+              animation: popIn .22s cubic-bezier(.2,.8,.2,1) both;
+            }
+            @keyframes popIn {
+              from { opacity: 0; transform: translateY(-8px) scale(.98); }
+              to   { opacity: 1; transform: translateY(0)   scale(1);    }
+            }
+          `}</style>
+        </div>
+      )}
     </div>
   );
 }

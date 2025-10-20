@@ -28,6 +28,7 @@ import AccountSettingProf from './Professor/AccountSettingProf.jsx';
 import SubjectDetails from './Professor/SubjectDetails.jsx';
 import Attendance from './Professor/Attendance.jsx';
 import AttendanceHistory from './Professor/AttendanceHistory.jsx';
+import ArchiveClass from './Professor/ArchiveClass.jsx';
 
 
 function Linking() {
@@ -55,16 +56,17 @@ function Linking() {
         <Route path ="/Import" element={<Import/>} />
         
         {/* Navigations for Professor  */} 
-        <Route path="DashboardProf" element={<DashboardProf />} />  
-        <Route path="ClassManagement" element={<ClassManagement />} />  
-        <Route path="AnalyticsProf" element={<AnalyticsProf />} />  
-        <Route path="Announcement" element={<Announcement />} />  
-        <Route path="NotificationProf" element={<NotificationProf />} />  
-        <Route path="ProfileProf" element={<ProfileProf/>} />  
-        <Route path="AccountSettingProf" element={<AccountSettingProf/>} />  
-        <Route path="SubjectDetails" element={<SubjectDetails/>} />  
-        <Route path="Attendance" element={<Attendance/>} /> 
-        <Route path="AttendanceHistory" element={<AttendanceHistory/>} /> 
+        <Route path="/DashboardProf" element={<DashboardProf />} />  
+        <Route path="/ClassManagement" element={<ClassManagement />} />  
+        <Route path="/AnalyticsProf" element={<AnalyticsProf />} />  
+        <Route path="/Announcement" element={<Announcement />} />  
+        <Route path="/NotificationProf" element={<NotificationProf />} />  
+        <Route path="/ProfileProf" element={<ProfileProf/>} />  
+        <Route path="/AccountSettingProf" element={<AccountSettingProf/>} />  
+        <Route path="/SubjectDetails" element={<SubjectDetails/>} />  
+        <Route path="/Attendance" element={<Attendance/>} /> 
+        <Route path="/AttendanceHistory" element={<AttendanceHistory/>} /> 
+        <Route path="/ArchiveClass" element={<ArchiveClass/>} /> 
       </Routes>
     </Router>
   );
