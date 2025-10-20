@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Oct 07, 2025 at 04:50 PM
+-- Generation Time: Oct 20, 2025 at 05:41 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -102,6 +102,91 @@ CREATE TABLE `password_resets` (
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `classes`
+--
+
+CREATE TABLE `classes` (
+  `subject_code` varchar(10) NOT NULL,
+  `year_level` varchar(20) NOT NULL,
+  `subject` varchar(100) NOT NULL,
+  `section` varchar(50) NOT NULL,
+  `professor_ID` varchar(20) NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `status` varchar(10) NOT NULL DEFAULT 'Active'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `classes`
+--
+
+INSERT INTO `classes` (`subject_code`, `year_level`, `subject`, `section`, `professor_ID`, `created_at`, `updated_at`, `status`) VALUES
+('BB3967', '4th Year', 'DCIT 65A', '4D', '1156', '2025-10-20 12:01:04', '2025-10-20 12:01:04', 'Active'),
+('DM6704', '4th Year', 'ITEC 110', '4D', '1156', '2025-10-20 12:00:46', '2025-10-20 12:00:46', 'Active'),
+('ED4117', '4th Year', 'ITEC 116', '4D', '1156', '2025-10-20 12:01:36', '2025-10-20 12:01:36', 'Active'),
+('IR2732', '4th Year', 'ITEC 111', '4D', '1156', '2025-10-20 12:01:21', '2025-10-20 12:01:21', 'Active');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `attendance`
+--
+
+CREATE TABLE `attendance` (
+  `id` int(11) NOT NULL,
+  `subject_code` varchar(10) NOT NULL,
+  `professor_ID` varchar(20) NOT NULL,
+  `attendance_date` date NOT NULL,
+  `student_ID` varchar(20) NOT NULL,
+  `status` enum('present','absent','late') NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `activities`
+--
+
+CREATE TABLE `activities` (
+  `id` int(11) NOT NULL,
+  `subject_code` varchar(10) NOT NULL,
+  `professor_ID` varchar(20) NOT NULL,
+  `activity_type` varchar(50) NOT NULL,
+  `task_number` varchar(50) NOT NULL,
+  `title` varchar(255) NOT NULL,
+  `instruction` text DEFAULT NULL,
+  `link` varchar(500) DEFAULT NULL,
+  `points` int(11) DEFAULT NULL,
+  `deadline` date DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `activity_grades`
+--
+
+CREATE TABLE `activity_grades` (
+  `id` int(11) NOT NULL,
+  `activity_ID` int(11) NOT NULL,
+  `student_ID` varchar(20) NOT NULL,
+  `grade` decimal(5,2) DEFAULT NULL,
+  `submitted` tinyint(1) DEFAULT 0,
+  `submitted_at` timestamp NULL DEFAULT NULL,
+  `late` tinyint(1) DEFAULT 0,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
 --
 -- Indexes for dumped tables
 --
@@ -129,6 +214,39 @@ ALTER TABLE `password_resets`
   ADD UNIQUE KEY `unique_user_reset` (`tracked_ID`);
 
 --
+-- Indexes for table `classes`
+--
+ALTER TABLE `classes`
+  ADD PRIMARY KEY (`subject_code`),
+  ADD UNIQUE KEY `subject_code` (`subject_code`),
+  ADD KEY `professor_ID` (`professor_ID`);
+
+--
+-- Indexes for table `attendance`
+--
+ALTER TABLE `attendance`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `unique_attendance_record` (`subject_code`,`attendance_date`,`student_ID`),
+  ADD KEY `professor_ID` (`professor_ID`),
+  ADD KEY `student_ID` (`student_ID`);
+
+--
+-- Indexes for table `activities`
+--
+ALTER TABLE `activities`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `subject_code` (`subject_code`),
+  ADD KEY `professor_ID` (`professor_ID`);
+
+--
+-- Indexes for table `activity_grades`
+--
+ALTER TABLE `activity_grades`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `unique_activity_student` (`activity_ID`,`student_ID`),
+  ADD KEY `student_ID` (`student_ID`);
+
+--
 -- AUTO_INCREMENT for dumped tables
 --
 
@@ -139,6 +257,24 @@ ALTER TABLE `password_resets`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
 
 --
+-- AUTO_INCREMENT for table `attendance`
+--
+ALTER TABLE `attendance`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=17;
+
+--
+-- AUTO_INCREMENT for table `activities`
+--
+ALTER TABLE `activities`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=14;
+
+--
+-- AUTO_INCREMENT for table `activity_grades`
+--
+ALTER TABLE `activity_grades`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=41;
+
+--
 -- Constraints for dumped tables
 --
 
@@ -147,6 +283,34 @@ ALTER TABLE `password_resets`
 --
 ALTER TABLE `password_resets`
   ADD CONSTRAINT `password_resets_ibfk_1` FOREIGN KEY (`tracked_ID`) REFERENCES `tracked_users` (`tracked_ID`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `classes`
+--
+ALTER TABLE `classes`
+  ADD CONSTRAINT `classes_ibfk_1` FOREIGN KEY (`professor_ID`) REFERENCES `tracked_users` (`tracked_ID`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `attendance`
+--
+ALTER TABLE `attendance`
+  ADD CONSTRAINT `attendance_ibfk_1` FOREIGN KEY (`subject_code`) REFERENCES `classes` (`subject_code`) ON DELETE CASCADE,
+  ADD CONSTRAINT `attendance_ibfk_2` FOREIGN KEY (`professor_ID`) REFERENCES `tracked_users` (`tracked_ID`) ON DELETE CASCADE,
+  ADD CONSTRAINT `attendance_ibfk_3` FOREIGN KEY (`student_ID`) REFERENCES `users` (`user_ID`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `activities`
+--
+ALTER TABLE `activities`
+  ADD CONSTRAINT `activities_ibfk_1` FOREIGN KEY (`subject_code`) REFERENCES `classes` (`subject_code`) ON DELETE CASCADE,
+  ADD CONSTRAINT `activities_ibfk_2` FOREIGN KEY (`professor_ID`) REFERENCES `tracked_users` (`tracked_ID`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `activity_grades`
+--
+ALTER TABLE `activity_grades`
+  ADD CONSTRAINT `activity_grades_ibfk_1` FOREIGN KEY (`activity_ID`) REFERENCES `activities` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `activity_grades_ibfk_2` FOREIGN KEY (`student_ID`) REFERENCES `users` (`user_ID`) ON DELETE CASCADE;
 
 COMMIT;
 

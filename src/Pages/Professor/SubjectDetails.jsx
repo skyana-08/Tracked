@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useLocation } from 'react-router-dom';
 
 import Sidebar from "../../Components/Sidebar";
 import Header from "../../Components/Header";
@@ -11,8 +11,16 @@ import Add from "../../assets/Add(Light).svg";
 import ArrowDown from "../../assets/ArrowDown(Light).svg";
 
 export default function SubjectDetails() {
+  const location = useLocation();
+  const searchParams = new URLSearchParams(location.search);
+  const subjectCode = searchParams.get('code');
+  
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [showModal, setShowModal] = useState(false);
+  const [activities, setActivities] = useState([]);
+  const [classInfo, setClassInfo] = useState(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [loading, setLoading] = useState(true);
   
   // Modal form states
   const [activityType, setActivityType] = useState("");
@@ -28,40 +36,232 @@ export default function SubjectDetails() {
   
   const activityTypes = ["Assignment", "Activity", "Project", "Laboratory", "Announcement"];
 
-  const students = [
-    { id: 1, no: "2023001", name: "Alice Cruz" },
-    { id: 2, no: "2023002", name: "John Dela Cruz" },
-    { id: 3, no: "2023003", name: "Maria Santos" },
-  ];
+  // Get professor ID from localStorage
+  const getProfessorId = () => {
+    try {
+      const userDataString = localStorage.getItem('user');
+      if (userDataString) {
+        const userData = JSON.parse(userDataString);
+        return userData.id;
+      }
+    } catch (error) {
+      console.error('Error parsing user data:', error);
+    }
+    return null;
+  };
 
-  const handleCreate = () => {
+  // Fetch class details and students
+  useEffect(() => {
+    if (subjectCode) {
+      fetchClassDetails();
+    }
+  }, [subjectCode]);
+
+  // Fetch students and activities after classInfo is available
+  useEffect(() => {
+    if (classInfo) {
+      fetchStudents();
+      fetchActivities();
+    }
+  }, [classInfo]);
+
+  const fetchClassDetails = async () => {
+    try {
+      const professorId = getProfessorId();
+      const response = await fetch(`http://localhost/TrackEd/src/Pages/Professor/get_class_details.php?subject_code=${subjectCode}&professor_ID=${professorId}`);
+      
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success) {
+          setClassInfo(result.class_data);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching class details:', error);
+    }
+  };
+
+  const fetchStudents = async () => {
+    try {
+      if (!classInfo) return;
+      
+      const response = await fetch(`http://localhost/TrackEd/src/Pages/Professor/get_students_by_section.php?section=${classInfo.section}`);
+      
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success) {
+          // Just fetch, don't set state if not needed
+          console.log('Fetched students:', result.students);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching students:', error);
+    }
+  };
+
+  const fetchActivities = async () => {
+    try {
+      const response = await fetch(`http://localhost/TrackEd/src/Pages/Professor/get_activities.php?subject_code=${subjectCode}`);
+      
+      if (response.ok) {
+        const result = await response.json();
+        console.log('Fetched activities result:', result); // Debug log
+        if (result.success) {
+          setActivities(result.activities);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching activities:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCreateActivity = async () => {
     // Validate required fields
     if (!activityType || !taskNumber || !title) {
       alert("Please fill in all required fields (Activity Type, Task Number, and Title)");
       return;
     }
 
-    // Here you would add logic to create the school work
-    console.log("Creating school work:", { 
-      activityType, 
-      taskNumber, 
-      title, 
-      instruction, 
-      link, 
-      points, 
-      deadline 
-    });
-    
-    // Reset form and close modal
-    setActivityType("");
-    setTaskNumber("");
-    setTitle("");
-    setInstruction("");
-    setLink("");
-    setPoints("");
-    setDeadline("");
-    setShowModal(false);
+    try {
+      const professorId = getProfessorId();
+      const activityData = {
+        subject_code: subjectCode,
+        professor_ID: professorId,
+        activity_type: activityType,
+        task_number: taskNumber,
+        title: title,
+        instruction: instruction,
+        link: link,
+        points: points || 0,
+        deadline: deadline
+      };
+
+      console.log('Creating activity with data:', activityData); // Debug log
+
+      const response = await fetch('http://localhost/TrackEd/src/Pages/Professor/create_activity.php', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(activityData)
+      });
+
+      const result = await response.json();
+      console.log('Create activity response:', result); // Debug log
+
+      if (result.success) {
+        // Refresh activities to get the new one with students
+        await fetchActivities(); // Fixed: added await here
+        
+        // Reset form and close modal
+        setActivityType("");
+        setTaskNumber("");
+        setTitle("");
+        setInstruction("");
+        setLink("");
+        setPoints("");
+        setDeadline("");
+        setShowModal(false);
+        
+        alert('Activity created successfully!');
+      } else {
+        alert('Error creating activity: ' + result.message);
+      }
+    } catch (error) {
+      console.error('Error creating activity:', error);
+      alert('Error creating activity. Please try again.');
+    }
   };
+
+  const handleSaveActivity = async (activityId, updatedStudents) => {
+    try {
+      const response = await fetch('http://localhost/TrackEd/src/Pages/Professor/update_activity_grades.php', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          activity_ID: activityId,
+          students: updatedStudents
+        })
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        setIsEditing(false);
+        // Update local state
+        setActivities(prev => prev.map(activity => 
+          activity.id === activityId 
+            ? { ...activity, students: updatedStudents }
+            : activity
+        ));
+      } else {
+        alert('Error saving grades: ' + result.message);
+      }
+    } catch (error) {
+      console.error('Error saving grades:', error);
+      alert('Error saving grades. Please try again.');
+    }
+  };
+
+  const handleMarkAllSubmitted = (activityId) => {
+    setActivities(prev => prev.map(activity => 
+      activity.id === activityId 
+        ? {
+            ...activity,
+            students: activity.students.map(student => ({
+              ...student,
+              submitted: true
+            }))
+          }
+        : activity
+    ));
+  };
+
+  const handleGradeChange = (activityId, studentId, value) => {
+    setActivities(prev => prev.map(activity => 
+      activity.id === activityId 
+        ? {
+            ...activity,
+            students: activity.students.map(student =>
+              student.user_ID === studentId
+                ? { ...student, grade: value }
+                : student
+            )
+          }
+        : activity
+    ));
+  };
+
+  const handleSubmissionChange = (activityId, studentId, submitted) => {
+    setActivities(prev => prev.map(activity => 
+      activity.id === activityId 
+        ? {
+            ...activity,
+            students: activity.students.map(student =>
+              student.user_ID === studentId
+                ? { ...student, submitted }
+                : student
+            )
+          }
+        : activity
+    ));
+  };
+
+  if (loading) {
+    return (
+      <div>
+        <Sidebar role="teacher" isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} />
+        <div className={`transition-all duration-300 ${isSidebarOpen ? 'lg:ml-[250px] xl:ml-[280px] 2xl:ml-[300px]' : 'ml-0'}`}>
+          <Header setIsOpen={setIsSidebarOpen} isOpen={isSidebarOpen} userName="Jane Doe" />
+          <div className="p-5 text-center">Loading...</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -86,16 +286,21 @@ export default function SubjectDetails() {
 
           <div className="flex flex-col gap-2 text-sm sm:text-base lg:text-[1.125rem] text-[#465746] mb-4 sm:mb-5 ml-2">
             <div className="flex flex-wrap items-center gap-1 sm:gap-3">
-              <span className="font-semibold">SUBJECTCODE:</span>
-              <span>Attendance</span>
+              <span className="font-semibold">SUBJECT CODE:</span>
+              <span>{classInfo?.subject_code || 'Loading...'}</span>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-1 sm:gap-3">
+              <span className="font-semibold">SUBJECT:</span>
+              <span>{classInfo?.subject || 'Loading...'}</span>
             </div>
 
             <div className="flex items-center justify-between sm:justify-start gap-2 sm:gap-3 sm:mr-5">
               <div className="flex items-center gap-2">
                 <span className="font-semibold">Section:</span>
-                <span>A</span>
+                <span>{classInfo?.section || 'Loading...'}</span>
               </div>
-              <Link to={"/SubjectDetails"} className="sm:hidden">
+              <Link to={"/ClassManagement"} className="sm:hidden">
                 <img 
                   src={BackButton} 
                   alt="Back" 
@@ -109,8 +314,7 @@ export default function SubjectDetails() {
 
           {/* ATTENDANCE and ADD Button */}
           <div className="flex items-center justify-between w-full mt-4 sm:mt-5 gap-3">
-
-            <Link to={"/Attendance"} className="flex-1 sm:flex-initial">
+            <Link to={`/Attendance?code=${subjectCode}`} className="flex-1 sm:flex-initial">
               <button className="px-4 sm:px-5 py-2 bg-white font-semibold text-sm sm:text-base rounded-md shadow-md border-2 border-transparent hover:border-[#00874E] transition-all duration-200 cursor-pointer">
                 ATTENDANCE
               </button>
@@ -125,22 +329,30 @@ export default function SubjectDetails() {
 
           {/* ACTIVITY CARDS */}
           <div className="space-y-4 mt-4 sm:mt-5">
-            <ActivityCard
-              title="ACTIVITY 1"
-              description="HTML & CSS Design layout"
-              status="Not Graded"
-              deadline="January 5, 2025"
-              students={students}
-            />
-            <ActivityCard
-              title="ACTIVITY 2"
-              description="HTML & CSS Design layout"
-              status="Not Graded"
-              deadline="January 5, 2025"
-              students={students}
-            />
+            {activities.map((activity) => (
+              <ActivityCard
+                key={activity.id}
+                activity={activity}
+                isEditing={isEditing}
+                onGradeChange={(studentId, value) => handleGradeChange(activity.id, studentId, value)}
+                onSubmissionChange={(studentId, status) => {
+                  // Handle the three status types: 'submitted', 'late', 'missed'
+                  const submitted = status === 'submitted' || status === 'late';
+                  handleSubmissionChange(activity.id, studentId, submitted);
+                  // You might want to store the specific status (late/submitted) in your state
+                }}
+                onSave={(updatedStudents) => handleSaveActivity(activity.id, updatedStudents)}
+                onMarkAllSubmitted={() => handleMarkAllSubmitted(activity.id)}
+                onEditToggle={() => setIsEditing(!isEditing)}
+              />
+            ))}
+            
+            {activities.length === 0 && (
+              <div className="text-center py-8 text-gray-500">
+                <p>No activities created yet. Click the + button to create your first activity.</p>
+              </div>
+            )}
           </div>
-          
         </div>
       </div>
 
@@ -185,7 +397,10 @@ export default function SubjectDetails() {
               <div className="relative">
                 <label className="text-sm font-semibold mb-1.5 block">Activity Type</label>
                 <button
-                  onClick={() => setActivityTypeDropdownOpen(!activityTypeDropdownOpen)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setActivityTypeDropdownOpen(!activityTypeDropdownOpen);
+                  }}
                   className="w-full bg-white border border-gray-300 text-black rounded-md px-4 py-2.5 flex items-center justify-between hover:border-[#00874E] transition-colors"
                 >
                   <span className="text-sm">{activityType || "Activity Type"}</span>
@@ -264,7 +479,7 @@ export default function SubjectDetails() {
               <div>
                 <label className="text-sm font-semibold mb-1.5 block">Points:</label>
                 <input
-                  type="text"
+                  type="number"
                   placeholder="--"
                   value={points}
                   onChange={(e) => setPoints(e.target.value)}
@@ -286,7 +501,7 @@ export default function SubjectDetails() {
 
               {/* Create Button */}
               <button
-                onClick={handleCreate}
+                onClick={handleCreateActivity}
                 className="w-full bg-[#00A15D] text-white font-bold py-2.5 rounded-md hover:bg-[#00874E] transition-colors text-sm sm:text-base cursor-pointer mt-2"
               >
                 Create
