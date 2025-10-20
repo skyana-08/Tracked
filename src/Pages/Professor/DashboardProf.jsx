@@ -1,5 +1,5 @@
 import React from 'react'
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from 'react-router-dom';
 
 import Sidebar from "../../Components/Sidebar";
@@ -15,6 +15,51 @@ import Archive from '../../assets/Archive(Light).svg';
 
 export default function DashboardProf() {
   const [isOpen, setIsOpen] = useState(false);
+  const [userName, setUserName] = useState("Prof. Jane");
+  const [userId, setUserId] = useState("");
+  const [userEmail, setUserEmail] = useState("");
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    // Get user data from localStorage and fetch from database
+    const fetchUserData = async () => {
+      try {
+        const userStr = localStorage.getItem("user");
+        if (userStr) {
+          const user = JSON.parse(userStr);
+          
+          // Get user ID from localStorage
+          const userIdFromStorage = user.id;
+          
+          if (userIdFromStorage) {
+            setUserId(userIdFromStorage);
+            
+            // Fetch complete user data from database
+            const response = await fetch(`http://localhost/TrackEd/src/Pages/Professor/getUserDataProf.php?id=${userIdFromStorage}`);
+            
+            if (response.ok) {
+              const data = await response.json();
+              
+              if (data.success) {
+                // Set username from database
+                const fullName = `${data.user.tracked_fname} ${data.user.tracked_lname}`;
+                setUserName(fullName);
+                
+                // Set email from database
+                setUserEmail(data.user.tracked_email);
+              }
+            }
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching user data:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUserData();
+  }, []);
 
   return (
 
@@ -24,7 +69,7 @@ export default function DashboardProf() {
         transition-all duration-300
         ${isOpen ? 'lg:ml-[250px] xl:ml-[280px] 2xl:ml-[300px]' : 'ml-0'}
       `}>
-        <Header setIsOpen={setIsOpen} isOpen={isOpen} userName="Jane Doe" />
+        <Header setIsOpen={setIsOpen} isOpen={isOpen} userName={userName} />
 
         {/* content of PROFESSOR DASHBOARD*/}
         <div className="p-3 sm:p-4 md:p-5 lg:p-5 xl:p-5">
@@ -46,8 +91,8 @@ export default function DashboardProf() {
 
           <div className="text-sm sm:text-base md:text-base lg:text-[1.125rem] text-[#465746] mb-4 sm:mb-5 ml-2">
             <span>Welcome back,</span>
-            <span className="font-bold ml-1 mr-1">Prof. Jane!</span>
-            <span>Let’s see how your students are doing.</span>
+            <span className="font-bold ml-1 mr-1">{userName}!</span>
+            <span>Let's see how your students are doing.</span>
           </div>
 
           <hr className="opacity-60 border-[#465746] rounded border-1 mt-5" />
@@ -107,7 +152,7 @@ export default function DashboardProf() {
               alt="ID"
               className="h-4 w-4 sm:h-5 sm:w-5 mr-2 sm:mr-3"
             />
-            <p className="font-bold text-sm sm:text-base lg:text-[1.125rem]">Prof. Jane</p>
+            <p className="font-bold text-sm sm:text-base lg:text-[1.125rem]">{userName}</p>
           </div>
 
           <hr className="opacity-60 border-[#465746] rounded border-1 my-2 sm:my-3" />
@@ -116,11 +161,11 @@ export default function DashboardProf() {
           <div className="pl-4 sm:pl-8 space-y-1 sm:space-y-2">
             <div className="flex flex-col sm:flex-row">
               <span className="font-bold text-xs sm:text-sm lg:text-base w-full sm:w-40 mb-1 sm:mb-0">Faculty Number:</span>
-              <span className="text-xs sm:text-sm lg:text-base">202210715</span>
+              <span className="text-xs sm:text-sm lg:text-base">{loading ? "Loading..." : (userId || "N/A")}</span>
             </div>
             <div className="flex flex-col sm:flex-row">
               <span className="font-bold text-xs sm:text-sm lg:text-base w-full sm:w-40 mb-1 sm:mb-0">CvSU Email:</span>
-              <span className="text-xs sm:text-sm lg:text-base break-all sm:break-normal">jane@cvsu.edu.ph</span>
+              <span className="text-xs sm:text-sm lg:text-base break-all sm:break-normal">{loading ? "Loading..." : (userEmail || "N/A")}</span>
             </div>
             <div className="flex flex-col sm:flex-row">
               <span className="font-bold text-xs sm:text-sm lg:text-base w-full sm:w-40 mb-1 sm:mb-0">Handled Subject:</span>
