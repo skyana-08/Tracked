@@ -116,6 +116,25 @@ export default function ActivityCard({
     }
   };
 
+  // Function to render link
+  const renderLink = () => {
+    if (!activity.link) return null;
+    
+    return (
+      <div className="flex items-start gap-2 mt-1">
+        <span className="text-xs sm:text-sm font-semibold text-[#465746] whitespace-nowrap">Link:</span>
+        <a 
+          href={activity.link} 
+          target="_blank" 
+          rel="noopener noreferrer"
+          className="text-xs sm:text-sm text-blue-600 hover:text-blue-800 underline break-words flex-1"
+        >
+          {activity.link}
+        </a>
+      </div>
+    );
+  };
+
   return (
     <div className={`bg-[#fff] rounded-md shadow-md p-3 sm:p-4 mb-4 w-full mt-5 border-2 ${
       !isEditing ? 'border-transparent' : 'border-[#00874E]'
@@ -125,28 +144,53 @@ export default function ActivityCard({
         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 pr-10">
           
           {/* Title section */}
-          <div className="flex flex-col text-sm sm:text-base lg:text-[1.125rem] max-w-full sm:max-w-[250px]">
-            <span className="font-bold">{activity.title || activity.task_number}</span>
+          <div className="flex flex-col text-sm sm:text-base lg:text-[1.125rem] flex-1 min-w-0">
+            <span className="font-bold text-base sm:text-lg">{activity.title || activity.task_number}</span>
             <span className="text-xs sm:text-sm text-gray-600 mt-1">
               {activity.instruction || activity.description}
             </span>
-            {activity.points && (
-              <span className="text-xs sm:text-sm font-semibold text-[#465746] mt-1">
-                Total Points: {activity.points}
-              </span>
-            )}
+            
+            {/* NEW: Activity Type, Task Number, and Link */}
+            <div className="flex flex-col gap-1.5 mt-2">
+              {/* Activity Type and Task Number */}
+              <div className="flex flex-wrap items-center gap-3 sm:gap-4">
+                {activity.activity_type && (
+                  <div className="flex items-center gap-1">
+                    <span className="text-xs sm:text-sm font-semibold text-[#465746] whitespace-nowrap">Type:</span>
+                    <span className="text-xs sm:text-sm text-[#465746] capitalize">{activity.activity_type.toLowerCase()}</span>
+                  </div>
+                )}
+                {activity.task_number && (
+                  <div className="flex items-center gap-1">
+                    <span className="text-xs sm:text-sm font-semibold text-[#465746] whitespace-nowrap">Task:</span>
+                    <span className="text-xs sm:text-sm text-[#465746] uppercase">{activity.task_number}</span>
+                  </div>
+                )}
+              </div>
+              
+              {/* Link */}
+              {renderLink()}
+              
+              {/* Points */}
+              {activity.points && (
+                <div className="flex items-center gap-1">
+                  <span className="text-xs sm:text-sm font-semibold text-[#465746] whitespace-nowrap">Total Points:</span>
+                  <span className="text-xs sm:text-sm text-[#465746]">{activity.points}</span>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Status and Deadline section - stack on mobile, row on desktop */}
           <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 md:gap-4 text-sm sm:text-base lg:text-[1.125rem]">
             <div className="flex items-center gap-2">
-              <p className="font-bold whitespace-nowrap">Status:</p>
+              <p className="font-bold whitespace-nowrap text-xs sm:text-sm">Status:</p>
               <p className={`whitespace-nowrap text-xs sm:text-sm lg:text-base ${allSubmitted ? 'text-[#00A15D]' : 'text-[#EF4444]'}`}>
                 {status}
               </p>
             </div>
             <div className="flex items-center gap-2">
-              <p className="font-bold text-[#EF4444] whitespace-nowrap">Deadline:</p>
+              <p className="font-bold text-[#EF4444] whitespace-nowrap text-xs sm:text-sm">Deadline:</p>
               <p className="whitespace-nowrap text-xs sm:text-sm lg:text-base">
                 {formatDate(activity.deadline)}
               </p>
