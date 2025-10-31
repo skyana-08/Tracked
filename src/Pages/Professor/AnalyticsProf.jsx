@@ -347,18 +347,19 @@ export default function AnalyticsProf() {
                 
             <div className="overflow-x-auto mt-5">
               <table className="min-w-full border-collapse rounded-md overflow-hidden shadow-md">
-                <thead className="text-left">
-                  <tr>
-                    <th className="px-4 py-2">No.</th>
-                    <th className="px-4 py-2">Student No.</th>
-                    <th className="px-4 py-2">Student Name</th>
-                    <th className="px-4 py-2 text-[#00A15D]">Present</th>
-                    <th className="px-4 py-2 text-[#FF6666]">Absent</th>
-                    <th className="px-4 py-2 text-[#00A15D]">Submitted</th>
-                    <th className="px-4 py-2 text-[#FF6666]">Missed</th>
-                    <th className="px-4 py-2">Details</th>
-                  </tr>
-                </thead>
+                
+                  <thead className="text-left">
+                    <tr>
+                      <th className="px-4 py-2">No.</th>
+                      <th className="px-4 py-2">Student No.</th>
+                      <th className="px-4 py-2">Student Name</th>
+                      <th className="px-4 py-2 text-[#00A15D]">Present</th>
+                      <th className="px-4 py-2 text-[#FF6666]">Absent</th>
+                      <th className="px-4 py-2 text-[#00A15D]">Submitted</th>
+                      <th className="px-4 py-2 text-[#FF6666]">Missed</th>
+                      <th className="px-4 py-2">Details</th>
+                    </tr>
+                  </thead>
 
                 <tbody>
                   <tr className="hover:bg-gray-100">
@@ -369,9 +370,11 @@ export default function AnalyticsProf() {
                     <td className="px-4 py-2">2</td>
                     <td className="px-4 py-2">5</td>
                     <td className="px-4 py-2">1</td>
-                    <td className="px-4 py-2">
-                      <img src={Details} alt="Details" className="w-5 h-5" />
-                    </td>
+                    <Link to={"/AnalyticsIndividualInfo"}>
+                      <td className="px-4 py-2">
+                        <img src={Details} alt="Details" className="w-5 h-5" />
+                      </td>
+                    </Link>
                   </tr>
 
                   <tr className="hover:bg-gray-100">
@@ -382,9 +385,11 @@ export default function AnalyticsProf() {
                     <td className="px-4 py-2">3</td>
                     <td className="px-4 py-2">6</td>
                     <td className="px-4 py-2">0</td>
-                    <td className="px-4 py-2">
-                      <img src={Details} alt="Details" className="w-5 h-5" />
-                    </td>
+                    <Link to={"/AnalyticsIndividualInfo"}>
+                      <td className="px-4 py-2">
+                        <img src={Details} alt="Details" className="w-5 h-5" />
+                      </td>
+                    </Link>
                   </tr>
 
                   <tr className="hover:bg-gray-100">
@@ -395,9 +400,11 @@ export default function AnalyticsProf() {
                     <td className="px-4 py-2">5</td>
                     <td className="px-4 py-2">4</td>
                     <td className="px-4 py-2">2</td>
-                    <td className="px-4 py-2">
-                      <img src={Details} alt="Details" className="w-5 h-5" />
-                    </td>
+                    <Link to={"/AnalyticsIndividualInfo"}>
+                      <td className="px-4 py-2">
+                        <img src={Details} alt="Details" className="w-5 h-5" />
+                      </td>
+                    </Link>
                   </tr>
                 </tbody>
               </table>
