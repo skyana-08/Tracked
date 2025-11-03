@@ -7,8 +7,8 @@ header('Access-Control-Allow-Headers: Content-Type');
 // Database connection
 $host = 'localhost';
 $dbname = 'tracked';
-$username = 'root'; // Change if different
-$password = ''; // Change if you have a password
+$username = 'root';
+$password = '';
 
 try {
     $conn = new PDO("mysql:host=$host;dbname=$dbname", $username, $password);

@@ -4,19 +4,40 @@ import { useState } from "react";
 
 import Sidebar from "../../Components/Sidebar";
 import Header from "../../Components/Header";
-import Popup from "../../Components/Popup";
 
 import BackButton from '../../assets/BackButton(Light).svg';
 import Archive from '../../assets/Archive(Light).svg';
 import Unarchive from '../../assets/Unarchive.svg';
 import ArrowDown from '../../assets/ArrowDown(Light).svg';
 import Search from '../../assets/Search.svg';
+import SuccessIcon from '../../assets/Success(Green).svg';
 
 export default function AdminAccountArchive() {
   const [isOpen, setIsOpen] = useState(false);
   const [open, setOpen] = useState(false);
-  const [showPopup, setShowPopup] = useState(false);
+  const [showUnarchiveModal, setShowUnarchiveModal] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [selectedFilter, setSelectedFilter] = useState("All");
+  const [selectedAccount, setSelectedAccount] = useState(null);
+
+  const handleUnarchiveClick = (account) => {
+    setSelectedAccount(account);
+    setShowUnarchiveModal(true);
+  };
+
+  const confirmUnarchive = () => {
+    // Add your unarchive logic here
+    console.log("Unarchiving account:", selectedAccount);
+    setShowUnarchiveModal(false);
+    setShowSuccessModal(true);
+    setSelectedAccount(null);
+  };
+
+  // Sample data - replace with your actual data
+  const archivedAccounts = [
+    { id: 1, number: "2025001", name: "Alice Mendoza", email: "alice@example.com", type: "Student", status: "Deactivated" },
+    { id: 2, number: "2025002", name: "Brian Santos", email: "brian@example.com", type: "Professor", status: "Deactivated" }
+  ];
 
   return (
     <div>
@@ -141,121 +162,188 @@ export default function AdminAccountArchive() {
 
                 {/* Table Body */}
                 <tbody className="text-[#465746]">
-                  <tr className="bg-[#fff] rounded-lg shadow hover:bg-gray-50 transition-colors duration-200">
-                    <td className="py-3 px-2 sm:px-3 rounded-l-lg">1</td>
-                    <td className="py-3 px-2 sm:px-3">2025001</td>
-                    <td className="py-3 px-2 sm:px-3">Alice Mendoza</td>
-                    <td className="py-3 px-2 sm:px-3 break-all sm:break-normal">alice@example.com</td>
-                    <td className="py-3 px-2 sm:px-3 font-bold text-[#FF6666]">Deactivated</td>
-                    <td className="py-3 px-2 sm:px-3 rounded-r-lg">
-                      <img 
-                        onClick={() => setShowPopup(true)} 
-                        src={Unarchive} 
-                        alt="Unarchive" 
-                        className="h-5 w-5 sm:h-6 sm:w-6 cursor-pointer hover:opacity-70 transition-opacity" 
-                      />
-                    </td>
-                  </tr>
-
-                  <tr className="bg-[#fff] rounded-lg shadow hover:bg-gray-50 transition-colors duration-200">
-                    <td className="py-3 px-2 sm:px-3 rounded-l-lg">2</td>
-                    <td className="py-3 px-2 sm:px-3">2025002</td>
-                    <td className="py-3 px-2 sm:px-3">Brian Santos</td>
-                    <td className="py-3 px-2 sm:px-3 break-all sm:break-normal">brian@example.com</td>
-                    <td className="py-3 px-2 sm:px-3 font-bold text-[#FF6666]">Deactivated</td>
-                    <td className="py-3 px-2 sm:px-3 rounded-r-lg">
-                      <img 
-                        onClick={() => setShowPopup(true)} 
-                        src={Unarchive} 
-                        alt="Unarchive" 
-                        className="h-5 w-5 sm:h-6 sm:w-6 cursor-pointer hover:opacity-70 transition-opacity" 
-                      />
-                    </td>
-                  </tr>
+                  {archivedAccounts.map((account) => (
+                    <tr key={account.id} className="bg-[#fff] rounded-lg shadow hover:bg-gray-50 transition-colors duration-200">
+                      <td className="py-3 px-2 sm:px-3 rounded-l-lg">{account.id}</td>
+                      <td className="py-3 px-2 sm:px-3">{account.number}</td>
+                      <td className="py-3 px-2 sm:px-3">{account.name}</td>
+                      <td className="py-3 px-2 sm:px-3 break-all sm:break-normal">{account.email}</td>
+                      <td className="py-3 px-2 sm:px-3 font-bold text-[#FF6666]">{account.status}</td>
+                      <td className="py-3 px-2 sm:px-3 rounded-r-lg">
+                        <img 
+                          onClick={() => handleUnarchiveClick(account)} 
+                          src={Unarchive} 
+                          alt="Unarchive" 
+                          className="h-5 w-5 sm:h-6 sm:w-6 cursor-pointer hover:opacity-70 transition-opacity" 
+                        />
+                      </td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>
 
             {/* Mobile Cards */}
             <div className="md:hidden space-y-3">
-              {/* Card 1 */}
-              <div className="bg-white rounded-lg shadow p-4 text-[#465746]">
-                <div className="flex justify-between items-start mb-3">
-                  <div>
-                    <p className="text-xs text-gray-500 mb-1">No. 1 | Student/Professor No.</p>
-                    <p className="font-semibold text-sm">2025001</p>
-                  </div>
-                  <div className="flex gap-2">
-                    <img 
-                      onClick={() => setShowPopup(true)} 
-                      src={Unarchive} 
-                      alt="Unarchive" 
-                      className="h-5 w-5 cursor-pointer" 
-                    />
-                  </div>
-                </div>
-                
-                <div className="space-y-2">
-                  <div>
-                    <p className="text-xs text-gray-500">Full Name</p>
-                    <p className="font-medium text-sm">Alice Mendoza</p>
+              {archivedAccounts.map((account) => (
+                <div key={account.id} className="bg-white rounded-lg shadow p-4 text-[#465746]">
+                  <div className="flex justify-between items-start mb-3">
+                    <div>
+                      <p className="text-xs text-gray-500 mb-1">No. {account.id} | Student/Professor No.</p>
+                      <p className="font-semibold text-sm">{account.number}</p>
+                    </div>
+                    <div className="flex gap-2">
+                      <img 
+                        onClick={() => handleUnarchiveClick(account)} 
+                        src={Unarchive} 
+                        alt="Unarchive" 
+                        className="h-5 w-5 cursor-pointer" 
+                      />
+                    </div>
                   </div>
                   
-                  <div>
-                    <p className="text-xs text-gray-500">Email</p>
-                    <p className="text-sm break-all">alice@example.com</p>
-                  </div>
-                  
-                  <div>
-                    <p className="text-xs text-gray-500">Status</p>
-                    <p className="font-bold text-sm text-[#FF6666]">Deactivated</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Card 2 */}
-              <div className="bg-white rounded-lg shadow p-4 text-[#465746]">
-                <div className="flex justify-between items-start mb-3">
-                  <div>
-                    <p className="text-xs text-gray-500 mb-1">No. 2 | Student/Professor No.</p>
-                    <p className="font-semibold text-sm">2025002</p>
-                  </div>
-                  <div className="flex gap-2">
-                    <img 
-                      onClick={() => setShowPopup(true)} 
-                      src={Unarchive} 
-                      alt="Unarchive" 
-                      className="h-5 w-5 cursor-pointer" 
-                    />
+                  <div className="space-y-2">
+                    <div>
+                      <p className="text-xs text-gray-500">Full Name</p>
+                      <p className="font-medium text-sm">{account.name}</p>
+                    </div>
+                    
+                    <div>
+                      <p className="text-xs text-gray-500">Email</p>
+                      <p className="text-sm break-all">{account.email}</p>
+                    </div>
+                    
+                    <div>
+                      <p className="text-xs text-gray-500">Status</p>
+                      <p className="font-bold text-sm text-[#FF6666]">{account.status}</p>
+                    </div>
                   </div>
                 </div>
-                
-                <div className="space-y-2">
-                  <div>
-                    <p className="text-xs text-gray-500">Full Name</p>
-                    <p className="font-medium text-sm">Brian Santos</p>
-                  </div>
-                  
-                  <div>
-                    <p className="text-xs text-gray-500">Email</p>
-                    <p className="text-sm break-all">brian@example.com</p>
-                  </div>
-                  
-                  <div>
-                    <p className="text-xs text-gray-500">Status</p>
-                    <p className="font-bold text-sm text-[#FF6666]">Deactivated</p>
-                  </div>
-                </div>
-              </div>
+              ))}
             </div>
 
-            {/* Popup for Archive */}
-            {showPopup && (
-              <Popup 
-                setOpen={setShowPopup} 
-                message="Are you sure you want to Restore this account?" 
-                confirmText="Restore" 
-              />
+            {/* Unarchive Confirmation Modal */}
+            {showUnarchiveModal && selectedAccount && (
+              <div
+                className="fixed inset-0 bg-black/50 flex justify-center items-center z-50 overlay-fade p-4"
+                onClick={(e) => {
+                  if (e.target === e.currentTarget) {
+                    setShowUnarchiveModal(false);
+                    setSelectedAccount(null);
+                  }
+                }}
+                role="dialog"
+                aria-modal="true"
+              >
+                <div className="bg-white text-black rounded-lg shadow-2xl w-full max-w-sm sm:max-w-md p-6 sm:p-8 relative modal-pop">
+                  <div className="text-center">
+                    {/* Info Icon */}
+                    <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-green-100 mb-4">
+                      <img 
+                        src={Unarchive} 
+                        alt="Restore" 
+                        className="h-8 w-8"
+                      />
+                    </div>
+
+                    <h3 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">
+                      Restore Account?
+                    </h3>
+                    
+                    <div className="mt-4 mb-6">
+                      <p className="text-sm text-gray-600 mb-3">
+                        Are you sure you want to restore this account?
+                      </p>
+                      <div className="bg-gray-50 rounded-lg p-4 text-left">
+                        <p className="text-base sm:text-lg font-semibold text-gray-900 break-words">
+                          {selectedAccount.name}
+                        </p>
+                        <p className="text-sm text-gray-600 mt-1">
+                          ID: {selectedAccount.number}
+                        </p>
+                        <p className="text-sm text-gray-600">
+                          Email: {selectedAccount.email}
+                        </p>
+                        <p className="text-sm text-gray-600">
+                          Type: {selectedAccount.type}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col sm:flex-row gap-3">
+                      <button
+                        onClick={() => {
+                          setShowUnarchiveModal(false);
+                          setSelectedAccount(null);
+                        }}
+                        className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-3 rounded-md transition-all duration-200 cursor-pointer"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={confirmUnarchive}
+                        className="flex-1 bg-[#00A15D] hover:bg-[#00874E] text-white font-bold py-3 rounded-md transition-all duration-200 cursor-pointer"
+                      >
+                        Restore
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <style>{`
+                  .overlay-fade { animation: overlayFade .18s ease-out both; }
+                  @keyframes overlayFade { from { opacity: 0 } to { opacity: 1 } }
+
+                  .modal-pop {
+                    transform-origin: top center;
+                    animation: popIn .22s cubic-bezier(.2,.8,.2,1) both;
+                  }
+                  @keyframes popIn {
+                    from { opacity: 0; transform: translateY(-8px) scale(.98); }
+                    to   { opacity: 1; transform: translateY(0)   scale(1);    }
+                  }
+                `}</style>
+              </div>
+            )}
+
+            {/* Success Modal */}
+            {showSuccessModal && (
+              <div
+                className="fixed inset-0 bg-black/50 flex justify-center items-center z-50 overlay-fade p-4"
+                onClick={(e) => {
+                  if (e.target === e.currentTarget) setShowSuccessModal(false);
+                }}
+                role="dialog"
+                aria-modal="true"
+              >
+                <div className="bg-white text-black rounded-lg shadow-2xl w-full max-w-sm sm:max-w-md p-6 sm:p-8 relative modal-pop">
+                  <div className="text-center">
+                    {/* Success Icon */}
+                    <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-green-100 mb-4">
+                      <img 
+                        src={SuccessIcon} 
+                        alt="Success" 
+                        className="h-8 w-8"
+                      />
+                    </div>
+
+                    <h3 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">
+                      Account Restored Successfully!
+                    </h3>
+                    
+                    <p className="text-sm text-gray-600 mb-6">
+                      The account has been restored and is now active again.
+                    </p>
+
+                    <button
+                      onClick={() => setShowSuccessModal(false)}
+                      className="w-full bg-[#00A15D] hover:bg-[#00874E] text-white font-bold py-3 rounded-md transition-all duration-200 cursor-pointer"
+                    >
+                      Got it!
+                    </button>
+                  </div>
+                </div>
+              </div>
             )}
           </div>
         </div>

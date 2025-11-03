@@ -8,7 +8,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
     exit(0);
 }
 
-$host = '127.0.0.1';
+$host = 'localhost';
 $dbname = 'tracked';
 $username = 'root';
 $password = '';

@@ -3,7 +3,6 @@ import { Link } from "react-router-dom";
 
 import Sidebar from "../../Components/Sidebar";
 import Header from "../../Components/Header";
-import Popup from "../../Components/Popup";
 
 import ClassManagementLight from "../../assets/ClassManagement(Light).svg";
 import BackButton from "../../assets/BackButton(Light).svg";
@@ -12,12 +11,14 @@ import Search from "../../assets/Search.svg";
 import Archive from "../../assets/Archive(Light).svg";
 import ArchiveRow from "../../assets/ArchiveRow(Light).svg";
 import Details from "../../assets/Details(Light).svg";
+import ArchiveWarningIcon from "../../assets/Warning(Yellow).svg";
 
 export default function UserManagementProfessorAccounts() {
   const [isOpen, setIsOpen] = useState(false);
   const [open, setOpen] = useState(false);
-  const [showPopup, setShowPopup] = useState(false);
+  const [showArchiveModal, setShowArchiveModal] = useState(false);
   const [selectedFilter, setSelectedFilter] = useState("All");
+  const [selectedProfessor, setSelectedProfessor] = useState(null);
 
   const [professors, setProfessors] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
@@ -38,6 +39,18 @@ export default function UserManagementProfessorAccounts() {
   const totalPages = Math.ceil(professors.length / itemsPerPage);
 
   const handlePageChange = (pageNumber) => setCurrentPage(pageNumber);
+
+  const handleArchiveClick = (prof) => {
+    setSelectedProfessor(prof);
+    setShowArchiveModal(true);
+  };
+
+  const confirmArchive = () => {
+    // Add your archive logic here
+    console.log("Archiving professor:", selectedProfessor);
+    setShowArchiveModal(false);
+    setSelectedProfessor(null);
+  };
 
   return (
     <div>
@@ -189,7 +202,7 @@ export default function UserManagementProfessorAccounts() {
                       <td className="py-3 px-2 sm:px-3 rounded-r-lg">
                         <div className="flex gap-2">
                           <img
-                            onClick={() => setShowPopup(true)}
+                            onClick={() => handleArchiveClick(prof)}
                             src={ArchiveRow}
                             alt="Archive"
                             className="h-5 w-5 sm:h-6 sm:w-6 cursor-pointer hover:opacity-70 transition-opacity"
@@ -225,7 +238,7 @@ export default function UserManagementProfessorAccounts() {
                     </div>
                     <div className="flex gap-2">
                       <img
-                        onClick={() => setShowPopup(true)}
+                        onClick={() => handleArchiveClick(prof)}
                         src={ArchiveRow}
                         alt="Archive"
                         className="h-5 w-5 cursor-pointer"
@@ -323,8 +336,86 @@ export default function UserManagementProfessorAccounts() {
               )}
             </div>
 
-            {/* Popup */}
-            {showPopup && <Popup setOpen={setShowPopup} />}
+            {/* Archive Confirmation Modal */}
+            {showArchiveModal && selectedProfessor && (
+              <div
+                className="fixed inset-0 bg-black/50 flex justify-center items-center z-50 overlay-fade p-4"
+                onClick={(e) => {
+                  if (e.target === e.currentTarget) {
+                    setShowArchiveModal(false);
+                    setSelectedProfessor(null);
+                  }
+                }}
+                role="dialog"
+                aria-modal="true"
+              >
+                <div className="bg-white text-black rounded-lg shadow-2xl w-full max-w-sm sm:max-w-md p-6 sm:p-8 relative modal-pop">
+                  <div className="text-center">
+                    {/* Warning Icon */}
+                    <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-yellow-100 mb-4">
+                      <img 
+                        src={ArchiveWarningIcon} 
+                        alt="Warning" 
+                        className="h-8 w-8" 
+                      />
+                    </div>
+
+                    <h3 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">
+                      Archive Account?
+                    </h3>
+                    
+                    <div className="mt-4 mb-6">
+                      <p className="text-sm text-gray-600 mb-3">
+                        Are you sure you want to archive this professor account?
+                      </p>
+                      <div className="bg-gray-50 rounded-lg p-4 text-left">
+                        <p className="text-base sm:text-lg font-semibold text-gray-900 break-words">
+                          {selectedProfessor.tracked_fname} {selectedProfessor.tracked_lname}
+                        </p>
+                        <p className="text-sm text-gray-600 mt-1">
+                          ID: {selectedProfessor.tracked_ID}
+                        </p>
+                        <p className="text-sm text-gray-600">
+                          Email: {selectedProfessor.tracked_email}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col sm:flex-row gap-3">
+                      <button
+                        onClick={() => {
+                          setShowArchiveModal(false);
+                          setSelectedProfessor(null);
+                        }}
+                        className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-3 rounded-md transition-all duration-200 cursor-pointer"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={confirmArchive}
+                        className="flex-1 bg-[#00A15D] hover:bg-[#00874E] text-white font-bold py-3 rounded-md transition-all duration-200 cursor-pointer"
+                      >
+                        Archive
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <style>{`
+                  .overlay-fade { animation: overlayFade .18s ease-out both; }
+                  @keyframes overlayFade { from { opacity: 0 } to { opacity: 1 } }
+
+                  .modal-pop {
+                    transform-origin: top center;
+                    animation: popIn .22s cubic-bezier(.2,.8,.2,1) both;
+                  }
+                  @keyframes popIn {
+                    from { opacity: 0; transform: translateY(-8px) scale(.98); }
+                    to   { opacity: 1; transform: translateY(0)   scale(1);    }
+                  }
+                `}</style>
+              </div>
+            )}
           </div>
         </div>
       </div>
