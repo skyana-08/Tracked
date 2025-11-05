@@ -1,45 +1,56 @@
 import React, { useState } from "react";
 import ArrowDown from "../assets/ArrowDown(Light).svg";
 
-export default function ActivityCardStudent({
-  index = 0,
-  id,
-  title,
-  status,
-  deadline,
-  datePosted,
-  description,
-  section,
-  postedBy
-}) {
+export default function ActivityCardStudent({ activity, formatDate }) {
   const [open, setOpen] = useState(false);
 
-  const isGraded = String(status).toLowerCase() === "graded";
+  const isSubmitted = activity.submitted === 1 || activity.submitted === true;
+  const isLate = activity.late === 1 || activity.late === true;
+
+  const getStatusText = () => {
+    if (isSubmitted && isLate) return "Submitted Late";
+    if (isSubmitted) return "Submitted";
+    return "Not Submitted";
+  };
+
+  const getStatusColor = () => {
+    if (isSubmitted && isLate) return "text-yellow-600";
+    if (isSubmitted) return "text-green-600";
+    return "text-[#FF6666]";
+  };
 
   return (
     <div className="bg-white rounded-md shadow-md p-4 sm:p-5 border-2 border-transparent hover:border-[#00874E] transition-all duration-200 cursor-pointer">
       <div className="flex items-center justify-between gap-3">
-        <div className="flex items-start gap-3 min-w-0">
-          <div className="min-w-0">
+        <div className="flex items-start gap-3 min-w-0 flex-1">
+          <div className="min-w-0 flex-1">
             <div className="text-lg font-semibold">
-              {title}
+              {activity.title}
             </div>
-            <div className="text-md">
-              {section} • Posted {datePosted}
+            <div className="text-md text-gray-600">
+              {activity.activity_type} • {activity.task_number} • Posted {formatDate(activity.created_at)}
+            </div>
+            
+            {/* Activity details */}
+            <div className="flex flex-wrap gap-4 mt-2 text-sm text-gray-600">
+              {activity.points && (
+                <span>Points: {activity.points}</span>
+              )}
+              {activity.deadline && (
+                <span className={`${new Date(activity.deadline) < new Date() && !isSubmitted ? 'text-red-600 font-semibold' : ''}`}>
+                  Deadline: {formatDate(activity.deadline)}
+                </span>
+              )}
             </div>
           </div>
         </div>
 
-        {/* Right: status, deadline, expand */}
-        <div className="flex items-center gap-4">
+        {/* Right: status, expand */}
+        <div className="flex items-center gap-4 flex-shrink-0">
           <div className="text-sm">
-            <span className={`font-semibold ${isGraded ? "text-green-600" : "text-[#FF6666]"}`}>
-              {isGraded ? "Graded" : "Not graded"}
+            <span className={`font-semibold ${getStatusColor()}`}>
+              {getStatusText()}
             </span>
-          </div>
-
-          <div className="text-sm text-[#FF6666] font-bold whitespace-nowrap">
-            {deadline || "No deadline"}
           </div>
 
           <button
@@ -56,9 +67,33 @@ export default function ActivityCardStudent({
       {/* Expanded content */}
       {open && (
         <div className="mt-3 border-t pt-3 text-sm text-gray-700">
-          <p className="mb-2">{description}</p>
-          <div className="text-sm text-gray-700">
-            <span>Posted by {postedBy}</span>
+          {activity.instruction && (
+            <div className="mb-3">
+              <p className="font-semibold mb-1">Instructions:</p>
+              <p className="whitespace-pre-wrap">{activity.instruction}</p>
+            </div>
+          )}
+          
+          {activity.link && (
+            <div className="mb-3">
+              <p className="font-semibold mb-1">Link:</p>
+              <a 
+                href={activity.link} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-blue-600 hover:text-blue-800 underline break-words"
+              >
+                {activity.link}
+              </a>
+            </div>
+          )}
+          
+          <div className="text-sm text-gray-600">
+            <p>Activity Type: {activity.activity_type}</p>
+            <p>Task Number: {activity.task_number}</p>
+            {activity.submitted_at && (
+              <p>Submitted: {formatDate(activity.submitted_at)}</p>
+            )}
           </div>
         </div>
       )}

@@ -70,17 +70,20 @@ export default function Attendance() {
     try {
       if (!classInfo) return;
       
-      console.log('Fetching students for section:', classInfo.section);
+      console.log('Fetching enrolled students for class:', subjectCode, 'section:', classInfo.section);
       
-      const response = await fetch(`http://localhost/TrackEd/src/Pages/Professor/SubjectDetailsDB/get_students_by_section.php?section=${classInfo.section}`);
+      // UPDATED: Include subject_code parameter
+      const response = await fetch(
+        `http://localhost/TrackEd/src/Pages/Professor/SubjectDetailsDB/get_students_by_section.php?section=${classInfo.section}&subject_code=${subjectCode}`
+      );
       
       if (response.ok) {
         const result = await response.json();
-        console.log('Students API response:', result);
+        console.log('Enrolled students API response:', result);
         
         if (result.success) {
           const studentsData = result.students;
-          console.log('Students found:', studentsData);
+          console.log('Enrolled students found:', studentsData);
           setStudents(studentsData);
           
           // Initialize attendance status for each student
@@ -89,6 +92,8 @@ export default function Attendance() {
             initialAttendance[student.user_ID] = 'present'; // Default to present
           });
           setAttendance(initialAttendance);
+        } else {
+          console.error('API returned error:', result.message);
         }
       } else {
         console.error('Failed to fetch students');

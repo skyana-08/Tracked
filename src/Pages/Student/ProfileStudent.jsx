@@ -14,52 +14,70 @@ export default function ProfileStudent() {
   const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Mock Data (Front-end Only)
-  const mockUserData = {
-    tracked_fname: "Maria Angela",
-    tracked_lname: "Santos",
-    tracked_mi: "R",
-    tracked_ID: "2021-105432",
-    tracked_email: "maria.santos@cvsu.edu.ph",
-    tracked_phone: "09171234567",
-    tracked_course: "Bachelor of Science in Information Technology",
-    tracked_program: "College of Computer Studies",
-    tracked_year: "3rd Year",
-    tracked_section: "BSIT 3-2",
-    tracked_subjects: [
-      "Web Systems and Technologies",
-      "System Integration and Architecture",
-      "Information Assurance and Security",
-      "Mobile Application Development"
-    ],
-    tracked_tasks_completed: 18,
-    tracked_tasks_pending: 4,
-    tracked_tasks_missed: 2,
-    tracked_Status: "Active",
-    created_at: "2023-08-15",
-    updated_at: "2025-01-10"
-  };
-
-  // Simulate Data Loading
   useEffect(() => {
-    setTimeout(() => {
-      setUserData(mockUserData);
-      setLoading(false);
-    }, 1000);
+    // Fetch user data from database
+    const fetchUserData = async () => {
+      try {
+        const userStr = localStorage.getItem("user");
+        if (userStr) {
+          const user = JSON.parse(userStr);
+          const userIdFromStorage = user.id;
+          
+          if (userIdFromStorage) {
+            // Fetch complete user data from database
+            const response = await fetch(`http://localhost/TrackEd/src/Pages/Student/DashboardStudentDB/get_student_info.php?id=${userIdFromStorage}`);
+            
+            if (response.ok) {
+              const data = await response.json();
+              
+              if (data.success) {
+                setUserData(data.user);
+              }
+            }
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching user data:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUserData();
   }, []);
 
-  // Format Date Helper
+  // Format date helper function
   const formatDate = (dateString) => {
     if (!dateString) return "N/A";
     const date = new Date(dateString);
     return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
   };
 
-  // Get Full Name
+  // Get full name
   const getFullName = () => {
     if (!userData) return "Loading...";
     const { tracked_fname, tracked_lname, tracked_mi } = userData;
     return `${tracked_fname} ${tracked_mi ? tracked_mi + '.' : ''} ${tracked_lname}`;
+  };
+
+  // Extract year level from tracked_yearandsec (e.g., "BSIT-4D" -> "4th Year")
+  const getYearLevel = () => {
+    if (!userData?.tracked_yearandsec) return "N/A";
+    
+    const yearMatch = userData.tracked_yearandsec.match(/-(\d+)/);
+    if (yearMatch) {
+      const yearNum = parseInt(yearMatch[1]);
+      const yearLevels = ["1st Year", "2nd Year", "3rd Year", "4th Year"];
+      return yearLevels[yearNum - 1] || `${yearNum}th Year`;
+    } else {
+      return userData.tracked_yearandsec;
+    }
+  };
+
+  // Extract section from tracked_yearandsec (e.g., "BSIT-4D" -> "BSIT 4D")
+  const getSection = () => {
+    if (!userData?.tracked_yearandsec) return "N/A";
+    return userData.tracked_yearandsec.replace('-', ' ');
   };
 
   return (
@@ -110,42 +128,42 @@ export default function ProfileStudent() {
                 <div className="space-y-3 sm:space-y-2">
                   <div className="flex flex-col sm:grid sm:grid-cols-2 gap-1 text-sm sm:text-base md:text-lg">
                     <span className="font-medium text-gray-600">Student Name:</span>
-                    <span className="font-semibold">{getFullName()}</span>
+                    <span>{getFullName()}</span>
                   </div>
 
                   <div className="flex flex-col sm:grid sm:grid-cols-2 gap-1 text-sm sm:text-base md:text-lg">
                     <span className="font-medium text-gray-600">Student Number (ID Number):</span>
-                    <span className="font-semibold">{userData?.tracked_ID}</span>
+                    <span>{userData?.tracked_ID || "N/A"}</span>
                   </div>
 
                   <div className="flex flex-col sm:grid sm:grid-cols-2 gap-1 text-sm sm:text-base md:text-lg">
                     <span className="font-medium text-gray-600">CVSU Email Address:</span>
-                    <span className="font-semibold break-all">{userData?.tracked_email}</span>
+                    <span>{userData?.tracked_email || "N/A"}</span>
                   </div>
 
                   <div className="flex flex-col sm:grid sm:grid-cols-2 gap-1 text-sm sm:text-base md:text-lg">
                     <span className="font-medium text-gray-600">Phone Number:</span>
-                    <span className="font-semibold">{userData?.tracked_phone}</span>
+                    <span>{userData?.tracked_phone || "N/A"}</span>
                   </div>
 
                   <div className="flex flex-col sm:grid sm:grid-cols-2 gap-1 text-sm sm:text-base md:text-lg">
                     <span className="font-medium text-gray-600">Course:</span>
-                    <span className="font-semibold">{userData?.tracked_course}</span>
+                    <span>{userData?.tracked_program || "N/A"}</span>
                   </div>
 
                   <div className="flex flex-col sm:grid sm:grid-cols-2 gap-1 text-sm sm:text-base md:text-lg">
                     <span className="font-medium text-gray-600">Year Level:</span>
-                    <span className="font-semibold">{userData?.tracked_year}</span>
+                    <span>{getYearLevel()}</span>
                   </div>
 
                   <div className="flex flex-col sm:grid sm:grid-cols-2 gap-1 text-sm sm:text-base md:text-lg">
                     <span className="font-medium text-gray-600">Section:</span>
-                    <span className="font-semibold">{userData?.tracked_section}</span>
+                    <span>{getSection()}</span>
                   </div>
 
                   <div className="flex flex-col sm:grid sm:grid-cols-2 gap-1 text-sm sm:text-base md:text-lg">
                     <span className="font-medium text-gray-600">Department:</span>
-                    <span className="font-semibold">{userData?.tracked_program}</span>
+                    <span>{userData?.tracked_program || "N/A"}</span>
                   </div>
                 </div>
               </div>
@@ -158,26 +176,34 @@ export default function ProfileStudent() {
                 <div className="space-y-3 sm:space-y-2">
                   <div className="flex flex-col sm:grid sm:grid-cols-2 gap-1 text-sm sm:text-base md:text-lg">
                     <span className="font-medium text-gray-600">Subjects Enrolled:</span>
-                    <span className="font-semibold">
-                      {userData?.tracked_subjects?.length > 0
-                        ? userData.tracked_subjects.join(", ")
-                        : "No subjects enrolled"}
+                    <span>
+                      {/* Note: You'll need to add a backend function to fetch enrolled subjects */}
+                      N/A
                     </span>
                   </div>
 
                   <div className="flex flex-col sm:grid sm:grid-cols-2 gap-1 text-sm sm:text-base md:text-lg">
                     <span className="font-medium text-gray-600">Tasks Completed:</span>
-                    <span className="font-semibold">{userData?.tracked_tasks_completed}</span>
+                    <span>
+                      {/* Note: You'll need to add a backend function to fetch task statistics */}
+                      N/A
+                    </span>
                   </div>
 
                   <div className="flex flex-col sm:grid sm:grid-cols-2 gap-1 text-sm sm:text-base md:text-lg">
                     <span className="font-medium text-gray-600">Tasks Pending:</span>
-                    <span className="font-semibold">{userData?.tracked_tasks_pending}</span>
+                    <span>
+                      {/* Note: You'll need to add a backend function to fetch task statistics */}
+                      N/A
+                    </span>
                   </div>
 
                   <div className="flex flex-col sm:grid sm:grid-cols-2 gap-1 text-sm sm:text-base md:text-lg">
                     <span className="font-medium text-gray-600">Tasks Missed:</span>
-                    <span className="font-semibold">{userData?.tracked_tasks_missed}</span>
+                    <span>
+                      {/* Note: You'll need to add a backend function to fetch task statistics */}
+                      N/A
+                    </span>
                   </div>
                 </div>
               </div>
@@ -190,12 +216,12 @@ export default function ProfileStudent() {
                 <div className="space-y-3 sm:space-y-2">
                   <div className="flex flex-col sm:grid sm:grid-cols-2 gap-1 text-sm sm:text-base md:text-lg">
                     <span className="font-medium text-gray-600">Date Created:</span>
-                    <span className="font-semibold">{formatDate(userData?.created_at)}</span>
+                    <span>{formatDate(userData?.created_at)}</span>
                   </div>
 
                   <div className="flex flex-col sm:grid sm:grid-cols-2 gap-1 text-sm sm:text-base md:text-lg">
                     <span className="font-medium text-gray-600">Last Update:</span>
-                    <span className="font-semibold">{formatDate(userData?.updated_at)}</span>
+                    <span>{formatDate(userData?.updated_at)}</span>
                   </div>
 
                   <div className="flex flex-col sm:grid sm:grid-cols-2 gap-1 text-sm sm:text-base md:text-lg">
@@ -205,7 +231,7 @@ export default function ProfileStudent() {
                         userData?.tracked_Status === "Active" ? "text-green-600" : "text-red-600"
                       }`}
                     >
-                      {userData?.tracked_Status}
+                      {userData?.tracked_Status || "N/A"}
                     </span>
                   </div>
                 </div>

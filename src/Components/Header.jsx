@@ -83,7 +83,7 @@ function Header({ setIsOpen }) {
       return {
         notification: "/NotificationStudent",
         profile: "/ProfileStudent",
-        accountSettings: "/AccoutSetting"
+        accountSettings: "/AccountSetting"
       };
     }
     return {

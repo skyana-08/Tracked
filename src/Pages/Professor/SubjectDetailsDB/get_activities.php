@@ -41,17 +41,19 @@ try {
     
     $section = $class['section'];
     
-    // Get all students in this section from users table ONLY
+    // FIXED: Get students who are actually ENROLLED in this class from student_classes table
     $studentsStmt = $pdo->prepare("
-        SELECT user_ID, user_Name, YearandSection 
-        FROM users 
-        WHERE user_Role = 'Student' 
-        AND YearandSection LIKE ?
+        SELECT u.user_ID, u.user_Name, u.YearandSection 
+        FROM users u
+        INNER JOIN student_classes sc ON u.user_ID = sc.student_ID
+        WHERE u.user_Role = 'Student' 
+        AND sc.subject_code = ?
+        AND sc.archived = 0
     ");
-    $studentsStmt->execute(['%' . $section]);
+    $studentsStmt->execute([$subject_code]);
     $students = $studentsStmt->fetchAll(PDO::FETCH_ASSOC);
     
-    error_log("Students from users table matching section '$section': " . count($students));
+    error_log("ENROLLED Students for class '$subject_code': " . count($students));
     
     // Get activities - ONLY NON-ARCHIVED activities (archived = 0 or NULL)
     $stmt = $pdo->prepare("SELECT * FROM activities WHERE subject_code = ? AND (archived = 0 OR archived IS NULL) ORDER BY created_at DESC");
@@ -114,7 +116,7 @@ try {
         "activities" => $activities,
         "debug" => [
             "class_section" => $section,
-            "total_students_found" => count($students),
+            "total_enrolled_students" => count($students),
             "student_details" => $students,
             "total_activities" => count($activities)
         ]

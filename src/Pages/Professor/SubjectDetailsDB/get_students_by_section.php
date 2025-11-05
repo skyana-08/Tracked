@@ -22,57 +22,51 @@ try {
 }
 
 $section = $_GET['section'] ?? '';
+$subject_code = $_GET['subject_code'] ?? '';
 
-if (empty($section)) {
-    echo json_encode(["success" => false, "message" => "Section is required"]);
+if (empty($section) || empty($subject_code)) {
+    echo json_encode(["success" => false, "message" => "Section and Subject Code are required"]);
     exit;
 }
 
 try {
-    // First, let's see what sections exist in the users table
-    $allSectionsStmt = $pdo->query("SELECT DISTINCT YearandSection FROM users WHERE user_Role = 'Student'");
-    $allSections = $allSectionsStmt->fetchAll(PDO::FETCH_COLUMN);
+    // Get students who are enrolled in this specific class (by subject_code)
+    // Don't check section matching in users table, just get all students enrolled in this class
+    $sql = "
+        SELECT 
+            u.user_ID, 
+            u.user_Name, 
+            u.user_Email,
+            u.user_Gender,
+            u.YearandSection,
+            sc.enrolled_at
+        FROM users u
+        INNER JOIN student_classes sc ON u.user_ID = sc.student_ID
+        WHERE u.user_Role = 'Student' 
+        AND sc.subject_code = ?
+        AND sc.archived = 0
+        ORDER BY u.user_Name
+    ";
     
-    error_log("All sections in users table: " . implode(', ', $allSections));
-    error_log("Looking for section: " . $section);
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute([$subject_code]);
+    $students = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-    // Try multiple matching strategies
-    $students = [];
-    
-    // Strategy 1: Exact match
-    $exactStmt = $pdo->prepare("SELECT user_ID, user_Name, YearandSection FROM users WHERE user_Role = 'Student' AND YearandSection = ?");
-    $exactStmt->execute([$section]);
-    $exactStudents = $exactStmt->fetchAll(PDO::FETCH_ASSOC);
-    
-    if (count($exactStudents) > 0) {
-        $students = $exactStudents;
-        error_log("Found students with exact match: " . count($students));
-    } else {
-        // Strategy 2: Like match (contains the section)
-        $likeStmt = $pdo->prepare("SELECT user_ID, user_Name, YearandSection FROM users WHERE user_Role = 'Student' AND YearandSection LIKE ?");
-        $likeStmt->execute(['%' . $section . '%']);
-        $likeStudents = $likeStmt->fetchAll(PDO::FETCH_ASSOC);
-        
-        if (count($likeStudents) > 0) {
-            $students = $likeStudents;
-            error_log("Found students with LIKE match: " . count($students));
-        } else {
-            // Strategy 3: Get all students (for debugging)
-            $allStmt = $pdo->query("SELECT user_ID, user_Name, YearandSection FROM users WHERE user_Role = 'Student' LIMIT 10");
-            $allStudents = $allStmt->fetchAll(PDO::FETCH_ASSOC);
-            $students = $allStudents;
-            error_log("No section match found, returning all students: " . count($students));
-        }
-    }
+    // For debugging - get class info
+    $classStmt = $pdo->prepare("SELECT subject_code, subject, section FROM classes WHERE subject_code = ?");
+    $classStmt->execute([$subject_code]);
+    $classInfo = $classStmt->fetch(PDO::FETCH_ASSOC);
 
     echo json_encode([
         "success" => true,
         "students" => $students,
+        "class_info" => $classInfo,
         "debug" => [
             "requested_section" => $section,
-            "all_sections_in_db" => $allSections,
+            "requested_subject_code" => $subject_code,
             "student_count" => count($students),
-            "matching_strategy" => count($exactStudents) ? 'exact' : (count($likeStudents) ? 'like' : 'all')
+            "class_found" => $classInfo ? true : false,
+            "class_section" => $classInfo['section'] ?? 'N/A'
         ]
     ]);
 

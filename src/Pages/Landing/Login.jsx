@@ -77,7 +77,7 @@ export default function Login() {
         } else if (userRole === "Professor") {
           navigate("/DashboardProf");
         } else {
-          navigate("/Dashboard");
+          navigate("/DashboardStudent");
         }
       } else {
         const errorMessage = data.message || "Invalid login credentials.";

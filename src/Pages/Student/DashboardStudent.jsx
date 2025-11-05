@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom';
 
 import Sidebar from "../../Components/Sidebar";
@@ -21,10 +21,67 @@ import OverallMissed from '../../assets/OverallMissed.svg';
 
 export default function DashboardStudent() {
   const [isOpen, setIsOpen] = useState(false);
-  const [userName, setUserName] = useState("John Doe");
-  const [classesCount, setClassesCount] = useState(3);
-  const [activitiesCount, setActivitiesCount] = useState(5);
-  const [loading, setLoading] = useState(false);
+  const [userName, setUserName] = useState("Student");
+  const [userId, setUserId] = useState("");
+  const [userEmail, setUserEmail] = useState("");
+  const [studentCourse, setStudentCourse] = useState("");
+  const [studentYearLevel, setStudentYearLevel] = useState("");
+
+  useEffect(() => {
+    // Get user data from localStorage and fetch from database
+    const fetchUserData = async () => {
+      try {
+        const userStr = localStorage.getItem("user");
+        if (userStr) {
+          const user = JSON.parse(userStr);
+          
+          // Get user ID from localStorage
+          const userIdFromStorage = user.id;
+          
+          if (userIdFromStorage) {
+            setUserId(userIdFromStorage);
+            
+            // Fetch complete user data from database
+            const response = await fetch(`http://localhost/TrackEd/src/Pages/Student/DashboardStudentDB/get_student_info.php?id=${userIdFromStorage}`);
+            
+            if (response.ok) {
+              const data = await response.json();
+              
+              if (data.success) {
+                // Set username from database
+                const fullName = `${data.user.tracked_fname} ${data.user.tracked_lname}`;
+                setUserName(fullName);
+                
+                // Set email from database
+                setUserEmail(data.user.tracked_email);
+                
+                // Set course and year level
+                setStudentCourse(data.user.tracked_program || "N/A");
+                
+                // Extract year level from yearandsec (e.g., "BSIT-4D" -> "4th Year")
+                if (data.user.tracked_yearandsec) {
+                  const yearMatch = data.user.tracked_yearandsec.match(/-(\d+)/);
+                  if (yearMatch) {
+                    const yearNum = parseInt(yearMatch[1]);
+                    const yearLevels = ["1st Year", "2nd Year", "3rd Year", "4th Year"];
+                    setStudentYearLevel(yearLevels[yearNum - 1] || `${yearNum}th Year`);
+                  } else {
+                    setStudentYearLevel(data.user.tracked_yearandsec);
+                  }
+                } else {
+                  setStudentYearLevel("N/A");
+                }
+              }
+            }
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching user data:", error);
+      }
+    };
+
+    fetchUserData();
+  }, []);
 
   return (
     <div>
@@ -42,15 +99,15 @@ export default function DashboardStudent() {
               <img src={Dashboard} alt="Dashboard" className="h-6 w-6 sm:h-7 sm:w-7 mr-3" />
               <h1 className="font-bold text-xl sm:text-2xl lg:text-3xl">Dashboard</h1>
             </div>
-            <div className='flex justify-between'>
+            <div className='flex flex-col sm:flex-row sm:justify-between gap-2 sm:gap-0'>
               <div className="text-sm sm:text-base lg:text-lg">
                 <span>Hi</span>
                 <span className="font-bold ml-1 mr-1">{userName}!</span>
                 <span>Ready to check your progress.</span>
               </div>
-              <div className="flex text-sm sm:text-base lg:text-lg">
-                <span> 2nd Semester 2024 - 2025  </span>
-                <img src={ArrowDown} alt="ArrowDown" className="h-6 w-6 sm:h-7 sm:w-7 mr-3" />
+              <div className="flex items-center text-sm sm:text-base lg:text-lg self-end sm:self-auto">
+                <span>2nd Semester 2024 - 2025</span>
+                <img src={ArrowDown} alt="ArrowDown" className="h-5 w-5 sm:h-6 sm:w-6 ml-2" />
               </div>
             </div>
           </div>
@@ -59,9 +116,9 @@ export default function DashboardStudent() {
 
           {/* WIDGETS */}
           <div className='flex justify-center items-center mt-5'>
-            <div className='grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-4 lg:gap-6 w-full max-w-7xl'>
+            <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-4 lg:gap-6 w-full max-w-7xl'>
 
-              {/* Classes Widget */}
+              {/* Completed Activities Widget */}
               <div className='bg-[#fff] h-32 sm:h-40 rounded-lg sm:rounded-xl p-3 sm:p-4 lg:p-5 shadow-md'> 
                 <div className='font-bold text-sm sm:text-base lg:text-[1.5rem] h-full flex flex-col'>
                   <h1 className='mb-2'>Completed Activities</h1>
@@ -70,13 +127,13 @@ export default function DashboardStudent() {
                       <img src={CompletedActivities} alt="CompletedActivities" className="h-6 w-6 sm:h-8 sm:w-8 lg:h-12 lg:w-12"/>
                     </div>
                     <p className='pt-2 sm:pt-6 lg:pt-8 text-lg sm:text-xl lg:text-[2rem]'>
-                      {classesCount}
+                      3
                     </p>
                   </div>
                 </div>
               </div>
 
-              {/* Classes Widget */}
+              {/* Overall Submitted Widget */}
               <div className='bg-[#fff] h-32 sm:h-40 rounded-lg sm:rounded-xl p-3 sm:p-4 lg:p-5 shadow-md'> 
                 <div className='font-bold text-sm sm:text-base lg:text-[1.5rem] h-full flex flex-col'>
                   <h1 className='mb-2'>Overall Submitted</h1>
@@ -85,28 +142,28 @@ export default function DashboardStudent() {
                       <img src={OverallSubmitted} alt="OverallSubmitted" className="h-6 w-6 sm:h-8 sm:w-8 lg:h-12 lg:w-12"/>
                     </div>
                     <p className='pt-2 sm:pt-6 lg:pt-8 text-lg sm:text-xl lg:text-[2rem]'>
-                      {classesCount}
+                      3
                     </p>
                   </div>
                 </div>
               </div>
 
-              {/* Activities Widget */}
+              {/* Overall Days Absent Widget */}
               <div className='bg-[#fff] h-32 sm:h-40 rounded-lg sm:rounded-xl p-3 sm:p-4 lg:p-5 shadow-md'> 
                 <div className='font-bold text-sm sm:text-base lg:text-[1.5rem] h-full flex flex-col'>
                   <h1 className='mb-2'>Overall Days Absent</h1>
                   <div className='flex justify-between items-end mt-auto'>
                     <div className='flex justify-center items-center bg-[#ffb1b1] h-12 w-12 sm:h-16 sm:w-16 lg:h-20 lg:w-20 rounded-lg sm:rounded-xl border-2 border-[#FF6666]'>
-                      <img src={OverallDaysAbsent} alt="ActivitiesToGrade" className="h-6 w-6 sm:h-8 sm:w-8 lg:h-12 lg:w-12"/>
+                      <img src={OverallDaysAbsent} alt="OverallDaysAbsent" className="h-6 w-6 sm:h-8 sm:w-8 lg:h-12 lg:w-12"/>
                     </div>
                     <p className='pt-2 sm:pt-6 lg:pt-8 text-lg sm:text-xl lg:text-[2rem]'>
-                      {loading ? "..." : activitiesCount}
+                      5
                     </p>
                   </div>
                 </div>
               </div>
 
-              {/* Classes Widget */}
+              {/* Pending Task Widget */}
               <div className='bg-[#fff] h-32 sm:h-40 rounded-lg sm:rounded-xl p-3 sm:p-4 lg:p-5 shadow-md'> 
                 <div className='font-bold text-sm sm:text-base lg:text-[1.5rem] h-full flex flex-col'>
                   <h1 className='mb-2'>Pending Task</h1>
@@ -115,13 +172,13 @@ export default function DashboardStudent() {
                       <img src={PendingTask} alt="PendingTask" className="h-6 w-6 sm:h-8 sm:w-8 lg:h-12 lg:w-12"/>
                     </div>
                     <p className='pt-2 sm:pt-6 lg:pt-8 text-lg sm:text-xl lg:text-[2rem]'>
-                      {classesCount}
+                      3
                     </p>
                   </div>
                 </div>
               </div>
 
-              {/* Classes Widget */}
+              {/* Total Days Present Widget */}
               <div className='bg-[#fff] h-32 sm:h-40 rounded-lg sm:rounded-xl p-3 sm:p-4 lg:p-5 shadow-md'> 
                 <div className='font-bold text-sm sm:text-base lg:text-[1.5rem] h-full flex flex-col'>
                   <h1 className='mb-2'>Total of Days Present</h1>
@@ -130,22 +187,22 @@ export default function DashboardStudent() {
                       <img src={TotalDaySpent} alt="TotalDaySpent" className="h-6 w-6 sm:h-8 sm:w-8 lg:h-12 lg:w-12"/>
                     </div>
                     <p className='pt-2 sm:pt-6 lg:pt-8 text-lg sm:text-xl lg:text-[2rem]'>
-                      {classesCount}
+                      3
                     </p>
                   </div>
                 </div>
               </div>
 
-              {/* Activities Widget */}
+              {/* Overall Missed Widget */}
               <div className='bg-[#fff] h-32 sm:h-40 rounded-lg sm:rounded-xl p-3 sm:p-4 lg:p-5 shadow-md'> 
                 <div className='font-bold text-sm sm:text-base lg:text-[1.5rem] h-full flex flex-col'>
                   <h1 className='mb-2'>Overall Missed</h1>
                   <div className='flex justify-between items-end mt-auto'>
                     <div className='flex justify-center items-center bg-[#ffb1b1] h-12 w-12 sm:h-16 sm:w-16 lg:h-20 lg:w-20 rounded-lg sm:rounded-xl border-2 border-[#FF6666]'>
-                      <img src={OverallMissed} alt="ActivitiesToGrade" className="h-6 w-6 sm:h-8 sm:w-8 lg:h-12 lg:w-12"/>
+                      <img src={OverallMissed} alt="OverallMissed" className="h-6 w-6 sm:h-8 sm:w-8 lg:h-12 lg:w-12"/>
                     </div>
                     <p className='pt-2 sm:pt-6 lg:pt-8 text-lg sm:text-xl lg:text-[2rem]'>
-                      {loading ? "..." : activitiesCount}
+                      5
                     </p>
                   </div>
                 </div>
@@ -155,39 +212,51 @@ export default function DashboardStudent() {
           </div>
 
           {/* Student Info */}
-          <div className="bg-[#FFFFFF] rounded-lg shadow-md mt-5 p-4 sm:p-5">
+          <div className="bg-[#FFFFFF] rounded-lg sm:rounded-xl shadow-md mt-5 p-4 sm:p-5 text-sm sm:text-base lg:text-[1.125rem]">
             <div className="flex items-center">
-              <img src={ID} alt="ID" className="h-5 w-5 mr-2" />
-              <p className="font-bold">{userName}</p>
+              <img src={ID} alt="ID" className="h-4 w-4 sm:h-5 sm:w-5 mr-2 sm:mr-3" />
+              <p className="font-bold text-sm sm:text-base lg:text-[1.125rem]">{userName}</p>
             </div>
 
-            <hr className="opacity-60 border-[#465746] rounded border-1 my-2" />
+            <hr className="opacity-60 border-[#465746] rounded border-1 my-2 sm:my-3" />
 
-            <div className="pl-4 space-y-2">
-              <p><span className="font-bold">Student ID:</span> 2025-12345</p>
-              <p><span className="font-bold">Email:</span> johndoe@cvsu.edu.ph</p>
-              <p><span className="font-bold">Course:</span> BS Computer Science</p>
-              <p><span className="font-bold">Year Level:</span> 3rd Year</p>
+            <div className="pl-4 sm:pl-8 space-y-1 sm:space-y-2">
+              <div className="flex flex-col sm:flex-row">
+                <span className="font-bold text-xs sm:text-sm lg:text-base w-full sm:w-40 mb-1 sm:mb-0">Student ID:</span>
+                <span className="text-xs sm:text-sm lg:text-base">{userId || "Loading..."}</span>
+              </div>
+              <div className="flex flex-col sm:flex-row">
+                <span className="font-bold text-xs sm:text-sm lg:text-base w-full sm:w-40 mb-1 sm:mb-0">Email:</span>
+                <span className="text-xs sm:text-sm lg:text-base break-all sm:break-normal">{userEmail || "Loading..."}</span>
+              </div>
+              <div className="flex flex-col sm:flex-row">
+                <span className="font-bold text-xs sm:text-sm lg:text-base w-full sm:w-40 mb-1 sm:mb-0">Course:</span>
+                <span className="text-xs sm:text-sm lg:text-base">{studentCourse || "Loading..."}</span>
+              </div>
+              <div className="flex flex-col sm:flex-row">
+                <span className="font-bold text-xs sm:text-sm lg:text-base w-full sm:w-40 mb-1 sm:mb-0">Year Level:</span>
+                <span className="text-xs sm:text-sm lg:text-base">{studentYearLevel || "Loading..."}</span>
+              </div>
             </div>
           </div>
 
-          {/* Links */}
+          {/* Warning Links */}
           <Link to={"/AnalyticsProf"}>
-            <div className="bg-[#FFFFFF] rounded-lg shadow-md mt-5 p-3 sm:p-4 border-2 border-transparent hover:border-[#00874E] transition-all duration-200">
-              <div className="flex items-center">
-                <p className="font-bold flex-1 text-[#FF6666]">WARNING:</p>
-                <p className="font-bold flex-1">You have a missing activity in GNED09</p>
-                <img src={Details} alt="Details" className="h-6 w-6"/>
+            <div className="bg-[#FFFFFF] rounded-lg sm:rounded-xl shadow-md mt-5 p-3 sm:p-4 text-sm sm:text-base lg:text-[1.125rem] border-2 border-transparent hover:border-[#00874E] transition-all duration-200">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-0">
+                <p className="font-bold text-xs sm:text-sm lg:text-base text-[#FF6666] sm:flex-1">WARNING:</p>
+                <p className="font-bold text-xs sm:text-sm lg:text-base sm:flex-1">You have a missing activity in GNED09</p>
+                <img src={Details} alt="Details" className="h-6 w-6 sm:h-8 sm:w-8 self-end sm:self-auto"/>
               </div>
             </div>
           </Link>
 
           <Link to={"/AnalyticsProf"}>
-            <div className="bg-[#FFFFFF] rounded-lg shadow-md mt-5 p-3 sm:p-4 border-2 border-transparent hover:border-[#00874E] transition-all duration-200">
-              <div className="flex items-center">
-                <p className="font-bold flex-1 text-[#FF6666]">WARNING:</p>
-                <p className="font-bold flex-1">You have a total of 1 Absent in GNED09</p>
-                <img src={Details} alt="Details" className="h-6 w-6"/>
+            <div className="bg-[#FFFFFF] rounded-lg sm:rounded-xl shadow-md mt-5 p-3 sm:p-4 text-sm sm:text-base lg:text-[1.125rem] border-2 border-transparent hover:border-[#00874E] transition-all duration-200">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-0">
+                <p className="font-bold text-xs sm:text-sm lg:text-base text-[#FF6666] sm:flex-1">WARNING:</p>
+                <p className="font-bold text-xs sm:text-sm lg:text-base sm:flex-1">You have a total of 1 Absent in GNED09</p>
+                <img src={Details} alt="Details" className="h-6 w-6 sm:h-8 sm:w-8 self-end sm:self-auto"/>
               </div>
             </div>
           </Link>

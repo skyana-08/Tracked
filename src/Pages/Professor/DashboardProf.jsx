@@ -174,7 +174,7 @@ export default function DashboardProf() {
             </div>
           </div>
 
-          {/* Profile Information Card */}
+          {/* Prof Information Card */}
           <div className="bg-[#FFFFFF] text-[#465746] text-sm sm:text-base lg:text-[1.125rem] rounded-lg sm:rounded-xl shadow-md mt-5 p-4 sm:p-5">
             {/* Header: Name */}
             <div className="flex items-center">

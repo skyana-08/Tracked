@@ -7,74 +7,99 @@ import Subject from '../../assets/Subjects(Light).svg';
 import Search from "../../assets/Search.svg";
 import BackButton from "../../assets/BackButton(Light).svg";
 
-import ActivityCard from "../../Components/ActivityCardStudent";
-import { Link } from "react-router-dom";
+import ActivityCardStudent from "../../Components/ActivityCardStudent";
+import { Link, useLocation } from "react-router-dom";
 
 export default function SubjectDetailsStudent() {
   const [isOpen, setIsOpen] = useState(false);
+  const location = useLocation();
+  const searchParams = new URLSearchParams(location.search);
+  const subjectCode = searchParams.get('code');
 
   // Filter and search states
   const [filterOption, setFilterOption] = useState("Filter");
   const [searchQuery, setSearchQuery] = useState("");
   const [filterDropdownOpen, setFilterDropdownOpen] = useState(false);
 
-  // Activities state (mock)
+  // Activities state
   const [activities, setActivities] = useState([]);
+  const [classInfo, setClassInfo] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Mock data (simulating DB)
-  const mockActivities = [
-    {
-      title: "HTML & CSS Project",
-      status: "Not graded",
-      deadline: "2025-11-10 | 11:59 PM",
-      datePosted: "2025-11-01",
-      description: "Submit your first responsive design project. Follow the layout spec and include a mobile version.",
-      section: "IT-301",
-      postedBy: "Prof. Jane Doe"
-    },
-    {
-      title: "Linked List Exercises",
-      status: "Graded",
-      deadline: "2025-10-25 | 05:00 PM",
-      datePosted: "2025-10-20",
-      description: "Complete problems 1-6 on linked lists and submit your outputs as a .zip.",
-      section: "IT-302",
-      postedBy: "Prof. Jane Doe"
-    },
-    {
-      title: "HCI Reflection",
-      status: "Not graded",
-      deadline: "2025-11-15 | 11:59 PM",
-      datePosted: "2025-11-02",
-      description: "Write a one-page reflection about how UI/UX affects user trust.",
-      section: "IT-303",
-      postedBy: "Prof. John Smith"
+  // Get student ID from localStorage
+  const getStudentId = () => {
+    try {
+      const userStr = localStorage.getItem("user");
+      if (userStr) {
+        const user = JSON.parse(userStr);
+        return user.id;
+      }
+    } catch (error) {
+      console.error("Error parsing user data:", error);
     }
-  ];
+    return null;
+  };
 
-  // load mock
   useEffect(() => {
-    setLoading(true);
-    setTimeout(() => {
-      setActivities(mockActivities);
+    if (subjectCode) {
+      fetchClassDetails();
+      fetchActivities();
+    }
+  }, [subjectCode]);
+
+  const fetchClassDetails = async () => {
+    try {
+      const response = await fetch(`http://localhost/TrackEd/src/Pages/Professor/SubjectDetailsDB/get_class_details.php?subject_code=${subjectCode}`);
+      
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          setClassInfo(data.class_data);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching class details:', error);
+    }
+  };
+
+  const fetchActivities = async () => {
+    try {
+      const studentId = getStudentId();
+      
+      const response = await fetch(`http://localhost/TrackEd/src/Pages/Student/SubjectDetailsStudentDB/get_activities.php?subject_code=${subjectCode}&student_id=${studentId}`);
+      
+      if (response.ok) {
+        const data = await response.json();
+        
+        if (data.success) {
+          setActivities(data.activities);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching activities:', error);
+    } finally {
       setLoading(false);
-    }, 500);
-  }, []);
+    }
+  };
 
   // filter logic
   const filtered = activities.filter(act => {
     let matchesFilter = true;
-    if (filterOption === "Graded") matchesFilter = act.status.toLowerCase() === "graded";
-    else if (filterOption === "Not graded") matchesFilter = act.status.toLowerCase() === "not graded";
+    if (filterOption === "Graded") matchesFilter = act.grade !== null;
+    else if (filterOption === "Not graded") matchesFilter = act.grade === null;
+    else if (filterOption === "Submitted") matchesFilter = act.submitted === 1;
+    else if (filterOption === "Not submitted") matchesFilter = act.submitted === 0;
 
     const q = searchQuery.trim().toLowerCase();
-    const matchesSearch = !q || act.title.toLowerCase().includes(q) || act.description.toLowerCase().includes(q);
+    const matchesSearch = !q || 
+      act.title.toLowerCase().includes(q) || 
+      (act.instruction && act.instruction.toLowerCase().includes(q));
+
     return matchesFilter && matchesSearch;
   });
 
-  // sort newest first by datePosted
-  const sorted = [...filtered].sort((a, b) => new Date(b.datePosted) - new Date(a.datePosted));
+  // sort newest first by created_at
+  const sorted = [...filtered].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 
   // close dropdown on outside click
   useEffect(() => {
@@ -87,31 +112,73 @@ export default function SubjectDetailsStudent() {
     return () => document.removeEventListener("click", onClick);
   }, [filterDropdownOpen]);
 
+  // Format date for display
+  const formatDate = (dateString) => {
+    if (!dateString) return 'No deadline';
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString('en-US', { 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+      });
+    } catch {
+      return dateString;
+    }
+  };
+
   return (
     <div>
       <Sidebar role="student" isOpen={isOpen} setIsOpen={setIsOpen} />
-      <div className={`transition-all duration-300 ${isOpen ? "lg:ml-[250px] xl:ml-[280px]" : "ml-0"}`}>
-        <Header setIsOpen={setIsOpen} isOpen={isOpen} userName="Jane Doe" />
+      <div className={`transition-all duration-300 ${isOpen ? "lg:ml-[250px] xl:ml-[280px] 2xl:ml-[300px]" : "ml-0"}`}>
+        <Header setIsOpen={setIsOpen} isOpen={isOpen} userName="Student" />
 
         <div className="text-[#465746] p-4 sm:p-5 md:p-6 lg:p-8">
-          {/* Header */}
-          <div className="mb-4 sm:mb-6">
+          {/* Page Header */}
+          <div className="mb-4 sm:mb-4">
             <div className="flex items-center mb-2">
-              <img src={Subject} alt="Subjects" className="h-6 w-6 sm:h-7 sm:w-7 mr-3" />
-              <h1 className="font-bold text-xl sm:text-2xl lg:text-3xl">Subjects</h1>
+              <img
+                src={Subject}
+                alt="Subjects"
+                className="h-7 w-7 sm:h-9 sm:w-9 mr-2 sm:mr-3"
+              />
+              <h1 className="font-bold text-xl sm:text-2xl lg:text-3xl">
+                Subjects
+              </h1>
             </div>
-            <div className="flex justify-between">
-              <div className="text-sm sm:text-base lg:text-lg">
-                <span>Subject Code:</span>
-                <span>Subject Name</span>
-              </div>
-              <div className="flex text-sm sm:text-base lg:text-lg">
-                <Link to="/Subjects">
-                  <img src={BackButton} alt="Close" className="w-7 h-7 mr-3" />
-                </Link>
+            <p className="text-sm sm:text-base lg:text-lg">
+              Academic Management
+            </p>
+          </div>
+
+          {/* Subject Information */}
+          <div className="flex flex-col gap-2 text-sm sm:text-base lg:text-[1.125rem] mb-4 sm:mb-5">
+            <div className="flex flex-wrap items-center gap-1 sm:gap-3">
+              <span className="font-semibold">SUBJECT CODE:</span>
+              <span>{classInfo?.subject_code || 'Loading...'}</span>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-1 sm:gap-3">
+              <span className="font-semibold">SUBJECT:</span>
+              <span>{classInfo?.subject || 'Loading...'}</span>
+            </div>
+
+            <div className="flex items-center justify-between sm:justify-start gap-2 sm:gap-3">
+              <div className="flex items-center gap-2">
                 <span>2nd Semester 2024 - 2025</span>
-                <img src={ArrowDown} alt="ArrowDown" className="h-6 w-6 sm:h-7 sm:w-7 mr-3" />
+                <img 
+                  src={ArrowDown} 
+                  alt="ArrowDown" 
+                  className="h-5 w-5 sm:h-6 sm:w-6" 
+                />
               </div>
+              <Link to="/Subjects" className="hidden sm:block">
+                <img 
+                  src={BackButton} 
+                  alt="Back" 
+                  className="h-6 w-6 cursor-pointer hover:opacity-70 transition-opacity" 
+                />
+              </Link>
             </div>
           </div>
 
@@ -122,15 +189,15 @@ export default function SubjectDetailsStudent() {
             <div className="relative sm:flex-initial filter-dropdown">
               <button
                 onClick={() => setFilterDropdownOpen(!filterDropdownOpen)}
-                className="flex items-center justify-between w-full sm:w-auto font-bold px-4 py-2.5 bg-white rounded-md shadow-md hover:border-[#00874E] transition-all text-sm sm:text-base sm:min-w-[160px]"
+                className="flex items-center justify-between w-full sm:w-auto font-bold px-4 py-2.5 bg-white rounded-md shadow-md hover:border-[#00874E] transition-all text-sm sm:text-base sm:min-w-[160px] border-2 border-transparent"
               >
                 <span>{filterOption}</span>
-                <img src={ArrowDown} alt="" className={`ml-3 h-4 w-4 sm:h-5 sm:w-5 ${filterDropdownOpen ? "rotate-180" : ""}`} />
+                <img src={ArrowDown} alt="" className={`ml-3 h-4 w-4 sm:h-5 sm:w-5 transition-transform ${filterDropdownOpen ? "rotate-180" : ""}`} />
               </button>
 
               {filterDropdownOpen && (
                 <div className="absolute top-full mt-2 bg-white rounded-md w-full sm:min-w-[200px] shadow-xl border border-gray-200 z-20 overflow-hidden">
-                  {["Filter", "Graded", "Not graded", "Newest"].map(opt => (
+                  {["Filter", "Graded", "Not graded", "Submitted", "Not submitted"].map(opt => (
                     <button
                       key={opt}
                       onClick={() => { setFilterOption(opt); setFilterDropdownOpen(false); }}
@@ -149,7 +216,7 @@ export default function SubjectDetailsStudent() {
                 placeholder="Search activities..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full h-11 sm:h-12 rounded-md px-4 py-2.5 pr-12 shadow-md outline-none bg-white text-sm sm:text-base focus:border-[#00874E]"
+                className="w-full h-11 sm:h-12 rounded-md px-4 py-2.5 pr-12 shadow-md outline-none bg-white text-sm sm:text-base focus:border-[#00874E] border border-gray-300"
               />
               <button className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500">
                 <img src={Search} alt="Search" className="h-5 w-5 sm:h-6 sm:w-6" />
@@ -165,18 +232,11 @@ export default function SubjectDetailsStudent() {
                 <p className="mt-3 text-gray-600">Loading activities...</p>
               </div>
             ) : sorted.length > 0 ? (
-              sorted.map((act, idx) => (
-                <ActivityCard
-                  key={act.id}
-                  index={idx}
-                  id={act.id}
-                  title={act.title}
-                  status={act.status}
-                  deadline={act.deadline}
-                  datePosted={act.datePosted}
-                  description={act.description}
-                  section={act.section}
-                  postedBy={act.postedBy}
+              sorted.map((activity, idx) => (
+                <ActivityCardStudent
+                  key={activity.id}
+                  activity={activity}
+                  formatDate={formatDate}
                 />
               ))
             ) : (

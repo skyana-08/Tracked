@@ -30,6 +30,23 @@ if (empty($subject_code) || empty($professor_ID)) {
 }
 
 try {
+    // Get all students enrolled in this class
+    $enrolledStmt = $pdo->prepare("
+        SELECT u.user_ID, u.user_Name 
+        FROM users u
+        INNER JOIN student_classes sc ON u.user_ID = sc.student_ID
+        WHERE sc.subject_code = ? AND sc.archived = 0
+        ORDER BY u.user_Name
+    ");
+    $enrolledStmt->execute([$subject_code]);
+    $allEnrolledStudents = $enrolledStmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    // Create a map of all enrolled students for quick lookup
+    $enrolledStudentsMap = [];
+    foreach ($allEnrolledStudents as $student) {
+        $enrolledStudentsMap[$student['user_ID']] = $student;
+    }
+
     // Get distinct attendance dates for this subject
     $datesStmt = $pdo->prepare("
         SELECT DISTINCT attendance_date 
@@ -45,16 +62,45 @@ try {
     foreach ($dates as $date_record) {
         $attendance_date = $date_record['attendance_date'];
         
-        // Get attendance records for this date - MAKE SURE TO SELECT student_ID
+        // Get attendance records for this date
         $attendanceStmt = $pdo->prepare("
             SELECT a.student_ID, a.status, u.user_Name 
             FROM attendance a 
             JOIN users u ON a.student_ID = u.user_ID 
             WHERE a.subject_code = ? AND a.professor_ID = ? AND a.attendance_date = ?
-            ORDER BY u.user_Name
         ");
         $attendanceStmt->execute([$subject_code, $professor_ID, $attendance_date]);
         $attendance_records = $attendanceStmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        // Create a map of attendance records for this date
+        $attendanceMap = [];
+        foreach ($attendance_records as $record) {
+            $attendanceMap[$record['student_ID']] = $record;
+        }
+        
+        // Build complete student list for this date
+        // Include ALL enrolled students, with their attendance status if available
+        $completeStudentList = [];
+        foreach ($allEnrolledStudents as $enrolledStudent) {
+            $studentId = $enrolledStudent['user_ID'];
+            
+            if (isset($attendanceMap[$studentId])) {
+                // Student has attendance record for this date
+                $completeStudentList[] = $attendanceMap[$studentId];
+            } else {
+                // Student was enrolled but no attendance record exists (marked as absent by default)
+                $completeStudentList[] = [
+                    'student_ID' => $studentId,
+                    'user_Name' => $enrolledStudent['user_Name'],
+                    'status' => 'absent' // Default status for missing records
+                ];
+            }
+        }
+        
+        // Sort by student name
+        usort($completeStudentList, function($a, $b) {
+            return strcmp($a['user_Name'], $b['user_Name']);
+        });
 
         // Format the date for display
         $formatted_date = date('F j, Y', strtotime($attendance_date));
@@ -62,7 +108,7 @@ try {
         $attendance_history[] = [
             "date" => $formatted_date,
             "raw_date" => $attendance_date,
-            "students" => $attendance_records
+            "students" => $completeStudentList
         ];
     }
 
@@ -72,8 +118,9 @@ try {
         "debug" => [
             "subject_code" => $subject_code,
             "professor_ID" => $professor_ID,
-            "total_dates" => count($dates),
-            "sample_student_data" => count($attendance_history) > 0 ? $attendance_history[0]['students'][0] ?? 'No students' : 'No records'
+            "total_enrolled_students" => count($allEnrolledStudents),
+            "total_attendance_dates" => count($dates),
+            "enrolled_students" => $allEnrolledStudents
         ]
     ]);
 

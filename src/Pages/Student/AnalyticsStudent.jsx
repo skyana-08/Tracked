@@ -55,20 +55,26 @@ export default function AnalyticsStudent() {
       `}>
         <Header setIsOpen={setIsOpen} isOpen={isOpen} userName="Jane Doe" />
 
-        <div className="text-[#465746] p-4 sm:p-5 md:p-6 lg:p-8">
+        <div className="p-4 sm:p-5 md:p-6 lg:p-8">
           {/* Header Section */}
           <div className="mb-4 sm:mb-6">
             <div className="flex items-center mb-2">
-              <img src={Analytics} alt="Subjects" className="h-6 w-6 sm:h-7 sm:w-7 mr-3" />
-              <h1 className="font-bold text-xl sm:text-2xl lg:text-3xl">Subjects</h1>
+              <img 
+                src={Analytics} 
+                alt="Analytics" 
+                className="h-6 w-6 sm:h-7 sm:w-7 mr-3" 
+              />
+              <h1 className="font-bold text-xl sm:text-2xl lg:text-3xl text-[#465746]">
+                Analytics
+              </h1>
             </div>
-            <div className='flex justify-between'>
-              <div className="text-sm sm:text-base lg:text-lg">
-                <span>Enrolled Subjects</span>
+            <div className="flex flex-col sm:flex-row sm:justify-between gap-2 sm:gap-0">
+              <div className="text-sm sm:text-base lg:text-lg text-[#465746]">
+                <span>My Performance</span>
               </div>
-              <div className="flex text-sm sm:text-base lg:text-lg">
-                <span> 2nd Semester 2024 - 2025  </span>
-                <img src={ArrowDown} alt="ArrowDown" className="h-6 w-6 sm:h-7 sm:w-7 mr-3" />
+              <div className="flex items-center text-sm sm:text-base lg:text-lg text-[#465746] self-end sm:self-auto">
+                <span>2nd Semester 2024 - 2025</span>
+                <img src={ArrowDown} alt="ArrowDown" className="h-5 w-5 sm:h-6 sm:w-6 ml-2" />
               </div>
             </div>
           </div>
@@ -128,7 +134,6 @@ export default function AnalyticsStudent() {
             setSelectedFilter={setSelectedFilter}
           />
 
-
           {/* ACTIVITY LIST */}
           <div className="bg-[#fff] p-4 sm:p-5 rounded-lg sm:rounded-xl shadow-md mt-4 sm:mt-5 text-[#465746]">
             <p className="font-bold mb-3 sm:mb-4 text-base sm:text-lg lg:text-xl">
@@ -151,7 +156,9 @@ export default function AnalyticsStudent() {
                       <tr key={item.id} className="border-b border-gray-100 hover:bg-gray-50">
                         <td className="p-2 sm:p-3 whitespace-nowrap">{item.task}</td>
                         <td className="p-2 sm:p-3">{item.title}</td>
-                        <td className="p-2 sm:p-3 text-[#00A15D]"> <img src={Check} /> </td>
+                        <td className="p-2 sm:p-3 text-[#00A15D]">
+                          <img src={Check} alt="Submitted" className="w-4 h-4 sm:w-5 sm:h-5" />
+                        </td>
                         <td className="p-2 sm:p-3 text-[#FF6666]"></td>
                         <td className="p-2 sm:p-3 whitespace-nowrap">{item.deadline}</td>
                       </tr>
@@ -164,15 +171,17 @@ export default function AnalyticsStudent() {
 
           {/* Student Attendance Tracking */}
           <div className="bg-[#fff] rounded-lg sm:rounded-xl shadow-md mt-4 sm:mt-5 p-4 sm:p-5 text-[#465746]">
-            <p className="text-base sm:text-lg lg:text-xl font-bold">
+            <p className="text-base sm:text-lg lg:text-xl font-bold mb-2">
               Attendance:
             </p>
-            <p> Note: Students with 
-            <span className='text-[#FF6666] font-bold'> 3 accumulated absences </span>
-            will be dropped from the course. 
-            <span className='text-[#767EE0] font-bold'> 3 late arrivals </span>
-            are equivalent to one absent. </p>
-            <hr className="border-[#465746]/30 my-3 sm:my-4" />
+            <p className="text-xs sm:text-sm lg:text-base mb-3 sm:mb-4">
+              Note: Students with 
+              <span className='text-[#FF6666] font-bold'> 3 accumulated absences </span>
+              will be dropped from the course. 
+              <span className='text-[#767EE0] font-bold'> 3 late arrivals </span>
+              are equivalent to one absent.
+            </p>
+            <hr className="border-[#465746]/30 mb-3 sm:mb-4" />
             <div className="overflow-x-auto -mx-4 sm:mx-0">
               <div className="inline-block min-w-full align-middle px-4 sm:px-0">
                 <table className="min-w-full border-collapse text-xs sm:text-sm lg:text-base">
@@ -193,7 +202,6 @@ export default function AnalyticsStudent() {
                       <td className="px-2 sm:px-4 py-2 sm:py-3 text-[#767EE0]">0</td>
                       <td className="px-2 sm:px-4 py-2 sm:py-3 text-[#FF6666]">0</td>
                       <td className="px-2 sm:px-4 py-2 sm:py-3 whitespace-nowrap">20</td>
-
                       <td className="px-2 sm:px-4 py-2 sm:py-3">
                         <Link to={"/AttendanceHistoryStudent"}>
                           <img src={Details} alt="Details" className="w-4 h-4 sm:w-5 sm:h-5 cursor-pointer hover:opacity-70" />
@@ -201,14 +209,19 @@ export default function AnalyticsStudent() {
                       </td>
                     </tr>
                     <tr className="border-b border-gray-100 hover:bg-gray-50">
-                      <td className="px-2 sm:px-4 py-2 sm:py-3">Subject 2 
-                        <span className=' ml-5 font-bold text-[#FF6666]'>Warning:</span> <span> You have 1 Absent </span>
+                      <td className="px-2 sm:px-4 py-2 sm:py-3">
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+                          <span>Subject 2</span>
+                          <div className="text-xs sm:text-sm">
+                            <span className='font-bold text-[#FF6666]'>Warning:</span>
+                            <span> You have 1 Absent</span>
+                          </div>
+                        </div>
                       </td>
                       <td className="px-2 sm:px-4 py-2 sm:py-3 text-[#00A15D]">19</td>
                       <td className="px-2 sm:px-4 py-2 sm:py-3 text-[#767EE0]">0</td>
-                      <td className="px-2 sm:px-4 py-2 sm:py-3 text-[#FF6666]">1 </td>
+                      <td className="px-2 sm:px-4 py-2 sm:py-3 text-[#FF6666]">1</td>
                       <td className="px-2 sm:px-4 py-2 sm:py-3 whitespace-nowrap">20</td>
-
                       <td className="px-2 sm:px-4 py-2 sm:py-3">
                         <Link to={"/AttendanceHistoryStudent"}>
                           <img src={Details} alt="Details" className="w-4 h-4 sm:w-5 sm:h-5 cursor-pointer hover:opacity-70" />
@@ -221,7 +234,6 @@ export default function AnalyticsStudent() {
                       <td className="px-2 sm:px-4 py-2 sm:py-3 text-[#767EE0]">2</td>
                       <td className="px-2 sm:px-4 py-2 sm:py-3 text-[#FF6666]">0</td>
                       <td className="px-2 sm:px-4 py-2 sm:py-3 whitespace-nowrap">20</td>
-
                       <td className="px-2 sm:px-4 py-2 sm:py-3">
                         <Link to={"/AttendanceHistoryStudent"}>
                           <img src={Details} alt="Details" className="w-4 h-4 sm:w-5 sm:h-5 cursor-pointer hover:opacity-70" />

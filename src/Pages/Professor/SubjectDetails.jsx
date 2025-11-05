@@ -68,7 +68,7 @@ export default function SubjectDetails() {
     return null;
   };
 
-  // Fetch class details and students
+  // Fetch class details
   useEffect(() => {
     if (subjectCode) {
       fetchClassDetails();
@@ -78,7 +78,6 @@ export default function SubjectDetails() {
   // Fetch students and activities after classInfo is available
   useEffect(() => {
     if (classInfo) {
-      fetchStudents();
       fetchActivities();
     }
   }, [classInfo]);
@@ -96,23 +95,6 @@ export default function SubjectDetails() {
       }
     } catch (error) {
       console.error('Error fetching class details:', error);
-    }
-  };
-
-  const fetchStudents = async () => {
-    try {
-      if (!classInfo) return;
-      
-      const response = await fetch(`http://localhost/TrackEd/src/Pages/Professor/SubjectDetailsDB/get_students_by_section.php?section=${classInfo.section}`);
-      
-      if (response.ok) {
-        const result = await response.json();
-        if (result.success) {
-          console.log('Fetched students:', result.students);
-        }
-      }
-    } catch (error) {
-      console.error('Error fetching students:', error);
     }
   };
 
