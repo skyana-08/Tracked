@@ -69,14 +69,14 @@ try {
 
     $activity_ID = $pdo->lastInsertId();
 
-    // Get all students in this section from users table ONLY
+    // Get all students enrolled in this specific class
     $studentsStmt = $pdo->prepare("
-        SELECT user_ID, user_Name
-        FROM users 
-        WHERE user_Role = 'Student' 
-        AND YearandSection LIKE ?
+        SELECT u.user_ID, u.user_Name
+        FROM users u
+        INNER JOIN student_classes sc ON u.user_ID = sc.student_ID
+        WHERE sc.subject_code = ? AND sc.archived = 0
     ");
-    $studentsStmt->execute(['%' . $section]);
+    $studentsStmt->execute([$input['subject_code']]);
     $students = $studentsStmt->fetchAll(PDO::FETCH_ASSOC);
 
     // Insert grade entries for each student
@@ -125,7 +125,7 @@ try {
             "instruction" => $input['instruction'],
             "link" => $input['link'],
             "points" => $input['points'],
-            "deadline" => $input['deadline'], // Return original datetime string
+            "deadline" => $input['deadline'],
             "archived" => 0,
             "students" => $studentsWithData
         ],

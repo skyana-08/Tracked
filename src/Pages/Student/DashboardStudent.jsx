@@ -26,6 +26,15 @@ export default function DashboardStudent() {
   const [userEmail, setUserEmail] = useState("");
   const [studentCourse, setStudentCourse] = useState("");
   const [studentYearLevel, setStudentYearLevel] = useState("");
+  
+  // Widget states
+  const [completedActivities, setCompletedActivities] = useState(0);
+  const [overallSubmitted, setOverallSubmitted] = useState(0);
+  const [overallDaysAbsent, setOverallDaysAbsent] = useState(0);
+  const [pendingTask, setPendingTask] = useState(0);
+  const [totalDaysPresent, setTotalDaysPresent] = useState(0);
+  const [overallMissed, setOverallMissed] = useState(0);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     // Get user data from localStorage and fetch from database
@@ -71,17 +80,62 @@ export default function DashboardStudent() {
                 } else {
                   setStudentYearLevel("N/A");
                 }
+
+                // Fetch dashboard data for widgets
+                await fetchDashboardData(userIdFromStorage);
               }
             }
           }
         }
       } catch (error) {
         console.error("Error fetching user data:", error);
+        setLoading(false);
       }
     };
 
     fetchUserData();
   }, []);
+
+  const fetchDashboardData = async (studentId) => {
+    try {
+      setLoading(true);
+      const response = await fetch(`http://localhost/TrackEd/src/Pages/Student/DashboardStudentDB/get_dashboard_data.php?student_id=${studentId}`);
+      
+      if (response.ok) {
+        const data = await response.json();
+        
+        if (data.success) {
+          setCompletedActivities(data.completed_activities || 0);
+          setOverallSubmitted(data.overall_submitted || 0);
+          setOverallDaysAbsent(data.overall_days_absent || 0);
+          setPendingTask(data.pending_task || 0);
+          setTotalDaysPresent(data.total_days_present || 0);
+          setOverallMissed(data.overall_missed || 0);
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching dashboard data:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div>
+        <Sidebar role="student" isOpen={isOpen} setIsOpen={setIsOpen} />
+        <div className={`
+          transition-all duration-300
+          ${isOpen ? 'lg:ml-[250px] xl:ml-[280px] 2xl:ml-[300px]' : 'ml-0'}
+        `}>
+          <Header setIsOpen={setIsOpen} isOpen={isOpen} userName={userName} />
+          <div className="p-8 flex justify-center items-center h-64">
+            <div className="text-[#465746] text-lg">Loading dashboard data...</div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -127,7 +181,7 @@ export default function DashboardStudent() {
                       <img src={CompletedActivities} alt="CompletedActivities" className="h-6 w-6 sm:h-8 sm:w-8 lg:h-12 lg:w-12"/>
                     </div>
                     <p className='pt-2 sm:pt-6 lg:pt-8 text-lg sm:text-xl lg:text-[2rem]'>
-                      3
+                      {completedActivities}
                     </p>
                   </div>
                 </div>
@@ -142,7 +196,7 @@ export default function DashboardStudent() {
                       <img src={OverallSubmitted} alt="OverallSubmitted" className="h-6 w-6 sm:h-8 sm:w-8 lg:h-12 lg:w-12"/>
                     </div>
                     <p className='pt-2 sm:pt-6 lg:pt-8 text-lg sm:text-xl lg:text-[2rem]'>
-                      3
+                      {overallSubmitted}
                     </p>
                   </div>
                 </div>
@@ -157,7 +211,7 @@ export default function DashboardStudent() {
                       <img src={OverallDaysAbsent} alt="OverallDaysAbsent" className="h-6 w-6 sm:h-8 sm:w-8 lg:h-12 lg:w-12"/>
                     </div>
                     <p className='pt-2 sm:pt-6 lg:pt-8 text-lg sm:text-xl lg:text-[2rem]'>
-                      5
+                      {overallDaysAbsent}
                     </p>
                   </div>
                 </div>
@@ -172,7 +226,7 @@ export default function DashboardStudent() {
                       <img src={PendingTask} alt="PendingTask" className="h-6 w-6 sm:h-8 sm:w-8 lg:h-12 lg:w-12"/>
                     </div>
                     <p className='pt-2 sm:pt-6 lg:pt-8 text-lg sm:text-xl lg:text-[2rem]'>
-                      3
+                      {pendingTask}
                     </p>
                   </div>
                 </div>
@@ -187,7 +241,7 @@ export default function DashboardStudent() {
                       <img src={TotalDaySpent} alt="TotalDaySpent" className="h-6 w-6 sm:h-8 sm:w-8 lg:h-12 lg:w-12"/>
                     </div>
                     <p className='pt-2 sm:pt-6 lg:pt-8 text-lg sm:text-xl lg:text-[2rem]'>
-                      3
+                      {totalDaysPresent}
                     </p>
                   </div>
                 </div>
@@ -202,7 +256,7 @@ export default function DashboardStudent() {
                       <img src={OverallMissed} alt="OverallMissed" className="h-6 w-6 sm:h-8 sm:w-8 lg:h-12 lg:w-12"/>
                     </div>
                     <p className='pt-2 sm:pt-6 lg:pt-8 text-lg sm:text-xl lg:text-[2rem]'>
-                      5
+                      {overallMissed}
                     </p>
                   </div>
                 </div>
@@ -241,7 +295,7 @@ export default function DashboardStudent() {
           </div>
 
           {/* Warning Links */}
-          <Link to={"/AnalyticsProf"}>
+          <Link to={"/AnalyticsStudent"}>
             <div className="bg-[#FFFFFF] rounded-lg sm:rounded-xl shadow-md mt-5 p-3 sm:p-4 text-sm sm:text-base lg:text-[1.125rem] border-2 border-transparent hover:border-[#00874E] transition-all duration-200">
               <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-0">
                 <p className="font-bold text-xs sm:text-sm lg:text-base text-[#FF6666] sm:flex-1">WARNING:</p>
@@ -251,7 +305,7 @@ export default function DashboardStudent() {
             </div>
           </Link>
 
-          <Link to={"/AnalyticsProf"}>
+          <Link to={"/AnalyticsStudent"}>
             <div className="bg-[#FFFFFF] rounded-lg sm:rounded-xl shadow-md mt-5 p-3 sm:p-4 text-sm sm:text-base lg:text-[1.125rem] border-2 border-transparent hover:border-[#00874E] transition-all duration-200">
               <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-0">
                 <p className="font-bold text-xs sm:text-sm lg:text-base text-[#FF6666] sm:flex-1">WARNING:</p>

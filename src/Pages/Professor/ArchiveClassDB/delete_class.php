@@ -34,14 +34,13 @@ try {
     $subject_code = trim($input['subject_code']);
     $professor_ID = trim($input['professor_ID']);
 
-    // Delete class from database
-    $sql = "DELETE FROM classes WHERE subject_code = ? AND professor_ID = ?";
-    $stmt = $pdo->prepare($sql);
-    $result = $stmt->execute([$subject_code, $professor_ID]);
+    // Simply delete from classes table - cascade will handle the rest
+    $deleteClassStmt = $pdo->prepare("DELETE FROM classes WHERE subject_code = ? AND professor_ID = ?");
+    $deleteClassStmt->execute([$subject_code, $professor_ID]);
 
-    if ($result && $stmt->rowCount() > 0) {
+    if ($deleteClassStmt->rowCount() > 0) {
         $response['success'] = true;
-        $response['message'] = 'Class deleted successfully';
+        $response['message'] = 'Class and all associated data deleted successfully';
     } else {
         throw new Exception('Class not found or could not be deleted');
     }

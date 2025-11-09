@@ -44,7 +44,9 @@ try {
             instruction = ?,
             link = ?,
             points = ?,
-            deadline = ?
+            deadline = ?,
+            school_work_edited = 1,  -- Set to 1 when school work is edited
+            updated_at = NOW()       -- Also update the timestamp
         WHERE id = ?
     ");
     

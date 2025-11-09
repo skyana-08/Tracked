@@ -356,7 +356,7 @@ export default function Attendance() {
                 {!isEditing ? (
                   <button 
                     onClick={() => setIsEditing(true)}
-                    className="w-full sm:w-auto px-3 sm:px-4 py-2 bg-[#979797] text-[#fff] font-bold text-sm sm:text-base rounded-md hover:border-2 hover:border-[#007846] transition-all cursor-pointer"
+                    className="w-full sm:w-auto px-3 sm:px-4 py-2 bg-[#979797] text-[#fff] font-bold text-sm sm:text-base rounded-md border-transparent border-2 hover:border-[#007846] transition-all cursor-pointer"
                   >
                     Edit
                   </button>
@@ -364,13 +364,13 @@ export default function Attendance() {
                   <>
                     <button 
                       onClick={handleMarkAllPresent}
-                      className="w-full sm:w-auto px-3 sm:px-4 py-2 bg-[#979797] text-[#fff] font-bold text-sm sm:text-base rounded-md hover:border-2 hover:border-[#007846] transition-all cursor-pointer whitespace-nowrap"
+                      className="w-full sm:w-auto px-3 sm:px-4 py-2 bg-[#979797] text-[#fff] font-bold text-sm sm:text-base rounded-md border-transparent border-2 hover:border-[#007846] transition-all cursor-pointer"
                     >
                       Mark All as Present
                     </button>
                     <button 
                       onClick={handleSaveAttendance}
-                      className="w-full sm:w-auto px-3 sm:px-4 py-2 bg-[#00A15D] text-[#fff] font-bold text-sm sm:text-base rounded-md hover:border-2 hover:border-[#007846] transition-all cursor-pointer"
+                      className="w-full sm:w-auto px-3 sm:px-4 py-2 bg-[#00A15D] text-[#fff] font-bold text-sm sm:text-base rounded-md border-transparent border-2 hover:border-[#007846] transition-all cursor-pointer"
                     >
                       Save
                     </button>

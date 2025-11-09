@@ -71,7 +71,8 @@ try {
             DATE_FORMAT(deadline, '%Y-%m-%d %H:%i:%s') as deadline,
             created_at,
             updated_at,
-            archived
+            archived,
+            school_work_edited
         FROM activities 
         WHERE subject_code = ? AND (archived = 0 OR archived IS NULL) 
         ORDER BY created_at DESC

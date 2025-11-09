@@ -15,9 +15,33 @@ export default function ActivityCard({
 }) {
   const [isOpen, setIsOpen] = useState(false);
 
-  // Determine status based on student submissions
-  const allSubmitted = activity.students?.every(student => student.submitted) || false;
-  const status = allSubmitted ? "All Submitted" : "Not All Submitted";
+  // Calculate status counts - FIXED: Use proper counting logic
+  const getStatusCounts = () => {
+    if (!activity.students || activity.students.length === 0) {
+      return { submitted: 0, late: 0, missed: 0 };
+    }
+
+    let submitted = 0;
+    let late = 0;
+    let missed = 0;
+
+    activity.students.forEach(student => {
+      if (student.late) {
+        late++;
+      } else if (student.submitted) {
+        submitted++;
+      } else {
+        missed++;
+      }
+    });
+
+    return { submitted, late, missed };
+  };
+
+  const statusCounts = getStatusCounts();
+
+  // FIX: Check if there are students for this activity
+  const hasStudents = activity.students && activity.students.length > 0;
 
   const handleSave = () => {
     if (onSave && activity.students) {
@@ -62,9 +86,11 @@ export default function ActivityCard({
       }
       onGradeChange(studentId, processedValue);
       
-      // Auto-mark as submitted when a grade is entered
+      // Auto-mark as submitted when a grade is entered, BUT only if not already late
       if (value && value > 0) {
-        if (onSubmissionChange) {
+        const currentStudent = activity.students?.find(s => (s.user_ID || s.id) === studentId);
+        // Only auto-submit if the student doesn't already have a status (is in "missed" state)
+        if (currentStudent && !currentStudent.late && !currentStudent.submitted && onSubmissionChange) {
           onSubmissionChange(studentId, 'submitted');
         }
       }
@@ -183,7 +209,15 @@ export default function ActivityCard({
           
           {/* Title section */}
           <div className="flex flex-col text-sm sm:text-base lg:text-[1.125rem] flex-1 min-w-0">
-            <span className="font-bold text-base sm:text-lg">{activity.title || activity.task_number}</span>
+            <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+              <span className="font-bold text-base sm:text-lg break-words">{activity.title || activity.task_number}</span>
+              {/* NEW: Show (Edited) indicator - responsive */}
+              {activity.school_work_edited === 1 && (
+                <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full font-semibold self-start sm:self-center whitespace-nowrap">
+                  (Edited)
+                </span>
+              )}
+            </div>
             <span className="text-xs sm:text-sm text-gray-600 mt-1">
               {activity.instruction || activity.description}
             </span>
@@ -219,19 +253,36 @@ export default function ActivityCard({
             </div>
           </div>
 
-          {/* Status and Deadline section - stack on mobile, row on desktop */}
-          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 md:gap-4 text-sm sm:text-base lg:text-[1.125rem]">
-            <div className="flex items-center gap-2">
-              <p className="font-bold whitespace-nowrap text-xs sm:text-sm">Status:</p>
-              <p className={`whitespace-nowrap text-xs sm:text-sm lg:text-base ${allSubmitted ? 'text-[#00A15D]' : 'text-[#EF4444]'}`}>
-                {status}
-              </p>
-            </div>
+          {/* Status and Deadline section - Deadline first, then badges */}
+          <div className="flex flex-col gap-3">
+            {/* Deadline */}
             <div className="flex items-center gap-2">
               <p className="font-bold text-[#EF4444] whitespace-nowrap text-xs sm:text-sm">Deadline:</p>
-              <p className="whitespace-nowrap text-xs sm:text-sm lg:text-base">
+              <p className="whitespace-nowrap text-xs sm:text-sm">
                 {formatDate(activity.deadline)}
               </p>
+            </div>
+            
+            {/* Status Counts - Horizontal badges */}
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="flex items-center gap-1.5 bg-green-50 px-3 py-1.5 rounded-md">
+                <p className="font-semibold text-xs sm:text-sm text-[#00A15D]">Submitted:</p>
+                <p className="text-xs sm:text-sm text-[#00A15D]">
+                  {statusCounts.submitted}
+                </p>
+              </div>
+              <div className="flex items-center gap-1.5 bg-indigo-50 px-3 py-1.5 rounded-md">
+                <p className="font-semibold text-xs sm:text-sm text-[#767EE0]">Late:</p>
+                <p className="text-xs sm:text-sm text-[#767EE0]">
+                  {statusCounts.late}
+                </p>
+              </div>
+              <div className="flex items-center gap-1.5 bg-red-50 px-3 py-1.5 rounded-md">
+                <p className="font-semibold text-xs sm:text-sm text-[#EF4444]">Missed:</p>
+                <p className="text-xs sm:text-sm text-[#EF4444]">
+                  {statusCounts.missed}
+                </p>
+              </div>
             </div>
           </div>
         </div>
@@ -289,7 +340,7 @@ export default function ActivityCard({
                 </tr>
               </thead>
               <tbody>
-                {activity.students?.length > 0 ? (
+                {hasStudents ? (
                   activity.students.map((student) => {
                     const currentStatus = getStudentStatus(student);
                     const gradeExceeded = isGradeExceeded(student.grade);
@@ -382,7 +433,7 @@ export default function ActivityCard({
                 ) : (
                   <tr>
                     <td colSpan="6" className="p-4 text-center text-gray-500 text-xs sm:text-sm">
-                      No students found for this activity. Students: {activity.students?.length || 0}
+                      No students found for this activity.
                     </td>
                   </tr>
                 )}
@@ -394,22 +445,28 @@ export default function ActivityCard({
           <div className="flex flex-col sm:flex-row justify-end gap-2 sm:gap-3">
             {!isEditing ? (
               <>
+                {/* FIX: Disable Edit Records button when no students */}
                 <button 
                   onClick={handleEditToggle}
-                  className="w-full sm:w-auto px-4 py-2 bg-[#979797] text-[#fff] text-sm sm:text-base font-bold rounded-md hover:border-2 hover:border-[#007846] transition-all duration-200 cursor-pointer"
+                  disabled={!hasStudents}
+                  className={`w-full sm:w-auto px-4 py-2 text-sm sm:text-base font-semibold rounded-md transition-all duration-200 cursor-pointer ${
+                    hasStudents 
+                      ? 'bg-[#979797] text-[#fff] border-transparent border-2 hover:border-[#007846]' 
+                      : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                  }`} 
                 >
                   Edit Records
                 </button>
                 <button 
                   onClick={handleEditSchoolWork}
-                  className="w-full sm:w-auto px-4 py-2 bg-[#979797] text-[#fff] text-sm sm:text-base font-bold rounded-md hover:border-2 hover:border-[#007846] transition-all duration-200 cursor-pointer whitespace-nowrap"
+                  className="w-full sm:w-auto px-4 py-2 bg-[#979797] text-[#fff] text-sm sm:text-base font-semibold rounded-md border-transparent border-2 hover:border-[#007846] transition-all duration-200 cursor-pointer"
                 >
                   Edit School Works
                 </button>
-                {!allSubmitted && (
+                {statusCounts.missed > 0 && hasStudents && (
                   <button 
                     onClick={handleMarkAllSubmitted}
-                    className="w-full sm:w-auto px-4 py-2 bg-[#979797] text-[#fff] text-sm sm:text-base font-bold rounded-md hover:border-2 hover:border-[#007846] transition-all duration-200 cursor-pointer whitespace-nowrap"
+                    className="w-full sm:w-auto px-4 py-2 bg-[#00A15D] text-[#fff] text-sm sm:text-base font-semibold rounded-md border-transparent border-2 hover:border-[#007846] transition-all duration-200 cursor-pointer"
                   >
                     Mark All Submitted
                   </button>
@@ -418,7 +475,7 @@ export default function ActivityCard({
             ) : (
               <button 
                 onClick={handleSave}
-                className="w-full sm:w-auto px-4 py-2 bg-[#00A15D] text-[#fff] text-sm sm:text-base font-bold rounded-md hover:border-2 hover:border-[#007846] transition-all duration-200 cursor-pointer"
+                className="w-full sm:w-auto px-4 py-2 bg-[#00A15D] text-[#fff] text-sm sm:text-base font-semibold rounded-md border-transparent border-2 hover:border-[#007846] transition-all duration-200 cursor-pointer"
               >
                 Save
               </button>

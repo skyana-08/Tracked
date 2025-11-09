@@ -7,16 +7,17 @@ export default function ActivityCardStudent({ activity, formatDate }) {
   const isSubmitted = activity.submitted === 1 || activity.submitted === true;
   const isLate = activity.late === 1 || activity.late === true;
 
+  // Get status text based on submission status
   const getStatusText = () => {
-    if (isSubmitted && isLate) return "Submitted Late";
+    if (isSubmitted && isLate) return "Late";
     if (isSubmitted) return "Submitted";
-    return "Not Submitted";
+    return "Missed";
   };
 
   const getStatusColor = () => {
-    if (isSubmitted && isLate) return "text-yellow-600";
-    if (isSubmitted) return "text-green-600";
-    return "text-[#FF6666]";
+    if (isSubmitted && isLate) return "text-[#767EE0]";
+    if (isSubmitted) return "text-[#00A15D]";
+    return "text-[#EF4444]";
   };
 
   // Check if deadline is overdue
@@ -30,7 +31,15 @@ export default function ActivityCardStudent({ activity, formatDate }) {
           
           {/* Title and details section */}
           <div className="flex flex-col text-sm sm:text-base lg:text-[1.125rem] flex-1 min-w-0">
-            <span className="font-bold text-base sm:text-lg">{activity.title}</span>
+            <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+              <span className="font-bold text-base sm:text-lg break-words">{activity.title}</span>
+              {/* Show (Edited) indicator for students */}
+              {activity.is_edited === 1 && (
+                <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full font-semibold self-start sm:self-center whitespace-nowrap">
+                  (Edited)
+                </span>
+              )}
+            </div>
             
             {/* Activity metadata */}
             <span className="text-xs sm:text-sm text-gray-600 mt-1">
@@ -60,7 +69,7 @@ export default function ActivityCardStudent({ activity, formatDate }) {
             </div>
           </div>
 
-          {/* Status section - stack on mobile, row on desktop */}
+          {/* Status section - UPDATED to show status like "Submitted", "Late", "Missed" */}
           <div className="flex items-center gap-2 text-sm sm:text-base lg:text-[1.125rem]">
             <p className="font-bold whitespace-nowrap text-xs sm:text-sm">Status:</p>
             <p className={`whitespace-nowrap text-xs sm:text-sm lg:text-base font-semibold ${getStatusColor()}`}>
@@ -119,6 +128,14 @@ export default function ActivityCardStudent({ activity, formatDate }) {
                 >
                   {activity.link}
                 </a>
+              </div>
+            )}
+            
+            {/* Grade (if available) */}
+            {activity.grade !== null && activity.grade !== undefined && (
+              <div className="text-xs sm:text-sm flex items-start gap-2">
+                <span className="font-semibold text-[#465746] whitespace-nowrap">Grade:</span>
+                <span className="text-[#465746]">{activity.grade} / {activity.points || 'N/A'}</span>
               </div>
             )}
             

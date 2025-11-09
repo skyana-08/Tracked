@@ -106,6 +106,7 @@ export default function SubjectDetails() {
         const result = await response.json();
         console.log('Fetched activities result:', result);
         if (result.success) {
+          // Use the school_work_edited flag from the database directly
           setActivities(result.activities);
         }
       }
@@ -184,66 +185,76 @@ export default function SubjectDetails() {
     setEditInstruction(activity.instruction || "");
     setEditLink(activity.link || "");
     setEditPoints(activity.points || "");
-    setEditDeadline(activity.deadline ? activity.deadline.split(' ')[0] : "");
+    
+    // FIX: Properly format the deadline for datetime-local input
+    let formattedDeadline = "";
+    if (activity.deadline) {
+      // Convert the database datetime to the format needed for datetime-local input
+      const date = new Date(activity.deadline);
+      
+      // Check if the date is valid
+      if (!isNaN(date.getTime())) {
+        // Format: YYYY-MM-DDTHH:mm
+        formattedDeadline = date.toISOString().slice(0, 16);
+      } else {
+        // If parsing fails, try to handle the string directly
+        console.warn('Invalid date format for deadline:', activity.deadline);
+        formattedDeadline = activity.deadline.split(' ')[0] + 'T00:00'; // Fallback
+      }
+    }
+    
+    setEditDeadline(formattedDeadline);
     setShowEditModal(true);
   };
 
-  const handleSaveSchoolWork = async () => {
-    // Validate required fields
-    if (!editActivityType || !editTaskNumber || !editTitle) {
-      alert("Please fill in all required fields (Activity Type, Task Number, and Title)");
-      return;
+const handleSaveSchoolWork = async () => {
+
+  try {
+    const updatedActivityData = {
+      activity_type: editActivityType,
+      task_number: editTaskNumber,
+      title: editTitle,
+      instruction: editInstruction,
+      link: editLink,
+      points: editPoints || 0,
+      deadline: editDeadline
+    };
+
+    console.log('Updating activity with data:', updatedActivityData);
+
+    const response = await fetch('http://localhost/TrackEd/src/Pages/Professor/SubjectDetailsDB/update_activity.php', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        activity_ID: editingActivity.id,
+        ...updatedActivityData
+      })
+    });
+
+    const result = await response.json();
+    console.log('Update activity response:', result);
+
+    if (result.success) {
+      // Refresh activities to get the updated school_work_edited flag from database
+      await fetchActivities();
+      
+      setShowEditModal(false);
+      setEditingActivity(null);
+      
+      setShowSuccessModal(true);
+      setTimeout(() => {
+        setShowSuccessModal(false);
+      }, 2000);
+    } else {
+      alert('Error updating activity: ' + result.message);
     }
-
-    try {
-      const updatedActivityData = {
-        activity_type: editActivityType,
-        task_number: editTaskNumber,
-        title: editTitle,
-        instruction: editInstruction,
-        link: editLink,
-        points: editPoints || 0,
-        deadline: editDeadline
-      };
-
-      console.log('Updating activity with data:', updatedActivityData);
-
-      const response = await fetch('http://localhost/TrackEd/src/Pages/Professor/SubjectDetailsDB/update_activity.php', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          activity_ID: editingActivity.id,
-          ...updatedActivityData
-        })
-      });
-
-      const result = await response.json();
-      console.log('Update activity response:', result);
-
-      if (result.success) {
-        setActivities(prev => prev.map(activity => 
-          activity.id === editingActivity.id 
-            ? { ...activity, ...updatedActivityData }
-            : activity
-        ));
-        
-        setShowEditModal(false);
-        setEditingActivity(null);
-        
-        setShowSuccessModal(true);
-        setTimeout(() => {
-          setShowSuccessModal(false);
-        }, 2000);
-      } else {
-        alert('Error updating activity: ' + result.message);
-      }
-    } catch (error) {
-      console.error('Error updating activity:', error);
-      alert('Error updating activity. Please try again.');
-    }
-  };
+  } catch (error) {
+    console.error('Error updating activity:', error);
+    alert('Error updating activity. Please try again.');
+  }
+};
 
   const handleArchiveActivity = (activity) => {
     setActivityToArchive(activity);
@@ -315,9 +326,14 @@ export default function SubjectDetails() {
 
       if (result.success) {
         setEditingActivityId(null);
+        // Update students but DON'T mark as edited for record edits
         setActivities(prev => prev.map(activity => 
           activity.id === activityId 
-            ? { ...activity, students: updatedStudents }
+            ? { 
+                ...activity, 
+                students: updatedStudents
+                // Don't set isEdited or schoolWorkEdited here
+              }
             : activity
         ));
       } else {
@@ -374,6 +390,7 @@ export default function SubjectDetails() {
                   late: false,
                   grade: assignedPoints // Use the exact points from server
                 }))
+                // Don't set isEdited or schoolWorkEdited here
               }
             : activity
         ));
@@ -423,8 +440,17 @@ export default function SubjectDetails() {
     ));
   };
 
+  // FIX: Check if there are students before allowing edit mode
   const handleEditToggle = (activityId) => {
-    setEditingActivityId(editingActivityId === activityId ? null : activityId);
+      const activity = activities.find(a => a.id === activityId);
+      
+      // Check if activity has enrolled students
+      if (!activity || !activity.students || activity.students.length === 0) {
+          alert("Cannot edit records: No enrolled students found for this activity.");
+          return;
+      }
+      
+      setEditingActivityId(editingActivityId === activityId ? null : activityId);
   };
 
   // Render empty state when no activities
@@ -565,6 +591,7 @@ export default function SubjectDetails() {
         </div>
       </div>
 
+      {/* Rest of the modals remain the same */}
       {/* Create School Work Modal */}
       {showCreateModal && (
         <div
@@ -865,7 +892,7 @@ export default function SubjectDetails() {
                 />
               </div>
 
-            {/* Deadline Input */}
+            {/* Deadline Input - FIXED: Now properly shows the existing deadline */}
             <div>
               <label className="text-sm font-semibold mb-1.5 block">Deadline:</label>
               <input

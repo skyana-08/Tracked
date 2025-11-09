@@ -3,6 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 
 import Sidebar from "../../Components/Sidebar";
 import Header from "../../Components/Header";
+
 import AttendanceCard from "../../Components/AttendanceCard";
 
 import AttendanceHistoryIcon from '../../assets/AttendanceHistory.svg';

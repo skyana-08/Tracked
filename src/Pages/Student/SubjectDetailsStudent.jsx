@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from "react";
+import { Link, useLocation } from "react-router-dom";
+
 import Sidebar from "../../Components/Sidebar";
 import Header from "../../Components/Header";
 
@@ -8,7 +10,6 @@ import Search from "../../assets/Search.svg";
 import BackButton from "../../assets/BackButton(Light).svg";
 
 import ActivityCardStudent from "../../Components/ActivityCardStudent";
-import { Link, useLocation } from "react-router-dom";
 
 export default function SubjectDetailsStudent() {
   const [isOpen, setIsOpen] = useState(false);
@@ -82,13 +83,27 @@ export default function SubjectDetailsStudent() {
     }
   };
 
-  // filter logic
+  // NEW: Helper function to get student status (matching ActivityCardStudent.jsx)
+  const getStudentStatus = (activity) => {
+    const isSubmitted = activity.submitted === 1 || activity.submitted === true;
+    const isLate = activity.late === 1 || activity.late === true;
+
+    if (isSubmitted && isLate) return "Late";
+    if (isSubmitted) return "Submitted";
+    return "Missed";
+  };
+
+  // UPDATED: filter logic based on ActivityCardStudent statuses
   const filtered = activities.filter(act => {
     let matchesFilter = true;
-    if (filterOption === "Graded") matchesFilter = act.grade !== null;
-    else if (filterOption === "Not graded") matchesFilter = act.grade === null;
-    else if (filterOption === "Submitted") matchesFilter = act.submitted === 1;
-    else if (filterOption === "Not submitted") matchesFilter = act.submitted === 0;
+    
+    // Get the status for this activity (matching ActivityCardStudent logic)
+    const status = getStudentStatus(act);
+    
+    // Apply filters based on status
+    if (filterOption === "Submitted") matchesFilter = status === "Submitted";
+    else if (filterOption === "Late") matchesFilter = status === "Late";
+    else if (filterOption === "Missed") matchesFilter = status === "Missed";
 
     const q = searchQuery.trim().toLowerCase();
     const matchesSearch = !q || 
@@ -207,7 +222,7 @@ export default function SubjectDetailsStudent() {
             <div className="relative sm:flex-initial filter-dropdown">
               <button
                 onClick={() => setFilterDropdownOpen(!filterDropdownOpen)}
-                className="flex items-center justify-between w-full sm:w-auto font-bold px-4 py-2.5 bg-white rounded-md shadow-md hover:border-[#00874E] transition-all text-sm sm:text-base sm:min-w-[160px] border-2 border-transparent"
+                className="flex items-center justify-between w-full sm:w-auto font-bold px-4 py-2.5 bg-white rounded-md shadow-md hover:border-[#00874E] transition-all text-sm sm:text-base sm:min-w-[160px] border-2 border-transparent cursor-pointer"
               >
                 <span>{filterOption}</span>
                 <img src={ArrowDown} alt="" className={`ml-3 h-4 w-4 sm:h-5 sm:w-5 transition-transform ${filterDropdownOpen ? "rotate-180" : ""}`} />
@@ -215,11 +230,12 @@ export default function SubjectDetailsStudent() {
 
               {filterDropdownOpen && (
                 <div className="absolute top-full mt-2 bg-white rounded-md w-full sm:min-w-[200px] shadow-xl border border-gray-200 z-20 overflow-hidden">
-                  {["Filter", "Graded", "Not graded", "Submitted", "Not submitted"].map(opt => (
+                  {/* UPDATED: Filter options - removed "Graded" and "Not graded" */}
+                  {["All", "Submitted", "Late", "Missed"].map(opt => (
                     <button
                       key={opt}
                       onClick={() => { setFilterOption(opt); setFilterDropdownOpen(false); }}
-                      className={`block px-4 py-2.5 w-full text-left hover:bg-gray-100 text-sm sm:text-base ${filterOption === opt ? "bg-gray-50 font-semibold" : ""}`}
+                      className={`block px-4 py-2.5 w-full text-left hover:bg-gray-200 text-sm sm:text-base cursor-pointer ${filterOption === opt ? "bg-gray-50 font-semibold" : ""}`}
                     >
                       {opt}
                     </button>
