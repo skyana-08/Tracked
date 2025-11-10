@@ -27,6 +27,24 @@ export default function AdminImport() {
       .catch((err) => console.error(err));
   }, []);
 
+              const handleActivateAccounts = () => {
+  if (!window.confirm("Are you sure you want to activate accounts?")) return;
+
+  fetch("http://localhost/TrackEd/src/Pages/Admin/activate_accounts.php", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+  })
+    .then((res) => res.json())
+    .then((data) => {
+      alert(data.message);
+      console.log("Activation result:", data);
+    })
+    .catch((err) => {
+      console.error("Error activating accounts:", err);
+      alert("An error occurred while activating accounts.");
+    });
+  };
+
   // Pagination Logic
   const indexOfLastUser = currentPage * usersPerPage;
   const indexOfFirstUser = indexOfLastUser - usersPerPage;
@@ -108,7 +126,18 @@ export default function AdminImport() {
               <button className="font-bold px-3 sm:px-4 py-2 bg-[#fff] rounded-md shadow-md border-2 border-transparent hover:border-[#00874E] text-xs sm:text-sm lg:text-base transition-all duration-200 cursor-pointer">
                 Backup
               </button>
+
+              <button
+  onClick={() => handleActivateAccounts()}
+  className="font-bold px-3 sm:px-4 py-2 bg-[#fff] rounded-md shadow-md border-2 border-transparent hover:border-[#00874E] text-xs sm:text-sm lg:text-base transition-all duration-200 cursor-pointer"
+>
+  Activate Accounts
+</button>
+
             </div>
+
+
+
 
             {/* Search Button */}
             <div className="relative flex-1 sm:max-w-xs lg:max-w-md">
@@ -150,14 +179,14 @@ export default function AdminImport() {
                       className="bg-[#fff] rounded-lg shadow hover:bg-gray-50 transition-colors duration-200"
                     >
                       <td className="py-3 px-2 sm:px-3 rounded-l-lg">{user.user_ID}</td>
-                      <td className="py-3 px-2 sm:px-3">{user.user_Name}</td>
+                      <td className="py-3 px-2 sm:px-3">{user.user_firstname} {user.user_middlename} {user.user_lastname}</td>
                       <td className="py-3 px-2 sm:px-3 break-all sm:break-normal">
                         {user.user_Email}
                       </td>
                       <td className="py-3 px-2 sm:px-3">{user.user_Role}</td>
                       <td className="py-3 px-2 sm:px-3">{user.user_Gender}</td>
                       <td className="py-3 px-2 sm:px-3 rounded-r-lg">
-                        {user.YearandSection}
+                        {user.user_yearandsection}
                       </td>
                     </tr>
                   ))}
@@ -183,7 +212,7 @@ export default function AdminImport() {
                   <div className="space-y-2">
                     <div>
                       <p className="text-xs text-gray-500">Full Name</p>
-                      <p className="font-medium text-sm">{user.user_Name}</p>
+                      <p className="font-medium text-sm">{user.user_firstname} {user.user_middlename} {user.user_lastname}</p>
                     </div>
                     
                     <div>
@@ -199,7 +228,7 @@ export default function AdminImport() {
                       
                       <div>
                         <p className="text-xs text-gray-500">Year & Section</p>
-                        <p className="text-sm">{user.YearandSection}</p>
+                        <p className="text-sm">{user.user_yearandsection}</p>
                       </div>
                     </div>
                   </div>
@@ -271,4 +300,5 @@ export default function AdminImport() {
       </div>
     </div>
   );
+  
 }

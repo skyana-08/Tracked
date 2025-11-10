@@ -1,17 +1,44 @@
-import React from 'react'
-import { useState } from "react";
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect } from "react"; // ✅ fixed: combined imports
+import { Link, useParams } from "react-router-dom"; // ✅ fixed: added useParams
 
 import Sidebar from "../../Components/Sidebar";
 import Header from "../../Components/Header";
 import Popup from "../../Components/Popup";
 
-import ClassManagementLight from '../../assets/ClassManagement(Light).svg';
-import BackButton from '../../assets/BackButton(Light).svg';
+import ClassManagementLight from "../../assets/ClassManagement(Light).svg";
+import BackButton from "../../assets/BackButton(Light).svg";
 
 export default function UserManagement_StudentAccountDetails() {
   const [isOpen, setIsOpen] = useState(false);
   const [popupType, setPopupType] = useState(null);
+  const [student, setStudent] = useState(null); // ✅ fixed: added missing student state
+
+  const { id } = useParams();
+
+  useEffect(() => {
+    fetch("http://localhost/TrackEd/src/Pages/Admin/StudentAccountsDB/get_students.php")
+      .then((res) => res.json())
+      .then((data) => {
+        if (Array.isArray(data) && data.length > 0) {
+          // ✅ fixed: ensure proper comparison (id from URL is string)
+          if (id) {
+            const selected = data.find((p) => String(p.tracked_ID) === String(id));
+            setStudent(selected);
+          } else {
+            setStudent(data[0]);
+          }
+        }
+      })
+      .catch((err) => console.error("Error fetching student data:", err));
+  }, [id]);
+
+  if (!student) {
+    return (
+      <div className="flex items-center justify-center h-screen text-gray-500">
+        Loading student details...
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -66,54 +93,64 @@ export default function UserManagement_StudentAccountDetails() {
                     Student Name:
                   </span>
                   <span className="sm:col-span-2 text-[#465746]">
-                    Firstname Middlename Middle Initial Lastname
+                    {student.tracked_firstname}{" "}
+                    {student.tracked_middlename}{" "}
+                    {student.tracked_lastname}
                   </span>
                 </div>
-                
+
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-1 sm:gap-4 text-sm sm:text-base">
                   <span className="font-semibold text-gray-600 sm:text-[#465746] sm:font-normal">
                     Student Number (ID Number):
                   </span>
-                  <span className="sm:col-span-2 text-[#465746]">202210718</span>
+                  <span className="sm:col-span-2 text-[#465746]">
+                    {student.tracked_ID}
+                  </span>
                 </div>
-                
+
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-1 sm:gap-4 text-sm sm:text-base">
                   <span className="font-semibold text-gray-600 sm:text-[#465746] sm:font-normal">
                     CVSU Email Address:
                   </span>
                   <span className="sm:col-span-2 text-[#465746] break-all sm:break-normal">
-                    Lastname@cvsu.edu.ph
+                    {student.tracked_email}
                   </span>
                 </div>
-                
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-1 sm:gap-4 text-sm sm:text-base">
+                  <span className="font-semibold text-gray-600 sm:text-[#465746] sm:font-normal">
+                    Birthday:
+                  </span>
+                  <span className="sm:col-span-2 text-[#465746]">
+                    {student.tracked_bday}
+                  </span>
+                </div>
+
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-1 sm:gap-4 text-sm sm:text-base">
                   <span className="font-semibold text-gray-600 sm:text-[#465746] sm:font-normal">
                     Program:
                   </span>
                   <span className="sm:col-span-2 text-[#465746]">
-                    Bachelor in Information Technology (IT)
+                    {student.tracked_program}
                   </span>
                 </div>
-                
+
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-1 sm:gap-4 text-sm sm:text-base">
                   <span className="font-semibold text-gray-600 sm:text-[#465746] sm:font-normal">
                     Section:
                   </span>
-                  <span className="sm:col-span-2 text-[#465746]">X</span>
-                </div>
-                
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-1 sm:gap-4 text-sm sm:text-base">
-                  <span className="font-semibold text-gray-600 sm:text-[#465746] sm:font-normal">
-                    Year Level:
+                  <span className="sm:col-span-2 text-[#465746]">
+                    {student.tracked_yearandsec}
                   </span>
-                  <span className="sm:col-span-2 text-[#465746]">2nd Year</span>
                 </div>
-                
+
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-1 sm:gap-4 text-sm sm:text-base">
                   <span className="font-semibold text-gray-600 sm:text-[#465746] sm:font-normal">
                     Semester:
                   </span>
-                  <span className="sm:col-span-2 text-[#465746]">2nd Semester 2024-2025</span>
+                  <span className="sm:col-span-2 text-[#465746]">
+                    {student.tracked_semester}
+                  </span>
                 </div>
               </div>
             </div>
@@ -128,21 +165,27 @@ export default function UserManagement_StudentAccountDetails() {
                   <span className="font-semibold text-gray-600 sm:text-[#465746] sm:font-normal">
                     Date Created:
                   </span>
-                  <span className="sm:col-span-2 text-[#465746]">September 3, 2025</span>
+                  <span className="sm:col-span-2 text-[#465746]">
+                    {student.created_at}
+                  </span>
                 </div>
-                
+
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-1 sm:gap-4 text-sm sm:text-base">
                   <span className="font-semibold text-gray-600 sm:text-[#465746] sm:font-normal">
                     Last Login:
                   </span>
-                  <span className="sm:col-span-2 text-[#465746]">September 3, 2025</span>
+                  <span className="sm:col-span-2 text-[#465746]">
+                    September 3, 2025
+                  </span>
                 </div>
-                
+
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-1 sm:gap-4 text-sm sm:text-base">
                   <span className="font-semibold text-gray-600 sm:text-[#465746] sm:font-normal">
                     Account Status:
                   </span>
-                  <span className="sm:col-span-2 font-bold text-green-600">Active</span>
+                  <span className="sm:col-span-2 font-bold text-green-600">
+                    {student.tracked_status}
+                  </span>
                 </div>
               </div>
             </div>
@@ -156,16 +199,18 @@ export default function UserManagement_StudentAccountDetails() {
                 </button>
 
                 {/* Reset Password */}
-                <button 
+                <button
                   onClick={() => setPopupType("reset")}
-                  className="font-bold text-white py-2.5 px-4 sm:px-6 bg-[#00874E] rounded-md shadow-md text-center hover:bg-[#006F3A] text-sm sm:text-base w-full sm:w-auto transition-colors duration-200 cursor-pointer">
+                  className="font-bold text-white py-2.5 px-4 sm:px-6 bg-[#00874E] rounded-md shadow-md text-center hover:bg-[#006F3A] text-sm sm:text-base w-full sm:w-auto transition-colors duration-200 cursor-pointer"
+                >
                   Reset Password
                 </button>
 
                 {/* Disable Account */}
-                <button 
-                  onClick={() => setPopupType("disable")} 
-                  className="font-bold text-white py-2.5 px-4 sm:px-6 bg-[#FF6666] rounded-md shadow-md text-center hover:bg-[#E55555] text-sm sm:text-base w-full sm:w-auto transition-colors duration-200 cursor-pointer">
+                <button
+                  onClick={() => setPopupType("disable")}
+                  className="font-bold text-white py-2.5 px-4 sm:px-6 bg-[#FF6666] rounded-md shadow-md text-center hover:bg-[#E55555] text-sm sm:text-base w-full sm:w-auto transition-colors duration-200 cursor-pointer"
+                >
                   Disable Account
                 </button>
               </div>
@@ -173,22 +218,22 @@ export default function UserManagement_StudentAccountDetails() {
 
             {/* Popup */}
             {popupType === "reset" && (
-              <Popup 
-                setOpen={() => setPopupType(null)} 
-                message="Do you really want to reset this password?" 
-                confirmText="Reset" 
-                buttonColor="#00874E" 
-                hoverColor="#006F3A" 
+              <Popup
+                setOpen={() => setPopupType(null)}
+                message="Do you really want to reset this password?"
+                confirmText="Reset"
+                buttonColor="#00874E"
+                hoverColor="#006F3A"
               />
             )}
 
             {popupType === "disable" && (
-              <Popup 
-                setOpen={() => setPopupType(null)} 
-                message="Are you sure you want to disable this account?" 
-                confirmText="Disable" 
-                buttonColor="#FF6666" 
-                hoverColor="#C23535" 
+              <Popup
+                setOpen={() => setPopupType(null)}
+                message="Are you sure you want to disable this account?"
+                confirmText="Disable"
+                buttonColor="#FF6666"
+                hoverColor="#C23535"
               />
             )}
           </div>

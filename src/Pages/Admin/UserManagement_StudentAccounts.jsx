@@ -186,7 +186,7 @@ export default function UserManagementStudentAccounts() {
                     >
                       <td className="py-3 px-2 sm:px-3 rounded-l-lg">{stud.tracked_ID}</td>
                       <td className="py-3 px-2 sm:px-3">
-                        {stud.tracked_fname} {stud.tracked_mi} {stud.tracked_lname}
+                        {stud.tracked_firstname} {stud.tracked_middlename} {stud.tracked_lastname}
                       </td>
                       <td className="py-3 px-2 sm:px-3 break-all sm:break-normal">
                         {stud.tracked_email}
@@ -257,7 +257,7 @@ export default function UserManagementStudentAccounts() {
                     <div>
                       <p className="text-xs text-gray-500">Full Name</p>
                       <p className="font-medium text-sm">
-                        {stud.tracked_fname} {stud.tracked_lname}
+                        {stud.tracked_firstname} {stud.tracked_middlename} {stud.tracked_lastname}
                       </p>
                     </div>
 
@@ -379,7 +379,7 @@ export default function UserManagementStudentAccounts() {
                       </p>
                       <div className="bg-gray-50 rounded-lg p-4 text-left">
                         <p className="text-base sm:text-lg font-semibold text-gray-900 break-words">
-                          {selectedStudent.tracked_fname} {selectedStudent.tracked_lname}
+                          {selectedStudent.tracked_firstname} {stud.tracked_middlename} {selectedStudent.tracked_lastname}
                         </p>
                         <p className="text-sm text-gray-600 mt-1">
                           ID: {selectedStudent.tracked_ID}

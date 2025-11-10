@@ -185,7 +185,7 @@ export default function UserManagementProfessorAccounts() {
                     >
                       <td className="py-3 px-2 sm:px-3 rounded-l-lg">{prof.tracked_ID}</td>
                       <td className="py-3 px-2 sm:px-3">
-                        {prof.tracked_fname} {prof.tracked_mi} {prof.tracked_lname}
+                        {prof.tracked_firstname} {prof.tracked_middlename} {prof.tracked_lastname}
                       </td>
                       <td className="py-3 px-2 sm:px-3 break-all sm:break-normal">
                         {prof.tracked_email}
@@ -253,7 +253,7 @@ export default function UserManagementProfessorAccounts() {
                     <div>
                       <p className="text-xs text-gray-500">Full Name</p>
                       <p className="font-medium text-sm">
-                        {prof.tracked_fname} {prof.tracked_lname}
+                        {prof.tracked_firstname} {prof.tracked_lastname}
                       </p>
                     </div>
 
@@ -370,7 +370,7 @@ export default function UserManagementProfessorAccounts() {
                       </p>
                       <div className="bg-gray-50 rounded-lg p-4 text-left">
                         <p className="text-base sm:text-lg font-semibold text-gray-900 break-words">
-                          {selectedProfessor.tracked_fname} {selectedProfessor.tracked_lname}
+                          {selectedProfessor.tracked_firstname} {selectedProfessor.tracked_lastname}
                         </p>
                         <p className="text-sm text-gray-600 mt-1">
                           ID: {selectedProfessor.tracked_ID}

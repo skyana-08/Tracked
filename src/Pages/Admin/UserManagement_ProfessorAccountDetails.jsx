@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useParams } from 'react-router-dom';
 
 import Sidebar from "../../Components/Sidebar";
 import Header from "../../Components/Header";
@@ -9,8 +9,37 @@ import ClassManagementLight from '../../assets/ClassManagement(Light).svg';
 import BackButton from '../../assets/BackButton(Light).svg';
 
 export default function UserManagement_ProfessorAccountDetails() {
-  const [isOpen, setIsOpen] = useState(false);  
+  const [isOpen, setIsOpen] = useState(false);
   const [popupType, setPopupType] = useState(null);
+  const [professor, setProfessor] = useState(null);
+
+  // If you’re using routes like /UserManagementProfessorAccountDetails/:id
+  const { id } = useParams();
+
+
+  useEffect(() => {
+    fetch("http://localhost/tracked/src/Pages/Admin/ProfessorAccountsDB/get_professors.php")
+      .then((res) => res.json())
+      .then((data) => {
+        // If specific professor ID is passed via URL
+        if (id) {
+          const selected = data.find((p) => p.tracked_ID === id);
+          setProfessor(selected);
+        } else {
+          // fallback: just show first professor (or handle differently)
+          setProfessor(data[0]);
+        }
+      })
+      .catch((err) => console.error("Error fetching professor data:", err));
+  }, [id]);
+
+  if (!professor) {
+    return (
+      <div className="flex items-center justify-center h-screen text-gray-500">
+        Loading professor details...
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -64,38 +93,46 @@ export default function UserManagement_ProfessorAccountDetails() {
                     Professor Name:
                   </span>
                   <span className="sm:col-span-2 text-[#465746]">
-                    Firstname Middlename Middle Initial Lastname
+                    {professor.tracked_firstname}{" "}
+                    {professor.tracked_middlename}{" "}
+                    {professor.tracked_lastname}
                   </span>
                 </div>
-                
+
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-1 sm:gap-4 text-sm sm:text-base">
                   <span className="font-semibold text-gray-600 sm:text-[#465746] sm:font-normal">
                     Faculty ID (ID Number):
                   </span>
-                  <span className="sm:col-span-2 text-[#465746]">202210718</span>
+                  <span className="sm:col-span-2 text-[#465746]">
+                    {professor.tracked_ID}
+                  </span>
                 </div>
-                
+
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-1 sm:gap-4 text-sm sm:text-base">
                   <span className="font-semibold text-gray-600 sm:text-[#465746] sm:font-normal">
                     CVSU Email Address:
                   </span>
                   <span className="sm:col-span-2 text-[#465746] break-all sm:break-normal">
-                    Lastname@cvsu.edu.ph
+                    {professor.tracked_email}
                   </span>
                 </div>
-                
+
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-1 sm:gap-4 text-sm sm:text-base">
                   <span className="font-semibold text-gray-600 sm:text-[#465746] sm:font-normal">
                     Phone Number:
                   </span>
-                  <span className="sm:col-span-2 text-[#465746]">09606584521</span>
+                  <span className="sm:col-span-2 text-[#465746]">
+                    {professor.tracked_phone}
+                  </span>
                 </div>
-                
+
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-1 sm:gap-4 text-sm sm:text-base">
                   <span className="font-semibold text-gray-600 sm:text-[#465746] sm:font-normal">
-                    Age:
+                    Birthday:
                   </span>
-                  <span className="sm:col-span-2 text-[#465746]">X</span>
+                  <span className="sm:col-span-2 text-[#465746]">
+                  {professor.tracked_bday}
+                  </span>
                 </div>
               </div>
             </div>
@@ -110,16 +147,14 @@ export default function UserManagement_ProfessorAccountDetails() {
                   <span className="font-semibold text-gray-600 sm:text-[#465746] sm:font-normal">
                     Department:
                   </span>
-                  <span className="sm:col-span-2 text-[#465746]">
-                    Information Technology (IT)
-                  </span>
+                  <span className="sm:col-span-2 text-[#465746]">{professor.tracked_program}</span>
                 </div>
-                
+
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-1 sm:gap-4 text-sm sm:text-base">
                   <span className="font-semibold text-gray-600 sm:text-[#465746] sm:font-normal">
                     Subject Handled:
                   </span>
-                  <span className="sm:col-span-2 text-[#465746]">ITEC100A, ITEC200A</span>
+                  <span className="sm:col-span-2 text-[#465746]">N/A</span>
                 </div>
               </div>
             </div>
@@ -134,21 +169,29 @@ export default function UserManagement_ProfessorAccountDetails() {
                   <span className="font-semibold text-gray-600 sm:text-[#465746] sm:font-normal">
                     Date Created:
                   </span>
-                  <span className="sm:col-span-2 text-[#465746]">September 3, 2025</span>
+                  <span className="sm:col-span-2 text-[#465746]">{professor.created_at}</span>
                 </div>
-                
+
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-1 sm:gap-4 text-sm sm:text-base">
                   <span className="font-semibold text-gray-600 sm:text-[#465746] sm:font-normal">
                     Last Login:
                   </span>
-                  <span className="sm:col-span-2 text-[#465746]">September 3, 2025</span>
+                  <span className="sm:col-span-2 text-[#465746]">N/A</span>
                 </div>
-                
+
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-1 sm:gap-4 text-sm sm:text-base">
                   <span className="font-semibold text-gray-600 sm:text-[#465746] sm:font-normal">
                     Account Status:
                   </span>
-                  <span className="sm:col-span-2 font-bold text-green-600">Active</span>
+                  <span
+                    className={`sm:col-span-2 font-bold ${
+                      professor.tracked_Status === "Active"
+                        ? "text-green-600"
+                        : "text-red-600"
+                    }`}
+                  >
+                    {professor.tracked_Status}
+                  </span>
                 </div>
               </div>
             </div>
@@ -157,16 +200,16 @@ export default function UserManagement_ProfessorAccountDetails() {
             <div className="pt-4 sm:pt-5 border-t border-gray-200">
               <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
                 {/* Reset Password */}
-                <button 
-                  onClick={() => setPopupType("reset")} 
+                <button
+                  onClick={() => setPopupType("reset")}
                   className="font-bold text-white py-2.5 px-4 sm:px-6 bg-[#00874E] rounded-md shadow-md text-center hover:bg-[#006F3A] text-sm sm:text-base w-full sm:w-auto transition-colors duration-200 cursor-pointer"
                 >
                   Reset Password
                 </button>
 
                 {/* Disable Account */}
-                <button 
-                  onClick={() => setPopupType("disable")}  
+                <button
+                  onClick={() => setPopupType("disable")}
                   className="font-bold text-white py-2.5 px-4 sm:px-6 bg-[#FF6666] rounded-md shadow-md text-center hover:bg-[#E55555] text-sm sm:text-base w-full sm:w-auto transition-colors duration-200 cursor-pointer"
                 >
                   Disable Account
@@ -176,22 +219,22 @@ export default function UserManagement_ProfessorAccountDetails() {
 
             {/* Popup */}
             {popupType === "reset" && (
-              <Popup 
-                setOpen={() => setPopupType(null)} 
-                message="Do you really want to reset this password?" 
-                confirmText="Reset" 
-                buttonColor="#00874E" 
-                hoverColor="#006F3A" 
+              <Popup
+                setOpen={() => setPopupType(null)}
+                message="Do you really want to reset this password?"
+                confirmText="Reset"
+                buttonColor="#00874E"
+                hoverColor="#006F3A"
               />
             )}
 
             {popupType === "disable" && (
-              <Popup 
-                setOpen={() => setPopupType(null)} 
-                message="Are you sure you want to disable this account?" 
-                confirmText="Disable" 
-                buttonColor="#FF6666" 
-                hoverColor="#C23535" 
+              <Popup
+                setOpen={() => setPopupType(null)}
+                message="Are you sure you want to disable this account?"
+                confirmText="Disable"
+                buttonColor="#FF6666"
+                hoverColor="#C23535"
               />
             )}
           </div>

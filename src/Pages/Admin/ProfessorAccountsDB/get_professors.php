@@ -8,7 +8,7 @@ if ($conn->connect_error) {
   die(json_encode([]));
 }
 
-$sql = "SELECT tracked_ID, tracked_fname, tracked_lname, tracked_mi, tracked_email, tracked_Status
+$sql = "SELECT *
         FROM tracked_users
         WHERE tracked_Role = 'Professor'
         ORDER BY tracked_ID ASC";
