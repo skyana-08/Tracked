@@ -16,41 +16,68 @@ import LogOut from "../assets/LogOut.svg";
 import TextLogo from "../assets/New-FullWhite-TrackEdLogo.svg";
 
 export default function Sidebar({ role = "student", isOpen: isOpenProp, setIsOpen: setIsOpenProp }) {
-  const [localOpen, setLocalOpen] = useState(true);
+  const [localOpen, setLocalOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
 
   const isControlled = typeof isOpenProp !== "undefined" && typeof setIsOpenProp === "function";
   const isOpen = isControlled ? isOpenProp : localOpen;
   const setIsOpen = isControlled ? setIsOpenProp : setLocalOpen;
 
+  // Check screen size and set initial state
   useEffect(() => {
-    const checkScreenSize = () => setIsMobile(window.innerWidth < 1024);
+    const checkScreenSize = () => {
+      const mobile = window.innerWidth < 1024;
+      setIsMobile(mobile);
+      
+      // Auto-open on desktop, auto-close on mobile (only if uncontrolled)
+      if (!isControlled) {
+        setLocalOpen(!mobile);
+      }
+    };
+    
     checkScreenSize();
     window.addEventListener("resize", checkScreenSize);
     return () => window.removeEventListener("resize", checkScreenSize);
-  }, []);
+  }, [isControlled]);
 
+  // Handle outside clicks on mobile only
   useEffect(() => {
     const handleOutsideClick = (event) => {
-      if (isMobile && isOpen && !event.target.closest("aside")) {
+      if (isMobile && isOpen && !event.target.closest("aside") && !event.target.closest("button[data-sidebar-toggle]")) {
         setIsOpen(false);
       }
     };
+    
     if (isMobile && isOpen) {
       document.addEventListener("mousedown", handleOutsideClick);
       return () => document.removeEventListener("mousedown", handleOutsideClick);
     }
   }, [isMobile, isOpen, setIsOpen]);
 
+  // Handle escape key on mobile only
   useEffect(() => {
     const onKey = (e) => {
-      if (e.key === "Escape" && isMobile && isOpen) setIsOpen(false);
+      if (e.key === "Escape" && isMobile && isOpen) {
+        setIsOpen(false);
+      }
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
   }, [isMobile, isOpen, setIsOpen]);
 
-  // role menus
+  // Prevent body scroll when mobile sidebar is open
+  useEffect(() => {
+    if (isMobile && isOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [isMobile, isOpen]);
+
+  // Role menus
   const menus = {
     student: {
       main: [
@@ -64,7 +91,6 @@ export default function Sidebar({ role = "student", isOpen: isOpenProp, setIsOpe
         { label: "Account Setting", icon: AccountSettings, path: "/AccountSetting" },
       ],
     },
-
     teacher: {
       main: [
         { label: "Dashboard", icon: Dashboard, path: "/DashboardProf" },
@@ -78,7 +104,6 @@ export default function Sidebar({ role = "student", isOpen: isOpenProp, setIsOpe
         { label: "Account Setting", icon: AccountSettings, path: "/AccountSettingProf" },
       ],
     },
-
     admin: {
       main: [
         { label: "User Management", icon: ClassManagement, path: "/UserManagement" },
@@ -94,33 +119,39 @@ export default function Sidebar({ role = "student", isOpen: isOpenProp, setIsOpe
   };
 
   const navItemBase =
-    "flex items-center px-4 py-4 rounded-lg hover:bg-[#00A15D] cursor-pointer select-none transition-colors duration-150";
+    "flex items-center px-4 py-3 rounded-lg hover:bg-[#00A15D] cursor-pointer select-none transition-colors duration-150";
 
   return (
     <>
+      {/* Backdrop overlay for mobile only */}
       {isOpen && isMobile && (
         <div
           className="fixed inset-0 bg-black/50 z-40 lg:hidden"
           onClick={() => setIsOpen(false)}
+          aria-hidden="true"
         />
       )}
 
+      {/* Sidebar */}
       <aside
-        className={`fixed top-0 left-0 h-screen bg-[#00874E] select-none z-50 shadow-xl transform transition-transform duration-300 ease-in-out
+        className={`fixed top-0 left-0 h-screen bg-[#00874E] select-none z-50 shadow-xl transition-transform duration-300 ease-in-out
         ${isOpen ? "translate-x-0" : "-translate-x-full"}
-        w-[70%] sm:w-[240px] xl:w-[270px] 2xl:w-[290px]`}
+        w-[75%] max-w-[280px] sm:w-[240px] lg:w-[250px] xl:w-[270px] 2xl:w-[290px]`}
         role="navigation"
+        aria-label="Main navigation"
       >
-        <div className="flex flex-col h-full p-4 safe-area pb-6">
-          <div className="flex justify-center">
-            <img src={TextLogo} alt="TrackED Logo" className="h-10" />
+        <div className="flex flex-col h-full overflow-hidden">
+          {/* Logo section */}
+          <div className="flex-shrink-0 p-4 pb-3">
+            <div className="flex justify-center">
+              <img src={TextLogo} alt="TrackED Logo" className="h-10" />
+            </div>
+            <hr className="border-[#DBDBDB] rounded border-1 opacity-40 mt-4" />
           </div>
 
-          <hr className="border-[#DBDBDB] rounded border-1 opacity-40 my-4" />
-
-          {/* main menus */}
-          <nav className="flex-1 overflow-auto">
-            <div className="flex flex-col gap-1">
+          {/* Main navigation - scrollable */}
+          <nav className="flex-1 overflow-y-auto overflow-x-hidden px-4">
+            <div className="flex flex-col gap-1 py-2">
               {menus[role]?.main?.map((item, index) => (
                 <NavLink
                   key={`${item.label}-${index}`}
@@ -130,39 +161,44 @@ export default function Sidebar({ role = "student", isOpen: isOpenProp, setIsOpe
                     `${navItemBase} ${isActive ? "bg-[#00A15D]" : ""}`
                   }
                 >
-                  <img src={item.icon} alt={item.label} className="h-5 w-5 mr-4" />
-
-                  <p className="text-white text-[1.05rem] truncate whitespace-nowrap">{item.label}</p>
+                  <img src={item.icon} alt="icons" className="h-5 w-5 mr-3 flex-shrink-0" />
+                  <span className="text-white text-sm sm:text-[1rem] truncate">{item.label}</span>
                 </NavLink>
               ))}
             </div>
 
-            {/* extras */}
+            {/* Extra menu items */}
             {menus[role]?.extras?.length > 0 && (
-              <div className="mt-30 pt-4">
-                <hr className="border-[#DBDBDB] rounded border-1 opacity-40 my-4" />
-                {menus[role].extras.map((item, index) => (
-                  <NavLink
-                    key={`${item.label}-extra-${index}`}
-                    to={item.path}
-                    onClick={handleLinkClick}
-                    className={({ isActive }) =>
-                      `${navItemBase} mt-2 ${isActive ? "bg-[#00A15D]" : ""}`
-                    }
-                  >
-                    <img src={item.icon} alt={item.label} className="h-5 w-5 flex-shrink-0 mr-4" />
-                    <p className="text-white text-[1.05rem] truncate whitespace-nowrap">{item.label}</p>
-                  </NavLink>
-                ))}
+              <div className="pt-2 pb-2">
+                <hr className="border-[#DBDBDB] rounded border-1 opacity-40 my-3" />
+                <div className="flex flex-col gap-1">
+                  {menus[role].extras.map((item, index) => (
+                    <NavLink
+                      key={`${item.label}-extra-${index}`}
+                      to={item.path}
+                      onClick={handleLinkClick}
+                      className={({ isActive }) =>
+                        `${navItemBase} ${isActive ? "bg-[#00A15D]" : ""}`
+                      }
+                    >
+                      <img src={item.icon} alt="" className="h-5 w-5 mr-3 flex-shrink-0" />
+                      <span className="text-white text-sm sm:text-[1rem] truncate">{item.label}</span>
+                    </NavLink>
+                  ))}
+                </div>
               </div>
             )}
           </nav>
 
-          {/* logout area */}
-          <div className="mt-4">
-            <NavLink to="/Login" onClick={handleLinkClick} className={navItemBase}>
-              <img src={LogOut} alt="Logout" className="h-5 w-5 flex-shrink-0 mr-4" />
-              <p className="text-white text-[1.05rem] truncate whitespace-nowrap">Log out</p>
+          {/* Logout section - fixed at bottom */}
+          <div className="flex-shrink-0 p-4 pt-2 border-t border-[#DBDBDB]/20">
+            <NavLink 
+              to="/Login" 
+              onClick={handleLinkClick} 
+              className={navItemBase}
+            >
+              <img src={LogOut} alt="" className="h-5 w-5 mr-3 flex-shrink-0" />
+              <span className="text-white text-sm sm:text-[1rem] truncate">Log out</span>
             </NavLink>
           </div>
         </div>

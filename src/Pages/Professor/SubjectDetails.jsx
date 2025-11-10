@@ -18,7 +18,7 @@ export default function SubjectDetails() {
   const searchParams = new URLSearchParams(location.search);
   const subjectCode = searchParams.get('code');
   
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showArchiveModal, setShowArchiveModal] = useState(false);
@@ -475,9 +475,9 @@ const handleSaveSchoolWork = async () => {
   if (loading) {
     return (
       <div>
-        <Sidebar role="teacher" isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} />
-        <div className={`transition-all duration-300 ${isSidebarOpen ? 'lg:ml-[250px] xl:ml-[280px] 2xl:ml-[300px]' : 'ml-0'}`}>
-          <Header setIsOpen={setIsSidebarOpen} isOpen={isSidebarOpen} userName="Jane Doe" />
+        <Sidebar role="teacher" isOpen={isOpen} setIsOpen={setIsOpen} />
+        <div className={`transition-all duration-300 ${isOpen ? 'lg:ml-[250px] xl:ml-[280px] 2xl:ml-[300px]' : 'ml-0'}`}>
+          <Header setIsOpen={setIsOpen} isOpen={isOpen} />
           <div className="p-5 text-center">Loading...</div>
         </div>
       </div>
@@ -486,9 +486,9 @@ const handleSaveSchoolWork = async () => {
 
   return (
     <div>
-      <Sidebar role="teacher" isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} />
-      <div className={`transition-all duration-300 ${isSidebarOpen ? 'lg:ml-[250px] xl:ml-[280px] 2xl:ml-[300px]' : 'ml-0'}`}>
-        <Header setIsOpen={setIsSidebarOpen} isOpen={isSidebarOpen} userName="Jane Doe" />
+      <Sidebar role="teacher" isOpen={isOpen} setIsOpen={setIsOpen} />
+      <div className={`transition-all duration-300 ${isOpen ? 'lg:ml-[250px] xl:ml-[280px] 2xl:ml-[300px]' : 'ml-0'}`}>
+        <Header setIsOpen={setIsOpen} isOpen={isOpen} />
 
         {/* Main Content */}
         <div className="p-4 sm:p-5 md:p-6 lg:p-8">
@@ -718,7 +718,15 @@ const handleSaveSchoolWork = async () => {
                   type="number"
                   placeholder="--"
                   value={points}
-                  onChange={(e) => setPoints(e.target.value)}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    // Only allow numbers up to 3 digits (0-999)
+                    if (value === '' || (value >= 0 && value <= 999 && value.length <= 3)) {
+                      setPoints(value);
+                    }
+                  }}
+                  min="0"
+                  max="999"
                   className="w-full border border-gray-300 rounded-md px-4 py-2.5 outline-none text-sm focus:border-[#00874E] transition-colors"
                 />
               </div>
@@ -887,7 +895,15 @@ const handleSaveSchoolWork = async () => {
                   type="number"
                   placeholder="--"
                   value={editPoints}
-                  onChange={(e) => setEditPoints(e.target.value)}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    // Only allow numbers up to 3 digits (0-999)
+                    if (value === '' || (value >= 0 && value <= 999 && value.length <= 3)) {
+                      setEditPoints(value);
+                    }
+                  }}
+                  min="0"
+                  max="999"
                   className="w-full border border-gray-300 rounded-md px-4 py-2.5 outline-none text-sm focus:border-[#00874E] transition-colors"
                 />
               </div>

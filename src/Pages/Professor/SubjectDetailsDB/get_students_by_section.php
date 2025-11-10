@@ -30,22 +30,22 @@ if (empty($section) || empty($subject_code)) {
 }
 
 try {
-    // Get students who are enrolled in this specific class (by subject_code)
-    // Don't check section matching in users table, just get all students enrolled in this class
+    // Get students who are enrolled in this specific class from tracked_users table
     $sql = "
         SELECT 
-            u.user_ID, 
-            u.user_Name, 
-            u.user_Email,
-            u.user_Gender,
-            u.YearandSection,
+            t.tracked_ID as user_ID, 
+            CONCAT(t.tracked_fname, ' ', t.tracked_lname) as user_Name,
+            t.tracked_email as user_Email,
+            t.tracked_gender as user_Gender,
+            t.tracked_yearandsec as YearandSection,
             sc.enrolled_at
-        FROM users u
-        INNER JOIN student_classes sc ON u.user_ID = sc.student_ID
-        WHERE u.user_Role = 'Student' 
+        FROM tracked_users t
+        INNER JOIN student_classes sc ON t.tracked_ID = sc.student_ID
+        WHERE t.tracked_Role = 'Student' 
+        AND t.tracked_Status = 'Active'
         AND sc.subject_code = ?
         AND sc.archived = 0
-        ORDER BY u.user_Name
+        ORDER BY t.tracked_fname, t.tracked_lname
     ";
     
     $stmt = $pdo->prepare($sql);

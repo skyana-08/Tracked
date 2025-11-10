@@ -186,32 +186,29 @@ export default function SubjectDetailsStudent() {
 
           {/* Subject Information */}
           <div className="flex flex-col gap-2 text-sm sm:text-base lg:text-[1.125rem] mb-4 sm:mb-5">
-            <div className="flex flex-wrap items-center gap-1 sm:gap-3">
-              <span className="font-semibold">SUBJECT CODE:</span>
-              <span>{classInfo?.subject_code || 'Loading...'}</span>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-1 sm:gap-3">
-              <span className="font-semibold">SUBJECT:</span>
-              <span>{classInfo?.subject || 'Loading...'}</span>
-            </div>
-
-            <div className="flex items-center justify-between sm:justify-start gap-2 sm:gap-3">
-              <div className="flex items-center gap-2">
-                <span>2nd Semester 2024 - 2025</span>
-                <img 
-                  src={ArrowDown} 
-                  alt="ArrowDown" 
-                  className="h-5 w-5 sm:h-6 sm:w-6" 
-                />
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex flex-wrap items-center gap-1 sm:gap-3">
+                <span className="font-semibold">SUBJECT CODE:</span>
+                <span>{classInfo?.subject_code || 'Loading...'}</span>
               </div>
-              <Link to="/Subjects" className="hidden sm:block">
+              <Link to="/Subjects" className="flex-shrink-0">
                 <img 
                   src={BackButton} 
                   alt="Back" 
-                  className="h-6 w-6 cursor-pointer hover:opacity-70 transition-opacity" 
+                  className="h-6 w-6 cursor-pointer hover:opacity-70 transition-opacity sm:hidden" 
                 />
               </Link>
+            </div>
+
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex flex-wrap items-center gap-1 sm:gap-3">
+                <span className="font-semibold">SUBJECT:</span>
+                <span>{classInfo?.subject || 'Loading...'}</span>
+              </div>
+              <div className='flex items-center gap-2 flex-shrink-0'>
+                <span className="whitespace-nowrap">2nd Semester 2024 - 2025</span>
+                <img src={ArrowDown} alt="ArrowDown" className="h-5 w-5 sm:h-6 sm:w-6" />
+              </div>
             </div>
           </div>
 

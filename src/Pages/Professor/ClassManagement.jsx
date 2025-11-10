@@ -194,6 +194,20 @@ export default function ClassManagement() {
     }
   };
 
+  // Handle subject input change - convert to uppercase
+  const handleSubjectChange = (e) => {
+    setSubject(e.target.value.toUpperCase());
+  };
+
+  // Handle section input change - convert to uppercase and limit to one letter
+  const handleSectionChange = (e) => {
+    const value = e.target.value.toUpperCase();
+    // Only allow letters and limit to one character
+    if (value === '' || /^[A-Z]$/.test(value)) {
+      setSection(value);
+    }
+  };
+
   const handlePaletteClick = (e, index) => {
     e.preventDefault();
     e.stopPropagation();
@@ -214,6 +228,12 @@ export default function ClassManagement() {
   const handleCreate = async () => {
     if (!selectedYearLevel || !subject || !section) {
       setFormError("Please fill in all required fields");
+      return;
+    }
+
+    // Additional validation for section
+    if (section.length !== 1 || !/^[A-Z]$/.test(section)) {
+      setFormError("Section must be a single letter (A-Z)");
       return;
     }
 
@@ -390,7 +410,7 @@ export default function ClassManagement() {
         transition-all duration-300
         ${isOpen ? 'lg:ml-[250px] xl:ml-[280px] 2xl:ml-[300px]' : 'ml-0'}
       `}>
-        <Header setIsOpen={setIsOpen} isOpen={isOpen} userName="Jane Doe" />
+        <Header setIsOpen={setIsOpen} isOpen={isOpen}/>
 
         {/* Main Content */}
         <div className="p-4 sm:p-5 md:p-6 lg:p-8">
@@ -569,9 +589,9 @@ export default function ClassManagement() {
                   type="text"
                   placeholder="Enter subject name"
                   value={subject}
-                  onChange={(e) => setSubject(e.target.value)}
+                  onChange={handleSubjectChange}
                   onKeyPress={handleKeyPress}
-                  className="w-full border-2 border-gray-300 rounded-md px-4 py-3 outline-none text-sm focus:border-[#00874E] transition-colors"
+                  className="w-full border-2 border-gray-300 rounded-md px-4 py-3 outline-none text-sm focus:border-[#00874E] transition-colors uppercase"
                 />
               </div>
 
@@ -582,11 +602,12 @@ export default function ClassManagement() {
                 </label>
                 <input
                   type="text"
-                  placeholder="Enter section"
+                  placeholder="Enter section (A-Z)"
                   value={section}
-                  onChange={(e) => setSection(e.target.value)}
+                  onChange={handleSectionChange}
                   onKeyPress={handleKeyPress}
-                  className="w-full border-2 border-gray-300 rounded-md px-4 py-3 outline-none text-sm focus:border-[#00874E] transition-colors"
+                  maxLength={1}
+                  className="w-full border-2 border-gray-300 rounded-md px-4 py-3 outline-none text-sm focus:border-[#00874E] transition-colors uppercase"
                 />
               </div>
 

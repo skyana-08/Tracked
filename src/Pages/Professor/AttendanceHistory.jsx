@@ -100,7 +100,7 @@ export default function AttendanceHistory() {
       <div>
         <Sidebar role="teacher" isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} />
         <div className={`transition-all duration-300 ${isSidebarOpen ? 'lg:ml-[250px] xl:ml-[280px] 2xl:ml-[300px]' : 'ml-0'}`}>
-          <Header setIsOpen={setIsSidebarOpen} isOpen={isSidebarOpen} userName="Jane Doe" />
+          <Header setIsOpen={setIsSidebarOpen} isOpen={isSidebarOpen}/>
           <div className="p-5 text-center">Loading...</div>
         </div>
       </div>
@@ -111,7 +111,7 @@ export default function AttendanceHistory() {
     <div>
       <Sidebar role="teacher" isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} />
       <div className={`transition-all duration-300 ${isSidebarOpen ? 'lg:ml-[250px] xl:ml-[280px] 2xl:ml-[300px]' : 'ml-0'}`}>
-        <Header setIsOpen={setIsSidebarOpen} isOpen={isSidebarOpen} userName="Jane Doe" />
+        <Header setIsOpen={setIsSidebarOpen} isOpen={isSidebarOpen} />
 
         {/* Main Content */}
         <div className="p-4 sm:p-5 md:p-6 lg:p-8">

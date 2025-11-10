@@ -183,8 +183,8 @@ INSERT INTO `tracked_users` (`tracked_ID`, `tracked_Role`, `tracked_email`, `tra
 ('1123', 'Admin', 'admin@cvsu.edu.ph', '$2y$10$1YMz3I5brKKoL.zgSN225ubRTBgeFZ5UT./XRGY3s.SBSQbtBe0la', 'John', 'Admin', 'A', 'BSIT', '', '2000-12-08', 'Male', '09864518549', 'Active', '2025-09-26 05:10:40', '2025-09-26 05:10:40'),
 ('1156', 'Professor', 'patrick.star@cvsu.edu.ph', '$2y$10$E5Z9GJpFDcg9jwYDYddsSOD6fBZhsuD0T9t/wAwByAmaWjNA559Py', 'Patrick', 'Star', 'S', 'BSIT', '', '2001-01-01', 'Male', '09123613623', 'Active', '2025-10-07 11:29:33', '2025-11-09 12:53:49'),
 ('1223', 'Professor', 'robert.smith@cvsu.edu.ph', '$2y$10$iribSN/82ELXIjWjvxLDnOcb6h.ihKz5qdNPIX1pvvoZN8a4oeFkS', 'Robert', 'Smith', 'S', 'BSIT', 'Not Applicable', '1995-08-10', 'Male', '09123681723', 'Active', '2025-10-20 08:05:47', '2025-11-03 07:22:30'),
-('202210870', 'Student', 'ic.xyrilljohn.abreu@cvsu.edu.ph', '$2y$10$M39WFMg9OGFhwUKfpnAQFuGucrm6/F9TSUSYapKNxs2SamQL/dp7K', 'Xyrill John', 'Abreu', 'F', 'BSIT', 'BSIT-4D', '2003-08-03', 'Female', '09422169425', 'Active', '2025-10-07 17:46:42', '2025-11-09 12:54:33'),
-('202218101', 'Student', 'spongebob.squarepants@cvsu.edu.ph', '$2y$10$JfTw/0p6wqh1onqCRuKpL..BBsVDmqSF1tiBirQWXfl.O5b8qM0/K', 'Spongebob', 'Squarepants', 'S', 'BSIT', 'BSIT-4D', '2000-01-01', 'Male', '09357633953', 'Active', '2025-10-07 12:45:51', '2025-10-07 12:45:51');
+('202210870', 'Student', 'ic.xyrilljohn.abreu@cvsu.edu.ph', '$2y$10$M39WFMg9OGFhwUKfpnAQFuGucrm6/F9TSUSYapKNxs2SamQL/dp7K', 'Xyrill John', 'Abreu', 'F', 'BSIT', '4D', '2003-08-03', 'Female', '09422169425', 'Active', '2025-10-07 17:46:42', '2025-11-09 12:54:33'),
+('202218101', 'Student', 'spongebob.squarepants@cvsu.edu.ph', '$2y$10$JfTw/0p6wqh1onqCRuKpL..BBsVDmqSF1tiBirQWXfl.O5b8qM0/K', 'Spongebob', 'Squarepants', 'S', 'BSIT', '4D', '2000-01-01', 'Male', '09357633953', 'Active', '2025-10-07 12:45:51', '2025-10-07 12:45:51');
 
 -- --------------------------------------------------------
 

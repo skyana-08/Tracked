@@ -67,14 +67,18 @@ export default function DashboardStudent() {
                 // Set course and year level
                 setStudentCourse(data.user.tracked_program || "N/A");
                 
-                // Extract year level from yearandsec (e.g., "BSIT-4D" -> "4th Year")
+                // Extract year level from yearandsec (e.g., "4D" -> "4th Year")
                 if (data.user.tracked_yearandsec) {
-                  const yearMatch = data.user.tracked_yearandsec.match(/-(\d+)/);
-                  if (yearMatch) {
-                    const yearNum = parseInt(yearMatch[1]);
+                  // Extract the first character (the year number)
+                  const yearChar = data.user.tracked_yearandsec.charAt(0);
+                  const yearNum = parseInt(yearChar);
+                  
+                  if (!isNaN(yearNum)) {
                     const yearLevels = ["1st Year", "2nd Year", "3rd Year", "4th Year"];
+                    // Use yearNum - 1 to get the correct index, or default to the number itself
                     setStudentYearLevel(yearLevels[yearNum - 1] || `${yearNum}th Year`);
                   } else {
+                    // If parsing fails, use the original value
                     setStudentYearLevel(data.user.tracked_yearandsec);
                   }
                 } else {

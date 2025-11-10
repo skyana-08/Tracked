@@ -39,7 +39,7 @@ export default function AnalyticsAttendanceInfo() {
           ${isOpen ? 'lg:ml-[250px] xl:ml-[280px] 2xl:ml-[300px]' : 'ml-0'}
         `}
       >
-        <Header setIsOpen={setIsOpen} isOpen={isOpen} userName="Jane Doe" />
+        <Header setIsOpen={setIsOpen} isOpen={isOpen}/>
 
         {/* PAGE CONTENT */}
         <div className="p-4 sm:p-5 md:p-6 lg:p-8 text-[#465746]">

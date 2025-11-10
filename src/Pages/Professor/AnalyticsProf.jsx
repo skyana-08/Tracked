@@ -52,7 +52,7 @@ export default function AnalyticsProf() {
         transition-all duration-300
         ${isOpen ? 'lg:ml-[250px] xl:ml-[280px] 2xl:ml-[300px]' : 'ml-0'}
       `}>
-        <Header setIsOpen={setIsOpen} isOpen={isOpen} userName="Jane Doe" />
+        <Header setIsOpen={setIsOpen} isOpen={isOpen}/>
 
         <div className="p-4 sm:p-5 md:p-6 lg:p-8">
           {/* Header Section */}

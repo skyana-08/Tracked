@@ -30,13 +30,14 @@ if (empty($subject_code) || empty($professor_ID)) {
 }
 
 try {
-    // Get all students enrolled in this class
+    // Get all students enrolled in this class from tracked_users
     $enrolledStmt = $pdo->prepare("
-        SELECT u.user_ID, u.user_Name 
-        FROM users u
-        INNER JOIN student_classes sc ON u.user_ID = sc.student_ID
+        SELECT t.tracked_ID as user_ID, CONCAT(t.tracked_fname, ' ', t.tracked_lname) as user_Name 
+        FROM tracked_users t
+        INNER JOIN student_classes sc ON t.tracked_ID = sc.student_ID
         WHERE sc.subject_code = ? AND sc.archived = 0
-        ORDER BY u.user_Name
+        AND t.tracked_Role = 'Student' AND t.tracked_Status = 'Active'
+        ORDER BY t.tracked_fname, t.tracked_lname
     ");
     $enrolledStmt->execute([$subject_code]);
     $allEnrolledStudents = $enrolledStmt->fetchAll(PDO::FETCH_ASSOC);
@@ -62,11 +63,11 @@ try {
     foreach ($dates as $date_record) {
         $attendance_date = $date_record['attendance_date'];
         
-        // Get attendance records for this date
+        // Get attendance records for this date using tracked_users
         $attendanceStmt = $pdo->prepare("
-            SELECT a.student_ID, a.status, u.user_Name 
+            SELECT a.student_ID, a.status, CONCAT(t.tracked_fname, ' ', t.tracked_lname) as user_Name 
             FROM attendance a 
-            JOIN users u ON a.student_ID = u.user_ID 
+            JOIN tracked_users t ON a.student_ID = t.tracked_ID 
             WHERE a.subject_code = ? AND a.professor_ID = ? AND a.attendance_date = ?
         ");
         $attendanceStmt->execute([$subject_code, $professor_ID, $attendance_date]);

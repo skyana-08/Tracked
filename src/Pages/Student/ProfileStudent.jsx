@@ -53,20 +53,15 @@ export default function ProfileStudent() {
     return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
   };
 
-  // Get full name
-  const getFullName = () => {
-    if (!userData) return "Loading...";
-    const { tracked_fname, tracked_lname, tracked_mi } = userData;
-    return `${tracked_fname} ${tracked_mi ? tracked_mi + '.' : ''} ${tracked_lname}`;
-  };
-
-  // Extract year level from tracked_yearandsec (e.g., "BSIT-4D" -> "4th Year")
+  // Extract year level from tracked_yearandsec (e.g., "4D" -> "4th Year")
   const getYearLevel = () => {
     if (!userData?.tracked_yearandsec) return "N/A";
     
-    const yearMatch = userData.tracked_yearandsec.match(/-(\d+)/);
-    if (yearMatch) {
-      const yearNum = parseInt(yearMatch[1]);
+    // Extract the first character (the year number)
+    const yearChar = userData.tracked_yearandsec.charAt(0);
+    const yearNum = parseInt(yearChar);
+    
+    if (!isNaN(yearNum)) {
       const yearLevels = ["1st Year", "2nd Year", "3rd Year", "4th Year"];
       return yearLevels[yearNum - 1] || `${yearNum}th Year`;
     } else {
@@ -74,10 +69,13 @@ export default function ProfileStudent() {
     }
   };
 
-  // Extract section from tracked_yearandsec (e.g., "BSIT-4D" -> "BSIT 4D")
+  // Extract section from tracked_yearandsec (e.g., "4D" -> "D")
   const getSection = () => {
     if (!userData?.tracked_yearandsec) return "N/A";
-    return userData.tracked_yearandsec.replace('-', ' ');
+    
+    // Get everything except the first character (the section letter)
+    const section = userData.tracked_yearandsec.substring(1);
+    return section || "N/A";
   };
 
   return (
@@ -126,56 +124,94 @@ export default function ProfileStudent() {
               <div>
                 <h2 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4">Student Information</h2>
                 <div className="space-y-3 sm:space-y-2">
+                  {/* First Name */}
                   <div className="flex flex-col sm:grid sm:grid-cols-2 gap-1 text-sm sm:text-base md:text-lg">
-                    <span className="font-medium text-gray-600">Student Name:</span>
-                    <span>{getFullName()}</span>
+                    <span className="font-medium text-gray-600">First Name :</span>
+                    <span>{userData?.tracked_fname || "N/A"}</span>
                   </div>
 
+                  {/* Middle Initial */}
                   <div className="flex flex-col sm:grid sm:grid-cols-2 gap-1 text-sm sm:text-base md:text-lg">
-                    <span className="font-medium text-gray-600">Student Number (ID Number):</span>
+                    <span className="font-medium text-gray-600">Middle Initial :</span>
+                    <span>{userData?.tracked_mi ? `${userData.tracked_mi}.` : "N/A"}</span>
+                  </div>
+
+                  {/* Last Name */}
+                  <div className="flex flex-col sm:grid sm:grid-cols-2 gap-1 text-sm sm:text-base md:text-lg">
+                    <span className="font-medium text-gray-600">Last Name :</span>
+                    <span>{userData?.tracked_lname || "N/A"}</span>
+                  </div>
+
+                  {/* Sex */}
+                  <div className="flex flex-col sm:grid sm:grid-cols-2 gap-1 text-sm sm:text-base md:text-lg">
+                    <span className="font-medium text-gray-600">Sex :</span>
+                    <span>{userData?.tracked_gender || "N/A"}</span>
+                  </div>
+
+                  {/* Date of Birth */}
+                  <div className="flex flex-col sm:grid sm:grid-cols-2 gap-1 text-sm sm:text-base md:text-lg">
+                    <span className="font-medium text-gray-600">Date of Birth :</span>
+                    <span>{formatDate(userData?.tracked_bday)}</span>
+                  </div>
+
+                  {/* Student ID */}
+                  <div className="flex flex-col sm:grid sm:grid-cols-2 gap-1 text-sm sm:text-base md:text-lg">
+                    <span className="font-medium text-gray-600">Student ID :</span>
                     <span>{userData?.tracked_ID || "N/A"}</span>
                   </div>
 
+                  {/* CVSU Email Address */}
                   <div className="flex flex-col sm:grid sm:grid-cols-2 gap-1 text-sm sm:text-base md:text-lg">
-                    <span className="font-medium text-gray-600">CVSU Email Address:</span>
+                    <span className="font-medium text-gray-600">CVSU Email Address :</span>
                     <span>{userData?.tracked_email || "N/A"}</span>
                   </div>
 
+                  {/* Phone Number */}
                   <div className="flex flex-col sm:grid sm:grid-cols-2 gap-1 text-sm sm:text-base md:text-lg">
-                    <span className="font-medium text-gray-600">Phone Number:</span>
+                    <span className="font-medium text-gray-600">Phone Number :</span>
                     <span>{userData?.tracked_phone || "N/A"}</span>
                   </div>
 
+                  {/* Program */}
                   <div className="flex flex-col sm:grid sm:grid-cols-2 gap-1 text-sm sm:text-base md:text-lg">
-                    <span className="font-medium text-gray-600">Course:</span>
+                    <span className="font-medium text-gray-600">Program :</span>
                     <span>{userData?.tracked_program || "N/A"}</span>
                   </div>
 
+                  {/* Year Level */}
                   <div className="flex flex-col sm:grid sm:grid-cols-2 gap-1 text-sm sm:text-base md:text-lg">
-                    <span className="font-medium text-gray-600">Year Level:</span>
+                    <span className="font-medium text-gray-600">Year Level :</span>
                     <span>{getYearLevel()}</span>
                   </div>
 
+                  {/* Section */}
                   <div className="flex flex-col sm:grid sm:grid-cols-2 gap-1 text-sm sm:text-base md:text-lg">
-                    <span className="font-medium text-gray-600">Section:</span>
+                    <span className="font-medium text-gray-600">Section :</span>
                     <span>{getSection()}</span>
                   </div>
 
+                  {/* Department */}
                   <div className="flex flex-col sm:grid sm:grid-cols-2 gap-1 text-sm sm:text-base md:text-lg">
-                    <span className="font-medium text-gray-600">Department:</span>
-                    <span>{userData?.tracked_program || "N/A"}</span>
+                    <span className="font-medium text-gray-600">Department :</span>
+                    <span></span> {/* Left empty as requested */}
+                  </div>
+
+                  {/* Temporary Password */}
+                  <div className="flex flex-col sm:grid sm:grid-cols-2 gap-1 text-sm sm:text-base md:text-lg">
+                    <span className="font-medium text-gray-600">Temporary Password :</span>
+                    <span></span> {/* Left empty as requested */}
                   </div>
                 </div>
               </div>
 
               <hr className="opacity-10 border-[#465746] mb-6" />
 
-              {/* Academic Information Section */}
+              {/* Academic Performance Information Section */}
               <div>
-                <h2 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4">Academic Information</h2>
+                <h2 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4">Academic Performance Information</h2>
                 <div className="space-y-3 sm:space-y-2">
                   <div className="flex flex-col sm:grid sm:grid-cols-2 gap-1 text-sm sm:text-base md:text-lg">
-                    <span className="font-medium text-gray-600">Subjects Enrolled:</span>
+                    <span className="font-medium text-gray-600">Subjects Enrolled :</span>
                     <span>
                       {/* Note: You'll need to add a backend function to fetch enrolled subjects */}
                       N/A
@@ -183,7 +219,7 @@ export default function ProfileStudent() {
                   </div>
 
                   <div className="flex flex-col sm:grid sm:grid-cols-2 gap-1 text-sm sm:text-base md:text-lg">
-                    <span className="font-medium text-gray-600">Tasks Completed:</span>
+                    <span className="font-medium text-gray-600">Tasks Completed :</span>
                     <span>
                       {/* Note: You'll need to add a backend function to fetch task statistics */}
                       N/A
@@ -191,7 +227,7 @@ export default function ProfileStudent() {
                   </div>
 
                   <div className="flex flex-col sm:grid sm:grid-cols-2 gap-1 text-sm sm:text-base md:text-lg">
-                    <span className="font-medium text-gray-600">Tasks Pending:</span>
+                    <span className="font-medium text-gray-600">Tasks Pending :</span>
                     <span>
                       {/* Note: You'll need to add a backend function to fetch task statistics */}
                       N/A
@@ -199,7 +235,7 @@ export default function ProfileStudent() {
                   </div>
 
                   <div className="flex flex-col sm:grid sm:grid-cols-2 gap-1 text-sm sm:text-base md:text-lg">
-                    <span className="font-medium text-gray-600">Tasks Missed:</span>
+                    <span className="font-medium text-gray-600">Tasks Missed :</span>
                     <span>
                       {/* Note: You'll need to add a backend function to fetch task statistics */}
                       N/A
@@ -215,17 +251,17 @@ export default function ProfileStudent() {
                 <h2 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4">Account Information</h2>
                 <div className="space-y-3 sm:space-y-2">
                   <div className="flex flex-col sm:grid sm:grid-cols-2 gap-1 text-sm sm:text-base md:text-lg">
-                    <span className="font-medium text-gray-600">Date Created:</span>
+                    <span className="font-medium text-gray-600">Date Created :</span>
                     <span>{formatDate(userData?.created_at)}</span>
                   </div>
 
                   <div className="flex flex-col sm:grid sm:grid-cols-2 gap-1 text-sm sm:text-base md:text-lg">
-                    <span className="font-medium text-gray-600">Last Update:</span>
+                    <span className="font-medium text-gray-600">Last Update :</span>
                     <span>{formatDate(userData?.updated_at)}</span>
                   </div>
 
                   <div className="flex flex-col sm:grid sm:grid-cols-2 gap-1 text-sm sm:text-base md:text-lg">
-                    <span className="font-medium text-gray-600">Account Status:</span>
+                    <span className="font-medium text-gray-600">Account Status :</span>
                     <span
                       className={`font-semibold ${
                         userData?.tracked_Status === "Active" ? "text-green-600" : "text-red-600"

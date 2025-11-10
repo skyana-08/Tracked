@@ -53,16 +53,6 @@ export default function ProfileProf() {
     return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
   };
 
-  // Get full name
-  const getFullName = () => {
-    if (!userData) return "Loading...";
-    const { tracked_fname, tracked_lname, tracked_mi } = userData;
-    return `${tracked_fname} ${tracked_mi ? tracked_mi + '.' : ''} ${tracked_lname}`;
-  };
-
-  // Check if there are handled subjects
-  const hasHandledSubjects = userData?.handled_subjects && userData.handled_subjects.length > 0;
-
   return (
     <div>
       <Sidebar role="teacher" isOpen={isOpen} setIsOpen={setIsOpen} />
@@ -107,43 +97,59 @@ export default function ProfileProf() {
               <div>
                 <h2 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4">Professor Information</h2>
                 <div className="space-y-3 sm:space-y-2">
-                  {/* Mobile: Stacked layout, Desktop: Grid layout */}
-                  <div className="flex flex-col sm:grid sm:grid-cols-2 gap-1 sm:gap-y-2 text-sm sm:text-base md:text-lg">
-                    <div className="flex flex-col sm:contents">
-                      <span className="font-medium sm:font-normal text-xs sm:text-base text-gray-600 sm:text-[#465746]">Professor Name:</span>
-                      <span className="font-semibold sm:font-normal text-sm sm:text-base mb-2 sm:mb-0">
-                        {getFullName()}
-                      </span>
-                    </div>
+                  {/* First Name */}
+                  <div className="flex flex-col sm:grid sm:grid-cols-2 gap-1 text-sm sm:text-base md:text-lg">
+                    <span className="font-medium text-gray-600">First Name :</span>
+                    <span>{userData?.tracked_fname || "N/A"}</span>
                   </div>
-                  
-                  <div className="flex flex-col sm:grid sm:grid-cols-2 gap-1 sm:gap-y-2 text-sm sm:text-base md:text-lg">
-                    <div className="flex flex-col sm:contents">
-                      <span className="font-medium sm:font-normal text-xs sm:text-base text-gray-600 sm:text-[#465746]">Faculty ID (ID Number):</span>
-                      <span className="font-semibold sm:font-normal text-sm sm:text-base mb-2 sm:mb-0">
-                        {userData?.tracked_ID || "N/A"}
-                      </span>
-                    </div>
+
+                  {/* Middle Initial */}
+                  <div className="flex flex-col sm:grid sm:grid-cols-2 gap-1 text-sm sm:text-base md:text-lg">
+                    <span className="font-medium text-gray-600">Middle Initial :</span>
+                    <span>{userData?.tracked_mi ? `${userData.tracked_mi}.` : "N/A"}</span>
                   </div>
-                  
-                  <div className="flex flex-col sm:grid sm:grid-cols-2 gap-1 sm:gap-y-2 text-sm sm:text-base md:text-lg">
-                    <div className="flex flex-col sm:contents">
-                      <span className="font-medium sm:font-normal text-xs sm:text-base text-gray-600 sm:text-[#465746]">CVSU Email Address:</span>
-                      <span className="font-semibold sm:font-normal text-sm sm:text-base mb-2 sm:mb-0 break-all sm:break-normal">
-                        {userData?.tracked_email || "N/A"}
-                      </span>
-                    </div>
+
+                  {/* Last Name */}
+                  <div className="flex flex-col sm:grid sm:grid-cols-2 gap-1 text-sm sm:text-base md:text-lg">
+                    <span className="font-medium text-gray-600">Last Name :</span>
+                    <span>{userData?.tracked_lname || "N/A"}</span>
                   </div>
-                  
-                  <div className="flex flex-col sm:grid sm:grid-cols-2 gap-1 sm:gap-y-2 text-sm sm:text-base md:text-lg">
-                    <div className="flex flex-col sm:contents">
-                      <span className="font-medium sm:font-normal text-xs sm:text-base text-gray-600 sm:text-[#465746]">Phone Number:</span>
-                      <span className="font-semibold sm:font-normal text-sm sm:text-base mb-2 sm:mb-0">
-                        {userData?.tracked_phone || "N/A"}
-                      </span>
-                    </div>
+
+                  {/* Sex */}
+                  <div className="flex flex-col sm:grid sm:grid-cols-2 gap-1 text-sm sm:text-base md:text-lg">
+                    <span className="font-medium text-gray-600">Sex :</span>
+                    <span>{userData?.tracked_gender || "N/A"}</span>
                   </div>
-            
+
+                  {/* Date of Birth */}
+                  <div className="flex flex-col sm:grid sm:grid-cols-2 gap-1 text-sm sm:text-base md:text-lg">
+                    <span className="font-medium text-gray-600">Date of Birth :</span>
+                    <span>{formatDate(userData?.tracked_bday)}</span>
+                  </div>
+
+                  {/* Professor ID */}
+                  <div className="flex flex-col sm:grid sm:grid-cols-2 gap-1 text-sm sm:text-base md:text-lg">
+                    <span className="font-medium text-gray-600">Professor ID :</span>
+                    <span>{userData?.tracked_ID || "N/A"}</span>
+                  </div>
+
+                  {/* CVSU Email Address */}
+                  <div className="flex flex-col sm:grid sm:grid-cols-2 gap-1 text-sm sm:text-base md:text-lg">
+                    <span className="font-medium text-gray-600">CVSU Email Address :</span>
+                    <span>{userData?.tracked_email || "N/A"}</span>
+                  </div>
+
+                  {/* Phone Number */}
+                  <div className="flex flex-col sm:grid sm:grid-cols-2 gap-1 text-sm sm:text-base md:text-lg">
+                    <span className="font-medium text-gray-600">Phone Number :</span>
+                    <span>{userData?.tracked_phone || "N/A"}</span>
+                  </div>
+
+                  {/* Temporary Password */}
+                  <div className="flex flex-col sm:grid sm:grid-cols-2 gap-1 text-sm sm:text-base md:text-lg">
+                    <span className="font-medium text-gray-600">Temporary Password :</span>
+                    <span></span> {/* Left empty as requested */}
+                  </div>
                 </div>
               </div>
 
@@ -153,22 +159,20 @@ export default function ProfileProf() {
               <div>
                 <h2 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4">Professional Information</h2>
                 <div className="space-y-3 sm:space-y-2">
-                  <div className="flex flex-col sm:grid sm:grid-cols-2 gap-1 sm:gap-y-2 text-sm sm:text-base md:text-lg">
-                    <div className="flex flex-col sm:contents">
-                      <span className="font-medium sm:font-normal text-xs sm:text-base text-gray-600 sm:text-[#465746]">Department:</span>
-                      <span className="font-semibold sm:font-normal text-sm sm:text-base mb-2 sm:mb-0">
-                        {userData?.tracked_program || "N/A"}
-                      </span>
-                    </div>
+                  {/* Department - Left empty as requested */}
+                  <div className="flex flex-col sm:grid sm:grid-cols-2 gap-1 text-sm sm:text-base md:text-lg">
+                    <span className="font-medium text-gray-600">Department :</span>
+                    <span></span> {/* Left empty as requested */}
                   </div>
                   
-                  <div className="flex flex-col sm:grid sm:grid-cols-2 gap-1 sm:gap-y-2 text-sm sm:text-base md:text-lg">
-                    <div className="flex flex-col sm:contents">
-                      <span className="font-medium sm:font-normal text-xs sm:text-base text-gray-600 sm:text-[#465746]">Subject Handled:</span>
-                      <span className="font-semibold sm:font-normal text-sm sm:text-base mb-2 sm:mb-0">
-                        {hasHandledSubjects ? userData.handled_subjects.join(", ") : "No subjects assigned"}
-                      </span>
-                    </div>
+                  {/* Subject Handled */}
+                  <div className="flex flex-col sm:grid sm:grid-cols-2 gap-1 text-sm sm:text-base md:text-lg">
+                    <span className="font-medium text-gray-600">Subject Handled :</span>
+                    <span>
+                      {userData?.handled_subjects && userData.handled_subjects.length > 0 
+                        ? userData.handled_subjects.join(", ") 
+                        : "No subjects assigned"}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -179,33 +183,23 @@ export default function ProfileProf() {
               <div>
                 <h2 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4">Account Information</h2>
                 <div className="space-y-3 sm:space-y-2">
-                  <div className="flex flex-col sm:grid sm:grid-cols-2 gap-1 sm:gap-y-2 text-sm sm:text-base md:text-lg">
-                    <div className="flex flex-col sm:contents">
-                      <span className="font-medium sm:font-normal text-xs sm:text-base text-gray-600 sm:text-[#465746]">Date Created:</span>
-                      <span className="font-semibold sm:font-normal text-sm sm:text-base mb-2 sm:mb-0">
-                        {formatDate(userData?.created_at)}
-                      </span>
-                    </div>
+                  <div className="flex flex-col sm:grid sm:grid-cols-2 gap-1 text-sm sm:text-base md:text-lg">
+                    <span className="font-medium text-gray-600">Date Created :</span>
+                    <span>{formatDate(userData?.created_at)}</span>
                   </div>
                   
-                  <div className="flex flex-col sm:grid sm:grid-cols-2 gap-1 sm:gap-y-2 text-sm sm:text-base md:text-lg">
-                    <div className="flex flex-col sm:contents">
-                      <span className="font-medium sm:font-normal text-xs sm:text-base text-gray-600 sm:text-[#465746]">Last Update:</span>
-                      <span className="font-semibold sm:font-normal text-sm sm:text-base mb-2 sm:mb-0">
-                        {formatDate(userData?.updated_at)}
-                      </span>
-                    </div>
+                  <div className="flex flex-col sm:grid sm:grid-cols-2 gap-1 text-sm sm:text-base md:text-lg">
+                    <span className="font-medium text-gray-600">Last Update :</span>
+                    <span>{formatDate(userData?.updated_at)}</span>
                   </div>
                   
-                  <div className="flex flex-col sm:grid sm:grid-cols-2 gap-1 sm:gap-y-2 text-sm sm:text-base md:text-lg">
-                    <div className="flex flex-col sm:contents">
-                      <span className="font-medium sm:font-normal text-xs sm:text-base text-gray-600 sm:text-[#465746]">Account Status:</span>
-                      <span className={`font-semibold text-sm sm:text-base mb-2 sm:mb-0 ${
-                        userData?.tracked_Status === 'Active' ? 'text-green-600' : 'text-red-600'
-                      }`}>
-                        {userData?.tracked_Status || "N/A"}
-                      </span>
-                    </div>
+                  <div className="flex flex-col sm:grid sm:grid-cols-2 gap-1 text-sm sm:text-base md:text-lg">
+                    <span className="font-medium text-gray-600">Account Status :</span>
+                    <span className={`font-semibold ${
+                      userData?.tracked_Status === 'Active' ? 'text-green-600' : 'text-red-600'
+                    }`}>
+                      {userData?.tracked_Status || "N/A"}
+                    </span>
                   </div>
                 </div>
               </div>

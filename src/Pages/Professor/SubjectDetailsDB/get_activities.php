@@ -41,12 +41,16 @@ try {
     
     $section = $class['section'];
     
-    // FIXED: Get students who are actually ENROLLED in this class from student_classes table
+    // Get students who are actually ENROLLED in this class from tracked_users table
     $studentsStmt = $pdo->prepare("
-        SELECT u.user_ID, u.user_Name, u.YearandSection 
-        FROM users u
-        INNER JOIN student_classes sc ON u.user_ID = sc.student_ID
-        WHERE u.user_Role = 'Student' 
+        SELECT 
+            t.tracked_ID as user_ID, 
+            CONCAT(t.tracked_fname, ' ', t.tracked_lname) as user_Name,
+            t.tracked_yearandsec as YearandSection
+        FROM tracked_users t
+        INNER JOIN student_classes sc ON t.tracked_ID = sc.student_ID
+        WHERE t.tracked_Role = 'Student' 
+        AND t.tracked_Status = 'Active'
         AND sc.subject_code = ?
         AND sc.archived = 0
     ");

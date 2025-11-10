@@ -8,6 +8,8 @@ import AttendanceIcon from '../../assets/Attendance.svg';
 import BackButton from '../../assets/BackButton(Light).svg';
 import Search from '../../assets/Search.svg';
 import SuccessIcon from '../../assets/Success(Green).svg';
+import ErrorIcon from '../../assets/Error(Red).svg';
+import RemoveIcon from '../../assets/Remove(Red).svg';
 
 export default function Attendance() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -21,7 +23,13 @@ export default function Attendance() {
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  
+  // Modal states
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [showRemoveModal, setShowRemoveModal] = useState(false);
+  const [showErrorModal, setShowErrorModal] = useState(false);
+  const [studentToRemove, setStudentToRemove] = useState(null);
+  const [modalMessage, setModalMessage] = useState('');
 
   // Get professor ID from localStorage
   const getProfessorId = () => {
@@ -35,6 +43,28 @@ export default function Attendance() {
       console.error('Error parsing user data:', error);
     }
     return null;
+  };
+
+  // Format name to "Surname, First Name, Middle Initial"
+  const formatName = (fullName) => {
+    if (!fullName) return '';
+    
+    // Split the name into parts
+    const nameParts = fullName.trim().split(' ');
+    
+    if (nameParts.length === 1) {
+      return nameParts[0]; // Single name
+    }
+    
+    if (nameParts.length === 2) {
+      return `${nameParts[1]}, ${nameParts[0]}`; // "First Last" -> "Last, First"
+    }
+    
+    // For names with 3 or more parts, assume the last part is surname
+    const surname = nameParts[nameParts.length - 1];
+    const givenNames = nameParts.slice(0, nameParts.length - 1);
+    
+    return `${surname}, ${givenNames.join(' ')}`;
   };
 
   // Fetch class details and students
@@ -147,25 +177,82 @@ export default function Attendance() {
 
       if (result.success) {
         setIsEditing(false);
+        setModalMessage('Attendance saved successfully!');
         setShowSuccessModal(true);
-        
-        // Auto-hide modal after 2 seconds
-        setTimeout(() => {
-          setShowSuccessModal(false);
-        }, 2000);
       } else {
-        alert('Error saving attendance: ' + result.message);
+        setModalMessage('Error saving attendance: ' + result.message);
+        setShowErrorModal(true);
       }
     } catch (error) {
       console.error('Error saving attendance:', error);
-      alert('Error saving attendance. Please try again.');
+      setModalMessage('Error saving attendance. Please try again.');
+      setShowErrorModal(true);
+    }
+  };
+
+  // Handle Remove student - show confirmation modal
+  const handleRemoveStudent = async (student, e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    setStudentToRemove(student);
+    setShowRemoveModal(true);
+  };
+
+  const confirmRemove = async () => {
+    if (!studentToRemove) return;
+
+    try {
+      const professorId = getProfessorId();
+      const response = await fetch('http://localhost/TrackEd/src/Pages/Professor/AttendanceDB/remove_student.php', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          student_ID: studentToRemove.user_ID,
+          subject_code: subjectCode,
+          professor_ID: professorId
+        })
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        // Remove student from local state
+        setStudents(prev => prev.filter(student => student.user_ID !== studentToRemove.user_ID));
+        
+        // Remove from attendance state
+        setAttendance(prev => {
+          const newAttendance = { ...prev };
+          delete newAttendance[studentToRemove.user_ID];
+          return newAttendance;
+        });
+        
+        setShowRemoveModal(false);
+        setStudentToRemove(null);
+        
+        // Show success message
+        setModalMessage('Student removed successfully');
+        setShowSuccessModal(true);
+      } else {
+        setModalMessage('Error removing student: ' + result.message);
+        setShowErrorModal(true);
+        setShowRemoveModal(false);
+      }
+    } catch (error) {
+      console.error('Error removing student:', error);
+      setModalMessage('Error removing student. Please try again.');
+      setShowErrorModal(true);
+      setShowRemoveModal(false);
     }
   };
 
   // Filter students based on search term
   const filteredStudents = students.filter(student =>
     student.user_Name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    student.user_ID.toLowerCase().includes(searchTerm.toLowerCase())
+    student.user_ID.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (student.YearandSection && student.YearandSection.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
   if (loading) {
@@ -173,7 +260,7 @@ export default function Attendance() {
       <div>
         <Sidebar role="teacher" isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} />
         <div className={`transition-all duration-300 ${isSidebarOpen ? 'lg:ml-[250px] xl:ml-[280px] 2xl:ml-[300px]' : 'ml-0'}`}>
-          <Header setIsOpen={setIsSidebarOpen} isOpen={isSidebarOpen} userName="Jane Doe" />
+          <Header setIsOpen={setIsSidebarOpen} isOpen={isSidebarOpen}/>
           <div className="p-5 text-center">Loading...</div>
         </div>
       </div>
@@ -184,7 +271,7 @@ export default function Attendance() {
     <div>
       <Sidebar role="teacher" isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} />
       <div className={`transition-all duration-300 ${isSidebarOpen ? 'lg:ml-[250px] xl:ml-[280px] 2xl:ml-[300px]' : 'ml-0'}`}>
-        <Header setIsOpen={setIsSidebarOpen} isOpen={isSidebarOpen} userName="Jane Doe" />
+        <Header setIsOpen={setIsSidebarOpen} isOpen={isSidebarOpen}/>
 
         {/* Main Content */}
         <div className="p-4 sm:p-5 md:p-6 lg:p-8">
@@ -241,7 +328,7 @@ export default function Attendance() {
             <div className="relative flex-1 max-w-full sm:max-w-md">
               <input
                 type="text"
-                placeholder="Search by name or student number..."
+                placeholder="Search by name, student number, or year & section..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full h-9 sm:h-10 lg:h-11 rounded-md pl-3 pr-10 shadow-md outline-none text-[#465746] bg-white text-xs sm:text-sm"
@@ -276,12 +363,13 @@ export default function Attendance() {
               </div>
               
               <div className="p-3 sm:p-4 md:p-5">
-                <table className="table-auto w-full border-collapse text-left min-w-[550px]">
+                <table className="table-auto w-full border-collapse text-left min-w-[700px]">
                   <thead>
                     <tr className="text-xs sm:text-sm lg:text-[1.125rem] font-semibold">
                       <th className="px-2 sm:px-3 md:px-4 py-2">No.</th>
                       <th className="px-2 sm:px-3 md:px-4 py-2">Student No.</th>
                       <th className="px-2 sm:px-3 md:px-4 py-2">Full Name</th>
+                      <th className="px-2 sm:px-3 md:px-4 py-2">Year & Section</th>
                       <th className="px-2 py-2 text-[#EF4444] text-center w-14 sm:w-16 md:w-20">Absent</th>
                       <th className="px-2 py-2 text-[#767EE0] text-center w-14 sm:w-16 md:w-20">Late</th>
                       <th className="px-2 py-2 text-[#00A15D] text-center w-14 sm:w-16 md:w-20">Present</th>
@@ -293,7 +381,16 @@ export default function Attendance() {
                         <tr key={student.user_ID} className="hover:bg-gray-50 text-xs sm:text-sm lg:text-base">
                           <td className="px-2 sm:px-3 md:px-4 py-2">{index + 1}</td>
                           <td className="px-2 sm:px-3 md:px-4 py-2">{student.user_ID}</td>
-                          <td className="px-2 sm:px-3 md:px-4 py-2">{student.user_Name}</td>
+                          
+                          {/* Full Name - Formatted as Surname, First Name, Middle Initial */}
+                          <td className="px-2 sm:px-3 md:px-4 py-2">
+                            {formatName(student.user_Name)}
+                          </td>
+                          
+                          {/* Year and Section */}
+                          <td className="px-2 sm:px-3 md:px-4 py-2">
+                            {student.YearandSection || 'N/A'}
+                          </td>
 
                           {/* Absent */}
                           <td className="px-2 py-2 w-14 sm:w-16 md:w-20">
@@ -336,13 +433,30 @@ export default function Attendance() {
                               />
                             </div>
                           </td>
+
+                          {/* Remove Button - Changed to Icon */}
+                          <td className="px-2 py-2 w-14 sm:w-16 md:w-20">
+                            <div className="flex justify-center items-center">
+                              <button
+                                onClick={(e) => handleRemoveStudent(student, e)}
+                                className="bg-white rounded-md w-9 h-9 sm:w-10 sm:h-10 lg:w-11 lg:h-11 shadow-md flex items-center justify-center border-2 border-transparent hover:border-red-500 hover:scale-105 transition-all duration-200 cursor-pointer"
+                                title="Remove student"
+                              >
+                                <img 
+                                  src={RemoveIcon} 
+                                  alt="Remove student" 
+                                  className="h-5 w-5 sm:h-5 sm:w-5 lg:h-6 lg:w-6" 
+                                />
+                              </button>
+                            </div>
+                          </td>
                         </tr>
                       ))
                     ) : (
                       <tr>
-                        <td colSpan="6" className="px-4 py-8 text-center text-gray-500 text-sm">
+                        <td colSpan="8" className="px-4 py-8 text-center text-gray-500 text-sm">
                           {searchTerm ? 'No students found matching your search.' : 'No students found.'}
-                        </td>
+                      </td>
                       </tr>
                     )}
                   </tbody>
@@ -382,12 +496,16 @@ export default function Attendance() {
         </div>
       </div>
 
-      {/* Success Modal - Auto-dismiss */}
+      {/* Success Modal */}
       {showSuccessModal && (
-        <div className="fixed inset-0 bg-black/50 flex justify-center items-center z-50 overlay-fade p-4">
+        <div
+          className="fixed inset-0 bg-black/50 flex justify-center items-center z-50 overlay-fade p-4"
+          onClick={() => setShowSuccessModal(false)}
+          role="dialog"
+          aria-modal="true"
+        >
           <div className="bg-white text-black rounded-lg shadow-2xl w-full max-w-sm sm:max-w-md p-6 sm:p-8 relative modal-pop">
             <div className="text-center">
-              {/* Success Icon */}
               <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-green-100 mb-4">
                 <img 
                   src={SuccessIcon} 
@@ -395,14 +513,115 @@ export default function Attendance() {
                   className="h-8 w-8"
                 />
               </div>
+              <p className="text-sm sm:text-base text-gray-600 mb-6">{modalMessage}</p>
+              <button
+                onClick={() => setShowSuccessModal(false)}
+                className="w-full bg-[#00A15D] hover:bg-[#00874E] text-white font-bold py-3 rounded-md transition-all duration-200 cursor-pointer"
+              >
+                OK
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Error Modal */}
+      {showErrorModal && (
+        <div
+          className="fixed inset-0 bg-black/50 flex justify-center items-center z-50 overlay-fade p-4"
+          onClick={() => setShowErrorModal(false)}
+          role="dialog"
+          aria-modal="true"
+        >
+          <div className="bg-white text-black rounded-lg shadow-2xl w-full max-w-sm sm:max-w-md p-6 sm:p-8 relative modal-pop">
+            <div className="text-center">
+              <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-red-100 mb-4">
+                <img 
+                  src={ErrorIcon} 
+                  alt="Error" 
+                  className="h-8 w-8"
+                />
+              </div>
+              <p className="text-sm sm:text-base text-gray-600 mb-6">{modalMessage}</p>
+              <button
+                onClick={() => setShowErrorModal(false)}
+                className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 rounded-md transition-all duration-200 cursor-pointer"
+              >
+                OK
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Remove Confirmation Modal */}
+      {showRemoveModal && studentToRemove && (
+        <div
+          className="fixed inset-0 bg-black/50 flex justify-center items-center z-50 overlay-fade p-4"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setShowRemoveModal(false);
+              setStudentToRemove(null);
+            }
+          }}
+          role="dialog"
+          aria-modal="true"
+        >
+          <div className="bg-white text-black rounded-lg shadow-2xl w-full max-w-sm sm:max-w-md p-6 sm:p-8 relative modal-pop">
+            <div className="text-center">
+              {/* Warning Icon */}
+              <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-red-100 mb-4">
+                <img 
+                  src={RemoveIcon} 
+                  alt="Remove" 
+                  className="h-8 w-8"
+                />
+              </div>
 
               <h3 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">
-                Success!
+                Remove Student?
               </h3>
               
-              <p className="text-sm text-gray-600">
-                Attendance saved successfully!
-              </p>
+              <div className="mt-4 mb-6">
+                <p className="text-sm text-gray-600 mb-1">
+                  Are you sure you want to remove this student from the class?
+                </p>
+                <p className="text-sm font-semibold text-red-600 mb-3">
+                  This action cannot be undone. The student will be removed from attendance records and activity grades.
+                </p>
+                <div className="bg-gray-50 rounded-lg p-4 text-left">
+                  <p className="text-base sm:text-lg font-semibold text-gray-900 break-words">
+                    {formatName(studentToRemove.user_Name)}
+                  </p>
+                  <p className="text-sm text-gray-600 mt-1">
+                    Student No: {studentToRemove.user_ID}
+                  </p>
+                  <p className="text-sm text-gray-600">
+                    Year & Section: {studentToRemove.YearandSection || 'N/A'}
+                  </p>
+                  <p className="text-sm text-gray-600">
+                    Class: {classInfo?.subject} - {classInfo?.section}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-3">
+                <button
+                  onClick={() => {
+                    setShowRemoveModal(false);
+                    setStudentToRemove(null);
+                  }}
+                  className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-3 rounded-md transition-all duration-200 cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmRemove}
+                  className="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-3 rounded-md transition-all duration-200 cursor-pointer"
+                >
+                  Remove
+                </button>
+              </div>
             </div>
           </div>
         </div>

@@ -47,8 +47,8 @@ try {
         exit;
     }
 
-    // Check if student exists in users table
-    $studentStmt = $pdo->prepare("SELECT * FROM users WHERE user_ID = ? AND user_Role = 'Student'");
+    // Check if student exists in tracked_users table
+    $studentStmt = $pdo->prepare("SELECT * FROM tracked_users WHERE tracked_ID = ? AND tracked_Role = 'Student' AND tracked_Status = 'Active'");
     $studentStmt->execute([$student_id]);
     $student = $studentStmt->fetch(PDO::FETCH_ASSOC);
 
@@ -57,8 +57,8 @@ try {
         exit;
     }
 
-    // Check if student is already enrolled in this class
-    $enrollmentStmt = $pdo->prepare("SELECT * FROM student_classes WHERE student_ID = ? AND subject_code = ?");
+    // Check if student is already enrolled in this class (only active enrollments)
+    $enrollmentStmt = $pdo->prepare("SELECT * FROM student_classes WHERE student_ID = ? AND subject_code = ? AND archived = 0");
     $enrollmentStmt->execute([$student_id, $subject_code]);
     $existingEnrollment = $enrollmentStmt->fetch(PDO::FETCH_ASSOC);
 
@@ -67,15 +67,34 @@ try {
         exit;
     }
 
-    // Enroll student in class
-    $enrollStmt = $pdo->prepare("INSERT INTO student_classes (student_ID, subject_code, enrolled_at) VALUES (?, ?, NOW())");
-    $enrollStmt->execute([$student_id, $subject_code]);
+    // Check if there's an archived enrollment that we can restore
+    $archivedEnrollmentStmt = $pdo->prepare("SELECT * FROM student_classes WHERE student_ID = ? AND subject_code = ? AND archived = 1");
+    $archivedEnrollmentStmt->execute([$student_id, $subject_code]);
+    $archivedEnrollment = $archivedEnrollmentStmt->fetch(PDO::FETCH_ASSOC);
 
-    echo json_encode([
-        "success" => true,
-        "message" => "Successfully enrolled in class",
-        "class_data" => $class
-    ]);
+    if ($archivedEnrollment) {
+        // Restore the archived enrollment
+        $restoreStmt = $pdo->prepare("UPDATE student_classes SET archived = 0, archived_at = NULL WHERE student_ID = ? AND subject_code = ?");
+        $restoreStmt->execute([$student_id, $subject_code]);
+        
+        echo json_encode([
+            "success" => true,
+            "message" => "Successfully re-enrolled in class",
+            "class_data" => $class,
+            "restored" => true
+        ]);
+    } else {
+        // Create new enrollment
+        $enrollStmt = $pdo->prepare("INSERT INTO student_classes (student_ID, subject_code, enrolled_at) VALUES (?, ?, NOW())");
+        $enrollStmt->execute([$student_id, $subject_code]);
+
+        echo json_encode([
+            "success" => true,
+            "message" => "Successfully enrolled in class",
+            "class_data" => $class,
+            "restored" => false
+        ]);
+    }
 
 } catch (Exception $e) {
     echo json_encode(["success" => false, "message" => "Error joining class: " . $e->getMessage()]);

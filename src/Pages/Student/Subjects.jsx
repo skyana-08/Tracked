@@ -19,8 +19,7 @@ import ErrorIcon from '../../assets/Error(Red).svg';
 
 export default function Subjects() {
   const [isOpen, setIsOpen] = useState(false);
-  const [userName, setUserName] = useState("Student");
-  const [userId, setUserId] = useState("");
+  const [userName] = useState("Student");
 
   // background colors (matching student theme)
   const bgOptions = [
@@ -72,8 +71,6 @@ export default function Subjects() {
       const studentId = getStudentId();
       
       if (studentId) {
-        setUserId(studentId);
-        
         const response = await fetch(`http://localhost/TrackEd/src/Pages/Student/SubjectsDB/get_student_classes.php?student_id=${studentId}`);
         
         if (response.ok) {
@@ -396,7 +393,7 @@ export default function Subjects() {
                 className="p-2 hover:bg-gray-100 rounded-full transition-colors sm:hidden"
                 aria-label="Close"
               >
-                <img src={BackButton} alt="Close" className="h-6 w-6 sm:h-7 sm:w-7" />
+                <img src={BackButton} alt="Close" className="h-6 w-6 sm:h-7 sm:w-7"/>
               </button>
             </div>
 

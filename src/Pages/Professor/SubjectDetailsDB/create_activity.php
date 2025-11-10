@@ -69,12 +69,13 @@ try {
 
     $activity_ID = $pdo->lastInsertId();
 
-    // Get all students enrolled in this specific class
+    // Get all students enrolled in this specific class from tracked_users
     $studentsStmt = $pdo->prepare("
-        SELECT u.user_ID, u.user_Name
-        FROM users u
-        INNER JOIN student_classes sc ON u.user_ID = sc.student_ID
+        SELECT t.tracked_ID, CONCAT(t.tracked_fname, ' ', t.tracked_lname) as user_Name
+        FROM tracked_users t
+        INNER JOIN student_classes sc ON t.tracked_ID = sc.student_ID
         WHERE sc.subject_code = ? AND sc.archived = 0
+        AND t.tracked_Role = 'Student' AND t.tracked_Status = 'Active'
     ");
     $studentsStmt->execute([$input['subject_code']]);
     $students = $studentsStmt->fetchAll(PDO::FETCH_ASSOC);
@@ -87,14 +88,14 @@ try {
         try {
             $gradeStmt->execute([
                 $activity_ID,
-                $student['user_ID'], // Use user_ID from users table
+                $student['tracked_ID'], // Use tracked_ID from tracked_users table
                 null, // initial grade is null
                 false, // initial submitted status is false
                 false  // initial late status is false
             ]);
             $studentsAdded++;
         } catch (Exception $e) {
-            error_log("Error adding student {$student['user_ID']} to activity: " . $e->getMessage());
+            error_log("Error adding student {$student['tracked_ID']} to activity: " . $e->getMessage());
             // Continue with other students even if one fails
             continue;
         }
@@ -105,7 +106,7 @@ try {
     // Prepare student data for response
     $studentsWithData = array_map(function($student) {
         return [
-            'user_ID' => $student['user_ID'],
+            'user_ID' => $student['tracked_ID'],
             'user_Name' => $student['user_Name'],
             'grade' => null,
             'submitted' => false,
