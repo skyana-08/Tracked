@@ -12,6 +12,7 @@ import Archive from "../../assets/Archive(Light).svg";
 import ArchiveRow from "../../assets/ArchiveRow(Light).svg";
 import Details from "../../assets/Details(Light).svg";
 import ArchiveWarningIcon from "../../assets/Warning(Yellow).svg";
+import Restore from "../../assets/Unarchive.svg";
 
 export default function UserManagementProfessorAccounts() {
   const [isOpen, setIsOpen] = useState(false);
@@ -26,31 +27,96 @@ export default function UserManagementProfessorAccounts() {
 
   // Fetch professors from backend
   useEffect(() => {
+    fetchProfessors();
+  }, []);
+
+  const fetchProfessors = () => {
     fetch("http://localhost/TrackEd/src/Pages/Admin/ProfessorAccountsDB/get_professors.php")
       .then((res) => res.json())
       .then((data) => setProfessors(data))
       .catch((err) => console.error(err));
-  }, []);
+  };
+
+  // Filter professors based on selected filter
+  const filteredProfessors = professors.filter(prof => {
+    if (selectedFilter === "All") return true;
+    return prof.tracked_Status === selectedFilter;
+  });
 
   // Pagination setup
   const indexOfLast = currentPage * itemsPerPage;
   const indexOfFirst = indexOfLast - itemsPerPage;
-  const currentProfessors = professors.slice(indexOfFirst, indexOfLast);
-  const totalPages = Math.ceil(professors.length / itemsPerPage);
+  const currentProfessors = filteredProfessors.slice(indexOfFirst, indexOfLast);
+  const totalPages = Math.ceil(filteredProfessors.length / itemsPerPage);
 
   const handlePageChange = (pageNumber) => setCurrentPage(pageNumber);
 
-  const handleArchiveClick = (prof) => {
+  const handleStatusChange = (prof) => {
     setSelectedProfessor(prof);
     setShowArchiveModal(true);
   };
 
-  const confirmArchive = () => {
-    // Add your archive logic here
-    console.log("Archiving professor:", selectedProfessor);
-    setShowArchiveModal(false);
-    setSelectedProfessor(null);
+  const confirmStatusChange = async () => {
+    if (!selectedProfessor) return;
+
+    const newStatus = selectedProfessor.tracked_Status === "Active" ? "Deactivated" : "Active";
+    
+    try {
+      const response = await fetch("http://localhost/TrackEd/src/Pages/Admin/ProfessorAccountsDB/update_professor_status.php", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          professorId: selectedProfessor.tracked_ID,
+          newStatus: newStatus
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      
+      if (data.success) {
+        // Update local state
+        setProfessors(prevProfessors => 
+          prevProfessors.map(prof => 
+            prof.tracked_ID === selectedProfessor.tracked_ID 
+              ? { ...prof, tracked_Status: newStatus }
+              : prof
+          )
+        );
+        console.log("Status updated successfully:", data.message);
+      } else {
+        console.error("Failed to update status:", data.message);
+        alert(`Failed to update professor status: ${data.message}`);
+      }
+    } catch (error) {
+      console.error("Error updating status:", error);
+      alert(`Network error: ${error.message}. Please check if the server is running.`);
+    } finally {
+      setShowArchiveModal(false);
+      setSelectedProfessor(null);
+    }
   };
+
+  const getModalContent = () => {
+    if (!selectedProfessor) return null;
+    
+    const isDeactivating = selectedProfessor.tracked_Status === "Active";
+    const action = isDeactivating ? "Deactivated" : "Restore";
+    
+    return {
+      title: `${action} Account?`,
+      message: `Are you sure you want to ${action.toLowerCase()} this professor account?`,
+      confirmText: action,
+      confirmColor: isDeactivating ? "bg-[#FF6666] hover:bg-[#FF5555]" : "bg-[#00A15D] hover:bg-[#00874E]"
+    };
+  };
+
+  const modalContent = getModalContent();
 
   return (
     <div>
@@ -116,6 +182,7 @@ export default function UserManagementProfessorAccounts() {
                         onClick={() => {
                           setSelectedFilter(f);
                           setOpen(false);
+                          setCurrentPage(1); // Reset to first page when filter changes
                         }}
                       >
                         {f}
@@ -151,7 +218,7 @@ export default function UserManagementProfessorAccounts() {
                 </button>
               </div>
 
-              <Link to="/AdminAccountArchive">
+              {/* <Link to="/AdminAccountArchive">
                 <button className="font-bold py-2 bg-[#fff] rounded-md w-9 sm:w-10 lg:w-11 h-9 sm:h-10 lg:h-11 shadow-md flex items-center justify-center border-2 border-transparent hover:border-[#00874E] transition-all duration-200 cursor-pointer">
                   <img
                     src={Archive}
@@ -159,7 +226,7 @@ export default function UserManagementProfessorAccounts() {
                     className="h-5 w-5 sm:h-5 sm:w-5 lg:h-6 lg:w-6"
                   />
                 </button>
-              </Link>
+              </Link> */}
             </div>
           </div>
 
@@ -178,7 +245,7 @@ export default function UserManagementProfessorAccounts() {
                   </tr>
                 </thead>
                 <tbody className="text-[#465746]">
-                  {currentProfessors.map((prof, index) => (
+                  {currentProfessors.map((prof) => (
                     <tr
                       key={prof.tracked_ID}
                       className="bg-[#fff] rounded-lg shadow hover:bg-gray-50 transition-colors duration-200"
@@ -202,16 +269,20 @@ export default function UserManagementProfessorAccounts() {
                       <td className="py-3 px-2 sm:px-3 rounded-r-lg">
                         <div className="flex gap-2">
                           <img
-                            onClick={() => handleArchiveClick(prof)}
-                            src={ArchiveRow}
-                            alt="Archive"
-                            className="h-5 w-5 sm:h-6 sm:w-6 cursor-pointer hover:opacity-70 transition-opacity"
+                            onClick={() => handleStatusChange(prof)}
+                            src={prof.tracked_Status === "Active" ? ArchiveRow : Restore}
+                            alt={prof.tracked_Status === "Active" ? "Deactivated" : "Restore"}
+                            className="h-5 w-5 sm:h-6 sm:w-6 cursor-pointer hover:opacity-70 transition-opacity duration-200"
+                            title={prof.tracked_Status === "Active" ? "Deactivated" : "Restore"}
                           />
-                          <Link to="/UserManagementProfessorAccountsDetails">
+                          {/* UPDATED: Use query parameter instead of URL parameter */}
+                          <Link 
+                            to={`/UserManagementProfessorAccountsDetails?id=${prof.tracked_ID}`}
+                          >
                             <img
                               src={Details}
                               alt="Details"
-                              className="h-5 w-5 sm:h-6 sm:w-6 hover:opacity-70 transition-opacity"
+                              className="h-5 w-5 sm:h-6 sm:w-6 hover:opacity-70 transition-opacity duration-200"
                             />
                           </Link>
                         </div>
@@ -238,13 +309,15 @@ export default function UserManagementProfessorAccounts() {
                     </div>
                     <div className="flex gap-2">
                       <img
-                        onClick={() => handleArchiveClick(prof)}
-                        src={ArchiveRow}
-                        alt="Archive"
-                        className="h-5 w-5 cursor-pointer"
+                        onClick={() => handleStatusChange(prof)}
+                        src={prof.tracked_Status === "Active" ? ArchiveRow : Restore}
+                        alt={prof.tracked_Status === "Active" ? "Deactivated" : "Restore"}
+                        className="h-5 w-5 cursor-pointer hover:opacity-70 transition-opacity duration-200"
+                        title={prof.tracked_Status === "Active" ? "Deactivated" : "Restore"}
                       />
-                      <Link to="/UserManagementProfessorAccountsDetails">
-                        <img src={Details} alt="Details" className="h-5 w-5" />
+                      {/* UPDATED: Use query parameter instead of URL parameter */}
+                      <Link to={`/UserManagementProfessorAccountsDetails?id=${prof.tracked_ID}`}>
+                        <img src={Details} alt="Details" className="h-5 w-5 hover:opacity-70 transition-opacity duration-200" />
                       </Link>
                     </div>
                   </div>
@@ -279,65 +352,74 @@ export default function UserManagementProfessorAccounts() {
               ))}
             </div>
 
+            {/* No results message */}
+            {currentProfessors.length === 0 && (
+              <div className="text-center py-8 text-gray-500">
+                No professors found matching the current filter.
+              </div>
+            )}
+
             {/* Pagination */}
-            <div className="flex flex-wrap justify-center mt-5 sm:mt-6 gap-2">
-              {/* Previous Button */}
-              {currentPage > 1 && (
-                <button
-                  onClick={() => handlePageChange(currentPage - 1)}
-                  className="px-3 py-1.5 sm:px-4 sm:py-2 rounded-md shadow-md bg-white text-[#465746] hover:bg-gray-100 font-medium text-xs sm:text-sm transition-colors duration-200"
-                >
-                  Previous
-                </button>
-              )}
+            {totalPages > 1 && (
+              <div className="flex flex-wrap justify-center mt-5 sm:mt-6 gap-2">
+                {/* Previous Button */}
+                {currentPage > 1 && (
+                  <button
+                    onClick={() => handlePageChange(currentPage - 1)}
+                    className="px-3 py-1.5 sm:px-4 sm:py-2 rounded-md shadow-md bg-white text-[#465746] hover:bg-gray-100 font-medium text-xs sm:text-sm transition-colors duration-200"
+                  >
+                    Previous
+                  </button>
+                )}
 
-              {/* Page Numbers */}
-              {Array.from({ length: totalPages }, (_, i) => {
-                const pageNum = i + 1;
-                if (
-                  pageNum === 1 ||
-                  pageNum === totalPages ||
-                  (pageNum >= currentPage - 1 && pageNum <= currentPage + 1)
-                ) {
-                  return (
-                    <button
-                      key={pageNum}
-                      onClick={() => handlePageChange(pageNum)}
-                      className={`px-3 py-1.5 sm:px-4 sm:py-2 rounded-md shadow-md text-xs sm:text-sm font-medium transition-colors duration-200 ${
-                        currentPage === pageNum
-                          ? "bg-[#00874E] text-white"
-                          : "bg-white text-[#465746] hover:bg-gray-100"
-                      }`}
-                    >
-                      {pageNum}
+                {/* Page Numbers */}
+                {Array.from({ length: totalPages }, (_, i) => {
+                  const pageNum = i + 1;
+                  if (
+                    pageNum === 1 ||
+                    pageNum === totalPages ||
+                    (pageNum >= currentPage - 1 && pageNum <= currentPage + 1)
+                  ) {
+                    return (
+                      <button
+                        key={pageNum}
+                        onClick={() => handlePageChange(pageNum)}
+                        className={`px-3 py-1.5 sm:px-4 sm:py-2 rounded-md shadow-md text-xs sm:text-sm font-medium transition-colors duration-200 ${
+                          currentPage === pageNum
+                            ? "bg-[#00874E] text-white"
+                            : "bg-white text-[#465746] hover:bg-gray-100"
+                        }`}
+                      >
+                        {pageNum}
                     </button>
-                  );
-                } else if (
-                  pageNum === currentPage - 2 ||
-                  pageNum === currentPage + 2
-                ) {
-                  return (
-                    <span key={pageNum} className="px-2 py-1.5 sm:py-2 text-[#465746]">
-                      ...
-                    </span>
-                  );
-                }
-                return null;
-              })}
+                    );
+                  } else if (
+                    pageNum === currentPage - 2 ||
+                    pageNum === currentPage + 2
+                  ) {
+                    return (
+                      <span key={pageNum} className="px-2 py-1.5 sm:py-2 text-[#465746]">
+                        ...
+                      </span>
+                    );
+                  }
+                  return null;
+                })}
 
-              {/* Next Button */}
-              {currentPage < totalPages && (
-                <button
-                  onClick={() => handlePageChange(currentPage + 1)}
-                  className="px-3 py-1.5 sm:px-4 sm:py-2 rounded-md shadow-md bg-white text-[#465746] hover:bg-gray-100 font-medium text-xs sm:text-sm transition-colors duration-200"
-                >
-                  Next
-                </button>
-              )}
-            </div>
+                {/* Next Button */}
+                {currentPage < totalPages && (
+                  <button
+                    onClick={() => handlePageChange(currentPage + 1)}
+                    className="px-3 py-1.5 sm:px-4 sm:py-2 rounded-md shadow-md bg-white text-[#465746] hover:bg-gray-100 font-medium text-xs sm:text-sm transition-colors duration-200"
+                  >
+                    Next
+                  </button>
+                )}
+              </div>
+            )}
 
-            {/* Archive Confirmation Modal */}
-            {showArchiveModal && selectedProfessor && (
+            {/* Status Change Confirmation Modal */}
+            {showArchiveModal && selectedProfessor && modalContent && (
               <div
                 className="fixed inset-0 bg-black/50 flex justify-center items-center z-50 overlay-fade p-4"
                 onClick={(e) => {
@@ -361,12 +443,12 @@ export default function UserManagementProfessorAccounts() {
                     </div>
 
                     <h3 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">
-                      Archive Account?
+                      {modalContent.title}
                     </h3>
                     
                     <div className="mt-4 mb-6">
                       <p className="text-sm text-gray-600 mb-3">
-                        Are you sure you want to archive this professor account?
+                        {modalContent.message}
                       </p>
                       <div className="bg-gray-50 rounded-lg p-4 text-left">
                         <p className="text-base sm:text-lg font-semibold text-gray-900 break-words">
@@ -392,10 +474,10 @@ export default function UserManagementProfessorAccounts() {
                         Cancel
                       </button>
                       <button
-                        onClick={confirmArchive}
-                        className="flex-1 bg-[#00A15D] hover:bg-[#00874E] text-white font-bold py-3 rounded-md transition-all duration-200 cursor-pointer"
+                        onClick={confirmStatusChange}
+                        className={`flex-1 ${modalContent.confirmColor} text-white font-bold py-3 rounded-md transition-all duration-200 cursor-pointer`}
                       >
-                        Archive
+                        {modalContent.confirmText}
                       </button>
                     </div>
                   </div>

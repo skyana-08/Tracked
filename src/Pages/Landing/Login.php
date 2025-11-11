@@ -82,7 +82,7 @@ $stmt->close();
 
 // Check status
 if ($status !== 'Active') {
-    echo json_encode(["success" => false, "message" => "User not verified or inactive"]);
+    echo json_encode(["success" => false, "message" => "User not active or deactivated"]);
     exit;
 }
 
@@ -114,7 +114,7 @@ if (!$passwordValid) {
 }
 
 // Format full name
-$fullName = trim($firstname . ' ' . ($middlename ? $middlename . ". " : '') . $lastname);
+$fullName = trim($firstname . ' ' . ($middlename ? $middlename . " " : '') . $lastname);
 
 // Success response
 echo json_encode([

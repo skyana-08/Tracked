@@ -5,23 +5,39 @@ header("Content-Type: application/json");
 $conn = new mysqli("localhost", "root", "", "tracked");
 
 if ($conn->connect_error) {
-  die(json_encode([]));
+    echo json_encode(["success" => false, "message" => "Database connection failed"]);
+    exit();
 }
 
-$sql = "SELECT *
-        FROM tracked_users
-        WHERE tracked_Role = 'Professor'
-        ORDER BY tracked_ID ASC";
+$professorId = $_GET['id'] ?? '';
 
-$result = $conn->query($sql);
+if (!empty($professorId)) {
+    // Return single professor
+    $sql = "SELECT * FROM tracked_users WHERE tracked_ID = ? AND tracked_Role = 'Professor'";
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param("s", $professorId);
+    $stmt->execute();
+    $result = $stmt->get_result();
 
-$data = [];
-if ($result && $result->num_rows > 0) {
-  while ($row = $result->fetch_assoc()) {
-    $data[] = $row;
-  }
+    if ($result->num_rows > 0) {
+        $professor = $result->fetch_assoc();
+        echo json_encode(["success" => true, "professor" => $professor]);
+    } else {
+        echo json_encode(["success" => false, "message" => "Professor not found"]);
+    }
+    $stmt->close();
+} else {
+    // Return all professors
+    $sql = "SELECT * FROM tracked_users WHERE tracked_Role = 'Professor'";
+    $result = $conn->query($sql);
+    
+    $professors = [];
+    while ($row = $result->fetch_assoc()) {
+        $professors[] = $row;
+    }
+    
+    echo json_encode($professors); // Return array directly
 }
 
-echo json_encode($data);
 $conn->close();
 ?>

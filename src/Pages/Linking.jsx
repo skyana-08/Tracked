@@ -3,7 +3,6 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 {/* Admin Links */}
 import UserManagement from './Admin/UserManagement.jsx';
 import Report from './Admin/Report.jsx';
-import AccountRequest from './Admin/AccountRequest.jsx';
 import UserManagementProfessorAccounts from './Admin/UserManagement_ProfessorAccounts.jsx';
 import UserManagementProfessorAccountsDetails from './Admin/UserManagement_ProfessorAccountDetails.jsx';
 import UserManagementStudentAccounts from './Admin/UserManagement_StudentAccounts.jsx';
@@ -75,7 +74,6 @@ function Linking() {
         <Route path ="/UserManagementStudentAccounts" element={<UserManagementStudentAccounts />} />
         <Route path ="/UserManagementStudentAccountDetails" element={<UserManagementStudentAccountDetails />} />
         <Route path ="/Report" element={<Report />} />
-        <Route path ="/AccountRequest" element={<AccountRequest />} />
         <Route path ="/AdminAccountArchive" element={<AdminAccountArchive />} />
         <Route path ="/Import" element={<Import/>} />
         

@@ -108,7 +108,6 @@ export default function Sidebar({ role = "student", isOpen: isOpenProp, setIsOpe
       main: [
         { label: "User Management", icon: ClassManagement, path: "/UserManagement" },
         { label: "Report", icon: Report, path: "/Report" },
-        { label: "Account Request", icon: AccountRequest, path: "/AccountRequest" },
         { label: "Import", icon: Import, path: "/Import" },
       ],
     },

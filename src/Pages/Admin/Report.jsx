@@ -1,30 +1,164 @@
 import React from 'react'
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from 'react-router-dom';
 
 import Sidebar from "../../Components/Sidebar";
 import Header from "../../Components/Header";
-import Popup from "../../Components/Popup";
 
 import ArrowDown from "../../assets/ArrowDown(Light).svg";
 import Search from "../../assets/Search.svg";
-import Archive from "../../assets/Archive(Light).svg";
 import ReportLight from '../../assets/Report(Light).svg';
 import TotalAccountImported from '../../assets/TotalAccountImported.svg';
 import StudentAccounts from '../../assets/StudentAccounts.svg';
 import ProfessorAccounts from '../../assets/ProfessorAccounts.svg';
 import ActiveAccounts from '../../assets/ActiveAccounts.svg';
-import PendingAccounts from '../../assets/PendingAccounts.svg';
 import DisabledAccounts from '../../assets/DisabledAccounts.svg';
-import ArchiveRow from '../../assets/ArchiveRow(Light).svg';
 import Details from '../../assets/Details(Light).svg';
 
 export default function Report() {
   const [isOpen, setIsOpen] = useState(false);
   const [studentFilterOpen, setStudentFilterOpen] = useState(false);
   const [professorFilterOpen, setProfessorFilterOpen] = useState(false);
-  const [showPopup, setShowPopup] = useState(false);
   
+  // State for widget data
+  const [widgetData, setWidgetData] = useState({
+    totalAccounts: 0,
+    studentAccounts: 0,
+    professorAccounts: 0,
+    activeAccounts: 0,
+    deactivatedAccounts: 0
+  });
+  
+  // State for table data
+  const [students, setStudents] = useState([]);
+  const [professors, setProfessors] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  // State for search and filter
+  const [studentSearch, setStudentSearch] = useState('');
+  const [professorSearch, setProfessorSearch] = useState('');
+  const [studentFilter, setStudentFilter] = useState('all');
+  const [professorFilter, setProfessorFilter] = useState('all');
+
+  // Fetch widget data
+  const fetchWidgetData = async () => {
+    try {
+      const [userCountsRes, studentsRes, professorsRes] = await Promise.all([
+        fetch('http://localhost/TrackEd/src/Pages/Admin/UserManagementDB_ReportsDB/get_user_counts.php'),
+        fetch('http://localhost/TrackEd/src/Pages/Admin/StudentAccountsDB/get_students.php'),
+        fetch('http://localhost/TrackEd/src/Pages/Admin/ProfessorAccountsDB/get_professors.php')
+      ]);
+
+      if (!userCountsRes.ok || !studentsRes.ok || !professorsRes.ok) {
+        throw new Error('Failed to fetch data');
+      }
+
+      const userCounts = await userCountsRes.json();
+      const studentsData = await studentsRes.json();
+      const professorsData = await professorsRes.json();
+
+      // Use the counts from get_user_counts.php (it should handle the correct status)
+      setWidgetData({
+        totalAccounts: (userCounts.Students || 0) + (userCounts.Professors || 0),
+        studentAccounts: userCounts.Students || 0,
+        professorAccounts: userCounts.Professors || 0,
+        activeAccounts: userCounts.TotalActive || 0,
+        deactivatedAccounts: userCounts.TotalDeactivated || 0
+      });
+
+      setStudents(studentsData);
+      setProfessors(professorsData);
+      setLoading(false);
+    } catch (err) {
+      setError(err.message);
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchWidgetData();
+  }, []);
+
+  // Filter students based on search and filter
+  const filteredStudents = students.filter(student => {
+    const matchesSearch = 
+      student.tracked_ID?.toLowerCase().includes(studentSearch.toLowerCase()) ||
+      student.tracked_firstname?.toLowerCase().includes(studentSearch.toLowerCase()) ||
+      student.tracked_lastname?.toLowerCase().includes(studentSearch.toLowerCase()) ||
+      student.tracked_email?.toLowerCase().includes(studentSearch.toLowerCase()) ||
+      student.tracked_yearandsec?.toLowerCase().includes(studentSearch.toLowerCase());
+
+    const matchesFilter = 
+      studentFilter === 'all' || 
+      (studentFilter === 'active' && student.tracked_Status === 'Active') ||
+      (studentFilter === 'deactivated' && student.tracked_Status === 'Deactivated') ||
+      (studentFilter === 'year' && student.tracked_yearandsec) ||
+      (studentFilter === 'section' && student.tracked_yearandsec);
+
+    return matchesSearch && matchesFilter;
+  });
+
+  // Filter professors based on search and filter
+  const filteredProfessors = professors.filter(professor => {
+    const matchesSearch = 
+      professor.tracked_ID?.toLowerCase().includes(professorSearch.toLowerCase()) ||
+      professor.tracked_firstname?.toLowerCase().includes(professorSearch.toLowerCase()) ||
+      professor.tracked_lastname?.toLowerCase().includes(professorSearch.toLowerCase()) ||
+      professor.tracked_email?.toLowerCase().includes(professorSearch.toLowerCase());
+
+    const matchesFilter = 
+      professorFilter === 'all' || 
+      (professorFilter === 'active' && professor.tracked_Status === 'Active') ||
+      (professorFilter === 'deactivated' && professor.tracked_Status === 'Deactivated');
+
+    return matchesSearch && matchesFilter;
+  });
+
+  const handleStudentFilterSelect = (filterType) => {
+    setStudentFilter(filterType);
+    setStudentFilterOpen(false);
+  };
+
+  const handleProfessorFilterSelect = (filterType) => {
+    setProfessorFilter(filterType);
+    setProfessorFilterOpen(false);
+  };
+
+  if (loading) {
+    return (
+      <div>
+        <Sidebar role="admin" isOpen={isOpen} setIsOpen={setIsOpen} />
+        <div className={`
+          transition-all duration-300
+          ${isOpen ? 'lg:ml-[250px] xl:ml-[280px] 2xl:ml-[300px]' : 'ml-0'}
+        `}>
+          <Header setIsOpen={setIsOpen} isOpen={isOpen} />
+          <div className="p-8 flex justify-center items-center h-64">
+            <div className="text-[#465746]">Loading reports...</div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div>
+        <Sidebar role="admin" isOpen={isOpen} setIsOpen={setIsOpen} />
+        <div className={`
+          transition-all duration-300
+          ${isOpen ? 'lg:ml-[250px] xl:ml-[280px] 2xl:ml-[300px]' : 'ml-0'}
+        `}>
+          <Header setIsOpen={setIsOpen} isOpen={isOpen} />
+          <div className="p-8 flex justify-center items-center h-64">
+            <div className="text-red-500">Error: {error}</div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div>
       <Sidebar role="admin" isOpen={isOpen} setIsOpen={setIsOpen} />
@@ -74,7 +208,7 @@ export default function Report() {
                       />
                     </div>
                     <p className='text-sm sm:text-lg md:text-xl lg:text-2xl'>
-                      X 
+                      {widgetData.totalAccounts}
                     </p>
                   </div>
                 </div>
@@ -93,7 +227,7 @@ export default function Report() {
                       />
                     </div>
                     <p className='text-sm sm:text-lg md:text-xl lg:text-2xl'>
-                      X
+                      {widgetData.studentAccounts}
                     </p>
                   </div>
                 </div>
@@ -112,7 +246,7 @@ export default function Report() {
                       />
                     </div>
                     <p className='text-sm sm:text-lg md:text-xl lg:text-2xl'>
-                      X
+                      {widgetData.professorAccounts}
                     </p>
                   </div>
                 </div>
@@ -139,7 +273,7 @@ export default function Report() {
                       />
                     </div>
                     <p className='text-sm sm:text-lg md:text-xl lg:text-2xl'>
-                      X 
+                      {widgetData.activeAccounts}
                     </p>
                   </div>
                 </div>
@@ -147,25 +281,7 @@ export default function Report() {
 
               <div className='bg-[#fff] h-24 sm:h-32 md:h-36 lg:h-40 rounded-lg sm:rounded-xl p-2 sm:p-3 lg:p-4 text-[#465746] shadow-md'> 
                 <div className='font-bold text-[10px] sm:text-sm md:text-base lg:text-[1.5rem] h-full flex flex-col'>
-                  <p className='mb-1 sm:mb-2'> Pending Accounts </p>
-                  <div className='flex justify-between items-end mt-auto'>
-                    <div className='flex justify-center items-center bg-[#a7aef9] h-8 w-8 sm:h-12 sm:w-12 md:h-14 md:w-14 lg:h-20 lg:w-20 rounded-lg sm:rounded-xl border-2 border-[#4951AA]'>
-                      <img 
-                        src={PendingAccounts} 
-                        alt="Pending Accounts" 
-                        className="h-4 w-4 sm:h-6 sm:w-6 md:h-7 md:w-7 lg:h-12 lg:w-12"
-                      />
-                    </div>
-                    <p className='text-sm sm:text-lg md:text-xl lg:text-2xl'>
-                      X
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <div className='bg-[#fff] h-24 sm:h-32 md:h-36 lg:h-40 rounded-lg sm:rounded-xl p-2 sm:p-3 lg:p-4 text-[#465746] shadow-md'> 
-                <div className='font-bold text-[10px] sm:text-sm md:text-base lg:text-[1.5rem] h-full flex flex-col'>
-                  <p className='mb-1 sm:mb-2'> Disabled Accounts </p>
+                  <p className='mb-1 sm:mb-2'> Deactivated Accounts </p>
                   <div className='flex justify-between items-end mt-auto'>
                     <div className='flex justify-center items-center bg-[#ffb1b1] h-8 w-8 sm:h-12 sm:w-12 md:h-14 md:w-14 lg:h-20 lg:w-20 rounded-lg sm:rounded-xl border-2 border-[#FF6666]'>
                       <img 
@@ -175,7 +291,7 @@ export default function Report() {
                       />
                     </div>
                     <p className='text-sm sm:text-lg md:text-xl lg:text-2xl'> 
-                      X
+                      {widgetData.deactivatedAccounts}
                     </p>
                   </div>
                 </div>
@@ -187,7 +303,7 @@ export default function Report() {
           <hr className="border-[#465746]/30 my-5 sm:my-6" />
 
           <p className="text-sm sm:text-base lg:text-lg text-[#465746] mb-4 font-bold">
-            Student Accounts
+            Student Accounts ({filteredStudents.length})
           </p>
 
           {/* STUDENT BUTTONS */}
@@ -206,33 +322,19 @@ export default function Report() {
                 <div className="absolute top-full mt-1 bg-white rounded-md w-full sm:w-40 lg:w-44 shadow-lg border border-gray-200 z-10">
                   <button 
                     className="block px-3 sm:px-4 py-2 w-full text-left hover:bg-gray-100 text-xs sm:text-sm lg:text-base transition-colors duration-200 cursor-pointer"
-                    onClick={() => {
-                      setStudentFilterOpen(false);
-                    }}
+                    onClick={() => handleStudentFilterSelect('all')}
                   >
-                    Year
+                    All
                   </button>
                   <button 
                     className="block px-3 sm:px-4 py-2 w-full text-left hover:bg-gray-100 text-xs sm:text-sm lg:text-base transition-colors duration-200 cursor-pointer"
-                    onClick={() => {
-                      setStudentFilterOpen(false);
-                    }}
-                  >
-                    Section
-                  </button>
-                  <button 
-                    className="block px-3 sm:px-4 py-2 w-full text-left hover:bg-gray-100 text-xs sm:text-sm lg:text-base transition-colors duration-200 cursor-pointer"
-                    onClick={() => {
-                      setStudentFilterOpen(false);
-                    }}
+                    onClick={() => handleStudentFilterSelect('active')}
                   >
                     Active
                   </button>
                   <button 
                     className="block px-3 sm:px-4 py-2 w-full text-left hover:bg-gray-100 text-xs sm:text-sm lg:text-base transition-colors duration-200 cursor-pointer"
-                    onClick={() => {
-                      setStudentFilterOpen(false);
-                    }}
+                    onClick={() => handleStudentFilterSelect('deactivated')}
                   >
                     Deactivated
                   </button>
@@ -244,7 +346,9 @@ export default function Report() {
             <div className="relative flex-1 sm:max-w-xs lg:max-w-md">
               <input
                 type="text"
-                placeholder="Search..."
+                placeholder="Search students..."
+                value={studentSearch}
+                onChange={(e) => setStudentSearch(e.target.value)}
                 className="w-full h-9 sm:h-10 lg:h-11 rounded-md px-3 py-2 pr-10 shadow-md outline-none text-[#465746] bg-white text-xs sm:text-sm border-2 border-transparent focus:border-[#00874E] transition-all duration-200"
               />
               <button className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-[#465746]">
@@ -273,168 +377,96 @@ export default function Report() {
 
                 {/* Table Body */}
                 <tbody className="text-[#465746]">
-                  <tr className="bg-[#fff] rounded-lg shadow hover:bg-gray-50 transition-colors duration-200">
-                    <td className="py-3 px-2 sm:px-3 rounded-l-lg">1</td>
-                    <td className="py-3 px-2 sm:px-3">2025001</td>
-                    <td className="py-3 px-2 sm:px-3">Alice Mendoza</td>
-                    <td className="py-3 px-2 sm:px-3 break-all sm:break-normal">alice@example.com</td>
-                    <td className="py-3 px-2 sm:px-3">First Year - A</td>
-                    <td className="py-3 px-2 sm:px-3 font-bold text-[#00A15D]">Active</td>
-                    <td className="py-3 px-2 sm:px-3 rounded-r-lg">
-                      <div className="flex gap-2">
-                        <img 
-                          onClick={() => setShowPopup(true)} 
-                          src={ArchiveRow} 
-                          alt="Archive" 
-                          className="h-5 w-5 sm:h-6 sm:w-6 cursor-pointer hover:opacity-70 transition-opacity" 
-                        />
-                        <Link to="/UserManagementStudentAccountDetails">
+                  {filteredStudents.map((student, index) => (
+                    <tr key={student.tracked_ID} className="bg-[#fff] rounded-lg shadow hover:bg-gray-50 transition-colors duration-200">
+                      <td className="py-3 px-2 sm:px-3 rounded-l-lg">{index + 1}</td>
+                      <td className="py-3 px-2 sm:px-3">{student.tracked_ID}</td>
+                      <td className="py-3 px-2 sm:px-3">{student.tracked_firstname} {student.tracked_lastname}</td>
+                      <td className="py-3 px-2 sm:px-3 break-all sm:break-normal">{student.tracked_email}</td>
+                      <td className="py-3 px-2 sm:px-3">{student.tracked_yearandsec}</td>
+                      <td className={`py-3 px-2 sm:px-3 font-bold ${
+                        student.tracked_Status === 'Active' ? 'text-[#00A15D]' : 'text-[#FF6666]'
+                      }`}>
+                        {student.tracked_Status}
+                      </td>
+                      <td className="py-3 px-2 sm:px-3 rounded-r-lg">
+                        <Link to={`/UserManagementStudentAccountDetails?id=${student.tracked_ID}`}>
                           <img 
                             src={Details} 
                             alt="Details" 
                             className="h-5 w-5 sm:h-6 sm:w-6 hover:opacity-70 transition-opacity" 
                           />
                         </Link>
-                      </div>
-                    </td>
-                  </tr>
-
-                  <tr className="bg-[#fff] rounded-lg shadow hover:bg-gray-50 transition-colors duration-200">
-                    <td className="py-3 px-2 sm:px-3 rounded-l-lg">2</td>
-                    <td className="py-3 px-2 sm:px-3">2025002</td>
-                    <td className="py-3 px-2 sm:px-3">Brian Santos</td>
-                    <td className="py-3 px-2 sm:px-3 break-all sm:break-normal">brian@example.com</td>
-                    <td className="py-3 px-2 sm:px-3">First Year - B</td>
-                    <td className="py-3 px-2 sm:px-3 font-bold text-[#FF6666]">Deactivated</td>
-                    <td className="py-3 px-2 sm:px-3 rounded-r-lg">
-                      <div className="flex gap-2">
-                        <img 
-                          onClick={() => setShowPopup(true)} 
-                          src={ArchiveRow} 
-                          alt="Archive" 
-                          className="h-5 w-5 sm:h-6 sm:w-6 cursor-pointer hover:opacity-70 transition-opacity" 
-                        />
-                        <Link to="/UserManagementStudentAccountDetails">
-                          <img 
-                            src={Details} 
-                            alt="Details" 
-                            className="h-5 w-5 sm:h-6 sm:w-6 hover:opacity-70 transition-opacity" 
-                          />
-                        </Link>
-                      </div>
-                    </td>
-                  </tr>
+                      </td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>
 
             {/* Mobile Cards - Student */}
             <div className="md:hidden space-y-3">
-              {/* Card 1 */}
-              <div className="bg-white rounded-lg shadow p-4 text-[#465746]">
-                <div className="flex justify-between items-start mb-3">
-                  <div>
-                    <p className="text-xs text-gray-500 mb-1">No. 1 | Student No.</p>
-                    <p className="font-semibold text-sm">2025001</p>
+              {filteredStudents.map((student, index) => (
+                <div key={student.tracked_ID} className="bg-white rounded-lg shadow p-4 text-[#465746]">
+                  <div className="flex justify-between items-start mb-3">
+                    <div>
+                      <p className="text-xs text-gray-500 mb-1">No. {index + 1} | Student No.</p>
+                      <p className="font-semibold text-sm">{student.tracked_ID}</p>
+                    </div>
+                    <div>
+                      <Link to={`/UserManagementStudentAccountDetails?id=${student.tracked_ID}`}>
+                        <img 
+                          src={Details} 
+                          alt="Details" 
+                          className="h-5 w-5" 
+                        />
+                      </Link>
+                    </div>
                   </div>
-                  <div className="flex gap-2">
-                    <img 
-                      onClick={() => setShowPopup(true)} 
-                      src={ArchiveRow} 
-                      alt="Archive" 
-                      className="h-5 w-5 cursor-pointer" 
-                    />
-                    <Link to="/UserManagementStudentAccountDetails">
-                      <img 
-                        src={Details} 
-                        alt="Details" 
-                        className="h-5 w-5" 
-                      />
-                    </Link>
+                  
+                  <div className="space-y-2">
+                    <div>
+                      <p className="text-xs text-gray-500">Full Name</p>
+                      <p className="font-medium text-sm">{student.tracked_firstname} {student.tracked_lastname}</p>
+                    </div>
+                    
+                    <div>
+                      <p className="text-xs text-gray-500">Email</p>
+                      <p className="text-sm break-all">{student.tracked_email}</p>
+                    </div>
+                    
+                    <div>
+                      <p className="text-xs text-gray-500">Year & Section</p>
+                      <p className="text-sm">{student.tracked_yearandsec}</p>
+                    </div>
+                    
+                    <div>
+                      <p className="text-xs text-gray-500">Status</p>
+                      <p className={`font-bold text-sm ${
+                        student.tracked_Status === 'Active' ? 'text-[#00A15D]' : 'text-[#FF6666]'
+                      }`}>
+                        {student.tracked_Status}
+                      </p>
+                    </div>
                   </div>
                 </div>
-                
-                <div className="space-y-2">
-                  <div>
-                    <p className="text-xs text-gray-500">Full Name</p>
-                    <p className="font-medium text-sm">Alice Mendoza</p>
-                  </div>
-                  
-                  <div>
-                    <p className="text-xs text-gray-500">Email</p>
-                    <p className="text-sm break-all">alice@example.com</p>
-                  </div>
-                  
-                  <div>
-                    <p className="text-xs text-gray-500">Year & Section</p>
-                    <p className="text-sm">First Year - A</p>
-                  </div>
-                  
-                  <div>
-                    <p className="text-xs text-gray-500">Status</p>
-                    <p className="font-bold text-sm text-[#00A15D]">Active</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Card 2 */}
-              <div className="bg-white rounded-lg shadow p-4 text-[#465746]">
-                <div className="flex justify-between items-start mb-3">
-                  <div>
-                    <p className="text-xs text-gray-500 mb-1">No. 2 | Student No.</p>
-                    <p className="font-semibold text-sm">2025002</p>
-                  </div>
-                  <div className="flex gap-2">
-                    <img 
-                      onClick={() => setShowPopup(true)} 
-                      src={ArchiveRow} 
-                      alt="Archive" 
-                      className="h-5 w-5 cursor-pointer" 
-                    />
-                    <Link to="/UserManagementStudentAccountDetails">
-                      <img 
-                        src={Details} 
-                        alt="Details" 
-                        className="h-5 w-5" 
-                      />
-                    </Link>
-                  </div>
-                </div>
-                
-                <div className="space-y-2">
-                  <div>
-                    <p className="text-xs text-gray-500">Full Name</p>
-                    <p className="font-medium text-sm">Brian Santos</p>
-                  </div>
-                  
-                  <div>
-                    <p className="text-xs text-gray-500">Email</p>
-                    <p className="text-sm break-all">brian@example.com</p>
-                  </div>
-                  
-                  <div>
-                    <p className="text-xs text-gray-500">Year & Section</p>
-                    <p className="text-sm">First Year - B</p>
-                  </div>
-                  
-                  <div>
-                    <p className="text-xs text-gray-500">Status</p>
-                    <p className="font-bold text-sm text-[#FF6666]">Deactivated</p>
-                  </div>
-                </div>
-              </div>
+              ))}
             </div>
 
-             {/* Popup for Archive */}
-            {showPopup && (
-              <Popup setOpen={setShowPopup} />
+            {/* No Results Message */}
+            {filteredStudents.length === 0 && (
+              <div className="text-center py-8 text-[#465746]">
+                No students found matching your criteria.
+              </div>
             )}
           </div>
 
           <hr className="border-[#465746]/30 my-5 sm:my-6" />
 
           {/* PROFESSOR ACCOUNT */}
-          <p className="text-sm sm:text-base lg:text-lg text-[#465746] mb-4 font-bold">Professor Accounts</p>
+          <p className="text-sm sm:text-base lg:text-lg text-[#465746] mb-4 font-bold">
+            Professor Accounts ({filteredProfessors.length})
+          </p>
           
           {/* PROFESSOR BUTTONS */}
           <div className="flex flex-col sm:flex-row text-[#465746] gap-3 sm:gap-4 sm:justify-between sm:items-center">
@@ -452,33 +484,19 @@ export default function Report() {
                   <div className="absolute top-full mt-1 bg-white rounded-md w-full sm:w-40 lg:w-44 shadow-lg border border-gray-200 z-10">
                     <button 
                       className="block px-3 sm:px-4 py-2 w-full text-left hover:bg-gray-100 text-xs sm:text-sm lg:text-base transition-colors duration-200 cursor-pointer"
-                      onClick={() => {
-                        setProfessorFilterOpen(false);
-                      }}
+                      onClick={() => handleProfessorFilterSelect('all')}
                     >
-                      Year
+                      All
                     </button>
                     <button 
                       className="block px-3 sm:px-4 py-2 w-full text-left hover:bg-gray-100 text-xs sm:text-sm lg:text-base transition-colors duration-200 cursor-pointer"
-                      onClick={() => {
-                        setProfessorFilterOpen(false);
-                      }}
-                    >
-                      Section
-                    </button>
-                    <button 
-                      className="block px-3 sm:px-4 py-2 w-full text-left hover:bg-gray-100 text-xs sm:text-sm lg:text-base transition-colors duration-200 cursor-pointer"
-                      onClick={() => {
-                        setProfessorFilterOpen(false);
-                      }}
+                      onClick={() => handleProfessorFilterSelect('active')}
                     >
                       Active
                     </button>
                     <button 
                       className="block px-3 sm:px-4 py-2 w-full text-left hover:bg-gray-100 text-xs sm:text-sm lg:text-base transition-colors duration-200 cursor-pointer"
-                      onClick={() => {
-                        setProfessorFilterOpen(false);
-                      }}
+                      onClick={() => handleProfessorFilterSelect('deactivated')}
                     >
                       Deactivated
                     </button>
@@ -490,7 +508,9 @@ export default function Report() {
             <div className="relative flex-1 sm:max-w-xs lg:max-w-md">
               <input
                 type="text"
-                placeholder="Search..."
+                placeholder="Search professors..."
+                value={professorSearch}
+                onChange={(e) => setProfessorSearch(e.target.value)}
                 className="w-full h-9 sm:h-10 lg:h-11 rounded-md px-3 py-2 pr-10 shadow-md outline-none text-[#465746] bg-white text-xs sm:text-sm border-2 border-transparent focus:border-[#00874E] transition-all duration-200"
               />
               <button className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-[#465746]">
@@ -518,149 +538,81 @@ export default function Report() {
 
                 {/* Table Body */}
                 <tbody className="text-[#465746]">
-                  <tr className="bg-[#fff] rounded-lg shadow hover:bg-gray-50 transition-colors duration-200">
-                    <td className="py-3 px-2 sm:px-3 rounded-l-lg">1</td>
-                    <td className="py-3 px-2 sm:px-3">2025001</td>
-                    <td className="py-3 px-2 sm:px-3">Alice Mendoza</td>
-                    <td className="py-3 px-2 sm:px-3 break-all sm:break-normal">alice@example.com</td>
-                    <td className="py-3 px-2 sm:px-3 font-bold text-[#00A15D]">Active</td>
-                    <td className="py-3 px-2 sm:px-3 rounded-r-lg">
-                      <div className="flex gap-2">
-                        <img 
-                          onClick={() => setShowPopup(true)} 
-                          src={ArchiveRow} 
-                          alt="Archive" 
-                          className="h-5 w-5 sm:h-6 sm:w-6 cursor-pointer hover:opacity-70 transition-opacity" 
-                        />
-                        <Link to="/UserManagementProfessorAccountsDetails">
+                  {filteredProfessors.map((professor, index) => (
+                    <tr key={professor.tracked_ID} className="bg-[#fff] rounded-lg shadow hover:bg-gray-50 transition-colors duration-200">
+                      <td className="py-3 px-2 sm:px-3 rounded-l-lg">{index + 1}</td>
+                      <td className="py-3 px-2 sm:px-3">{professor.tracked_ID}</td>
+                      <td className="py-3 px-2 sm:px-3">{professor.tracked_firstname} {professor.tracked_lastname}</td>
+                      <td className="py-3 px-2 sm:px-3 break-all sm:break-normal">{professor.tracked_email}</td>
+                      <td className={`py-3 px-2 sm:px-3 font-bold ${
+                        professor.tracked_Status === 'Active' ? 'text-[#00A15D]' : 'text-[#FF6666]'
+                      }`}>
+                        {professor.tracked_Status}
+                      </td>
+                      <td className="py-3 px-2 sm:px-3 rounded-r-lg">
+                        <Link to={`/UserManagementProfessorAccountsDetails?id=${professor.tracked_ID}`}>
                           <img 
                             src={Details} 
                             alt="Details" 
                             className="h-5 w-5 sm:h-6 sm:w-6 hover:opacity-70 transition-opacity" 
                           />
                         </Link>
-                      </div>
-                    </td>
-                  </tr>
-
-                  <tr className="bg-[#fff] rounded-lg shadow hover:bg-gray-50 transition-colors duration-200">
-                    <td className="py-3 px-2 sm:px-3 rounded-l-lg">2</td>
-                    <td className="py-3 px-2 sm:px-3">2025002</td>
-                    <td className="py-3 px-2 sm:px-3">Brian Santos</td>
-                    <td className="py-3 px-2 sm:px-3 break-all sm:break-normal">brian@example.com</td>
-                    <td className="py-3 px-2 sm:px-3 font-bold text-[#FF6666]">Deactivated</td>
-                    <td className="py-3 px-2 sm:px-3 rounded-r-lg">
-                      <div className="flex gap-2">
-                        <img 
-                          onClick={() => setShowPopup(true)} 
-                          src={ArchiveRow} 
-                          alt="Archive" 
-                          className="h-5 w-5 sm:h-6 sm:w-6 cursor-pointer hover:opacity-70 transition-opacity" 
-                        />
-                        <Link to="/UserManagementProfessorAccountsDetails">
-                          <img 
-                            src={Details} 
-                            alt="Details" 
-                            className="h-5 w-5 sm:h-6 sm:w-6 hover:opacity-70 transition-opacity" 
-                          />
-                        </Link>
-                      </div>
-                    </td>
-                  </tr>
+                      </td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>
 
             {/* Mobile Cards - Professor */}
             <div className="md:hidden space-y-3">
-              {/* Card 1 */}
-              <div className="bg-white rounded-lg shadow p-4 text-[#465746]">
-                <div className="flex justify-between items-start mb-3">
-                  <div>
-                    <p className="text-xs text-gray-500 mb-1">No. 1 | Professor No.</p>
-                    <p className="font-semibold text-sm">2025001</p>
-                  </div>
-                  <div className="flex gap-2">
-                    <img 
-                      onClick={() => setShowPopup(true)} 
-                      src={ArchiveRow} 
-                      alt="Archive" 
-                      className="h-5 w-5 cursor-pointer" 
-                    />
-                    <Link to="/UserManagementProfessorAccountsDetails">
-                      <img 
-                        src={Details} 
-                        alt="Details" 
-                        className="h-5 w-5" 
-                      />
-                    </Link>
-                  </div>
-                </div>
-                
-                <div className="space-y-2">
-                  <div>
-                    <p className="text-xs text-gray-500">Full Name</p>
-                    <p className="font-medium text-sm">Alice Mendoza</p>
+              {filteredProfessors.map((professor, index) => (
+                <div key={professor.tracked_ID} className="bg-white rounded-lg shadow p-4 text-[#465746]">
+                  <div className="flex justify-between items-start mb-3">
+                    <div>
+                      <p className="text-xs text-gray-500 mb-1">No. {index + 1} | Professor No.</p>
+                      <p className="font-semibold text-sm">{professor.tracked_ID}</p>
+                    </div>
+                    <div>
+                      <Link to={`/UserManagementProfessorAccountsDetails?id=${professor.tracked_ID}`}>
+                        <img 
+                          src={Details} 
+                          alt="Details" 
+                          className="h-5 w-5" 
+                        />
+                      </Link>
+                    </div>
                   </div>
                   
-                  <div>
-                    <p className="text-xs text-gray-500">Email</p>
-                    <p className="text-sm break-all">alice@example.com</p>
-                  </div>
-                  
-                  <div>
-                    <p className="text-xs text-gray-500">Status</p>
-                    <p className="font-bold text-sm text-[#00A15D]">Active</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Card 2 */}
-              <div className="bg-white rounded-lg shadow p-4 text-[#465746]">
-                <div className="flex justify-between items-start mb-3">
-                  <div>
-                    <p className="text-xs text-gray-500 mb-1">No. 2 | Professor No.</p>
-                    <p className="font-semibold text-sm">2025002</p>
-                  </div>
-                  <div className="flex gap-2">
-                    <img 
-                      onClick={() => setShowPopup(true)} 
-                      src={ArchiveRow} 
-                      alt="Archive" 
-                      className="h-5 w-5 cursor-pointer" 
-                    />
-                    <Link to="/UserManagementProfessorAccountsDetails">
-                      <img 
-                        src={Details} 
-                        alt="Details" 
-                        className="h-5 w-5" 
-                      />
-                    </Link>
+                  <div className="space-y-2">
+                    <div>
+                      <p className="text-xs text-gray-500">Full Name</p>
+                      <p className="font-medium text-sm">{professor.tracked_firstname} {professor.tracked_lastname}</p>
+                    </div>
+                    
+                    <div>
+                      <p className="text-xs text-gray-500">Email</p>
+                      <p className="text-sm break-all">{professor.tracked_email}</p>
+                    </div>
+                    
+                    <div>
+                      <p className="text-xs text-gray-500">Status</p>
+                      <p className={`font-bold text-sm ${
+                        professor.tracked_Status === 'Active' ? 'text-[#00A15D]' : 'text-[#FF6666]'
+                      }`}>
+                        {professor.tracked_Status}
+                      </p>
+                    </div>
                   </div>
                 </div>
-                
-                <div className="space-y-2">
-                  <div>
-                    <p className="text-xs text-gray-500">Full Name</p>
-                    <p className="font-medium text-sm">Brian Santos</p>
-                  </div>
-                  
-                  <div>
-                    <p className="text-xs text-gray-500">Email</p>
-                    <p className="text-sm break-all">brian@example.com</p>
-                  </div>
-                  
-                  <div>
-                    <p className="text-xs text-gray-500">Status</p>
-                    <p className="font-bold text-sm text-[#FF6666]">Deactivated</p>
-                  </div>
-                </div>
-              </div>
+              ))}
             </div>
 
-            {/* Popup for Archive */}
-            {showPopup && (
-              <Popup setOpen={setShowPopup} />
+            {/* No Results Message */}
+            {filteredProfessors.length === 0 && (
+              <div className="text-center py-8 text-[#465746]">
+                No professors found matching your criteria.
+              </div>
             )}
           </div>
           

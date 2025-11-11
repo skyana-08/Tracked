@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Nov 11, 2025 at 08:45 AM
+-- Generation Time: Nov 11, 2025 at 08:08 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -181,7 +181,7 @@ CREATE TABLE `tracked_users` (
 --
 
 INSERT INTO `tracked_users` (`tracked_ID`, `tracked_Role`, `tracked_email`, `tracked_password`, `tracked_firstname`, `tracked_lastname`, `tracked_middlename`, `tracked_program`, `tracked_yearandsec`, `tracked_semester`, `tracked_bday`, `tracked_gender`, `tracked_phone`, `tracked_Status`, `created_at`, `updated_at`) VALUES
-('12345', 'Admin', 'ic.brielle.balatayo@cvsu.edu.ph', '$2y$10$rsCVmY/Spf4PV5BrY3JNvO.h5ShG5JeTdB7RTmlqZDcRI/Gi4q/uS', 'Brielle Edrian', 'Balatayo', 'Ana', 'Not Applicable', 'Not Applicable', 'Not Applicable', '2002-08-18', 'Male', '9153406553', 'Active', '2025-11-10 18:51:38', '2025-11-11 07:39:16'),
+('12345', 'Admin', 'ic.brielle.balatayo@cvsu.edu.ph', '$2y$10$6oWDN20bNOHptahExAJfzu30uqdV0KxJqv0SxJl4LurvQQGL.P9LO', 'Brielle Edrian', 'Balatayo', 'Ana', 'Not Applicable', 'Not Applicable', 'Not Applicable', '2002-08-18', 'Male', '9153406553', 'Active', '2025-11-10 18:51:38', '2025-11-10 18:51:38'),
 ('202210602', 'Professor', 'ic.dhenizekristafaith.lopez@cvsu.edu.ph', '$2y$10$BW/GUXrWRWIs0Ud6wEhVwOxOp9yQb8XN1NKMyACvcweuYIZ5OJ42i', 'Dhenize Krista Faith', 'Lopez', 'Cabardo', 'Information Technology', 'Not Applicable', 'Not Applicable', '2004-11-24', 'Male', '9988262316', 'Active', '2025-11-10 18:51:38', '2025-11-10 18:51:38'),
 ('202210718', 'Student', 'ic.michaelrhoi.gonzales@cvsu.edu.ph', '$2y$10$JLd345Vpp/wOKj80phHg/uXpK3Q1be40i3zHErpbMvNa6sSUpRJ5y', 'Michael Rhoi', 'Gonzales', 'Ladrica', 'BSIT', '4D', 'FIRST', '2004-06-20', 'Female', '9085527790', 'Active', '2025-11-10 18:51:38', '2025-11-10 18:51:38'),
 ('202210784', 'Student', 'ic.jeannen.basay@cvsu.edu.ph', '$2y$10$O8ioCpngkH1Z552EpesayO8M2tUog87fE4tue9txvstmTUdILpbBq', 'Jeannen', 'Basay', 'Kummer', 'BSIT', '4D', 'SECOND', '2002-03-24', 'Female', '0', 'Active', '2025-11-10 18:51:38', '2025-11-10 19:00:27'),

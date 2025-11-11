@@ -5,23 +5,39 @@ header("Content-Type: application/json");
 $conn = new mysqli("localhost", "root", "", "tracked");
 
 if ($conn->connect_error) {
-  die(json_encode([]));
+    echo json_encode(["success" => false, "message" => "Database connection failed"]);
+    exit();
 }
 
-$sql = "SELECT *
-        FROM tracked_users
-        WHERE tracked_Role = 'Student'
-        ORDER BY tracked_ID ASC";
+$studentId = $_GET['id'] ?? '';
 
-$result = $conn->query($sql);
+if (!empty($studentId)) {
+    // Return single student
+    $sql = "SELECT * FROM tracked_users WHERE tracked_ID = ? AND tracked_Role = 'Student'";
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param("s", $studentId);
+    $stmt->execute();
+    $result = $stmt->get_result();
 
-$data = [];
-if ($result && $result->num_rows > 0) {
-  while ($row = $result->fetch_assoc()) {
-    $data[] = $row;
-  }
+    if ($result->num_rows > 0) {
+        $student = $result->fetch_assoc();
+        echo json_encode(["success" => true, "student" => $student]);
+    } else {
+        echo json_encode(["success" => false, "message" => "Student not found"]);
+    }
+    $stmt->close();
+} else {
+    // Return all students
+    $sql = "SELECT * FROM tracked_users WHERE tracked_Role = 'Student'";
+    $result = $conn->query($sql);
+    
+    $students = [];
+    while ($row = $result->fetch_assoc()) {
+        $students[] = $row;
+    }
+    
+    echo json_encode($students); // Return array directly
 }
 
-echo json_encode($data);
 $conn->close();
 ?>

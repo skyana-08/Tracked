@@ -10,6 +10,9 @@ import Search from "../../assets/Search.svg";
 import ArchiveRow from "../../assets/ArchiveRow(Light).svg";
 import Details from "../../assets/Details(Light).svg";
 import Import from "../../assets/Import(Light).svg";
+import ArchiveWarningIcon from "../../assets/Warning(Yellow).svg";
+import SuccessIcon from "../../assets/Success(Green).svg";
+import ErrorIcon from "../../assets/Error(Red).svg";
 
 export default function AdminImport() {
   const [isOpen, setIsOpen] = useState(false);
@@ -18,6 +21,9 @@ export default function AdminImport() {
   const [users, setUsers] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [usersPerPage] = useState(10);
+  const [showActivateModal, setShowActivateModal] = useState(false);
+  const [showResultModal, setShowResultModal] = useState(false);
+  const [resultData, setResultData] = useState({ type: "", title: "", message: "" });
 
   // Fetch Professors and Students
   useEffect(() => {
@@ -27,22 +33,45 @@ export default function AdminImport() {
       .catch((err) => console.error(err));
   }, []);
 
-              const handleActivateAccounts = () => {
-  if (!window.confirm("Are you sure you want to activate accounts?")) return;
+  const handleActivateAccounts = () => {
+    setShowActivateModal(true);
+  };
 
-  fetch("http://localhost/TrackEd/src/Pages/Admin/activate_accounts.php", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-  })
-    .then((res) => res.json())
-    .then((data) => {
-      alert(data.message);
-      console.log("Activation result:", data);
+  const confirmActivateAccounts = () => {
+    fetch("http://localhost/TrackEd/src/Pages/Admin/AdminImportDB/activate_accounts.php", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
     })
-    .catch((err) => {
-      console.error("Error activating accounts:", err);
-      alert("An error occurred while activating accounts.");
-    });
+      .then((res) => res.json())
+      .then((data) => {
+        // Show result modal instead of alert
+        if (data.status === "success") {
+          setResultData({
+            type: "success",
+            title: "Success!",
+            message: data.message
+          });
+        } else {
+          setResultData({
+            type: "error",
+            title: "Error!",
+            message: data.message
+          });
+        }
+        setShowResultModal(true);
+      })
+      .catch((err) => {
+        console.error("Error activating accounts:", err);
+        setResultData({
+          type: "error",
+          title: "Network Error!",
+          message: "An error occurred while activating accounts. Please try again."
+        });
+        setShowResultModal(true);
+      })
+      .finally(() => {
+        setShowActivateModal(false);
+      });
   };
 
   // Pagination Logic
@@ -53,6 +82,39 @@ export default function AdminImport() {
 
   const handlePageChange = (pageNumber) => {
     setCurrentPage(pageNumber);
+  };
+
+  const getModalIcon = () => {
+    switch (resultData.type) {
+      case "success":
+        return SuccessIcon;
+      case "error":
+        return ErrorIcon;
+      default:
+        return ArchiveWarningIcon;
+    }
+  };
+
+  const getModalIconColor = () => {
+    switch (resultData.type) {
+      case "success":
+        return "bg-green-100";
+      case "error":
+        return "bg-red-100";
+      default:
+        return "bg-yellow-100";
+    }
+  };
+
+  const getConfirmButtonColor = () => {
+    switch (resultData.type) {
+      case "success":
+        return "bg-[#00A15D] hover:bg-[#00874E]";
+      case "error":
+        return "bg-[#FF6666] hover:bg-[#FF5555]";
+      default:
+        return "bg-[#00A15D] hover:bg-[#00874E]";
+    }
   };
 
   return (
@@ -128,16 +190,12 @@ export default function AdminImport() {
               </button>
 
               <button
-  onClick={() => handleActivateAccounts()}
-  className="font-bold px-3 sm:px-4 py-2 bg-[#fff] rounded-md shadow-md border-2 border-transparent hover:border-[#00874E] text-xs sm:text-sm lg:text-base transition-all duration-200 cursor-pointer"
->
-  Activate Accounts
-</button>
-
+                onClick={() => handleActivateAccounts()}
+                className="font-bold text-white px-3 sm:px-4 py-2 bg-[#00A15D] hover:bg-[#00874E] rounded-md shadow-md border-2 border-transparent text-xs sm:text-sm lg:text-base transition-all duration-200 cursor-pointer"
+              >
+                Activate Accounts
+              </button>
             </div>
-
-
-
 
             {/* Search Button */}
             <div className="relative flex-1 sm:max-w-xs lg:max-w-md">
@@ -298,7 +356,172 @@ export default function AdminImport() {
           </div>
         </div>
       </div>
+
+      {/* Activate Accounts Confirmation Modal */}
+      {showActivateModal && (
+        <div
+          className="fixed inset-0 bg-black/50 flex justify-center items-center z-50 overlay-fade p-4"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setShowActivateModal(false);
+            }
+          }}
+          role="dialog"
+          aria-modal="true"
+        >
+          <div className="bg-white text-black rounded-lg shadow-2xl w-full max-w-sm sm:max-w-md p-6 sm:p-8 relative modal-pop">
+            <div className="text-center">
+              {/* Warning Icon */}
+              <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-yellow-100 mb-4">
+                <img 
+                  src={ArchiveWarningIcon} 
+                  alt="Warning" 
+                  className="h-8 w-8" 
+                />
+              </div>
+
+              <h3 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">
+                Activate Accounts?
+              </h3>
+              
+              <div className="mt-4 mb-6">
+                <p className="text-sm text-gray-600 mb-3">
+                  Are you sure you want to activate all imported accounts? This action will make all imported user accounts active in the system.
+                </p>
+                <div className="bg-gray-50 rounded-lg p-4 text-left">
+                  <p className="text-base sm:text-lg font-semibold text-gray-900">
+                    This will affect {users.length} user accounts
+                  </p>
+                  <p className="text-sm text-gray-600 mt-2">
+                    • Students: {users.filter(user => user.user_Role === 'Student').length}
+                  </p>
+                  <p className="text-sm text-gray-600">
+                    • Professors: {users.filter(user => user.user_Role === 'Professor').length}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-3">
+                <button
+                  onClick={() => setShowActivateModal(false)}
+                  className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-3 rounded-md transition-all duration-200 cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmActivateAccounts}
+                  className="flex-1 bg-[#00A15D] hover:bg-[#00874E] text-white font-bold py-3 rounded-md transition-all duration-200 cursor-pointer"
+                >
+                  Activate Accounts
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <style>{`
+            .overlay-fade { animation: overlayFade .18s ease-out both; }
+            @keyframes overlayFade { from { opacity: 0 } to { opacity: 1 } }
+
+            .modal-pop {
+              transform-origin: top center;
+              animation: popIn .22s cubic-bezier(.2,.8,.2,1) both;
+            }
+            @keyframes popIn {
+              from { opacity: 0; transform: translateY(-8px) scale(.98); }
+              to   { opacity: 1; transform: translateY(0)   scale(1);    }
+            }
+          `}</style>
+        </div>
+      )}
+
+      {/* Result Modal for Success/Error Messages */}
+      {showResultModal && (
+        <div
+          className="fixed inset-0 bg-black/50 flex justify-center items-center z-50 overlay-fade p-4"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setShowResultModal(false);
+            }
+          }}
+          role="dialog"
+          aria-modal="true"
+        >
+          <div className="bg-white text-black rounded-lg shadow-2xl w-full max-w-sm sm:max-w-md p-6 sm:p-8 relative modal-pop">
+            <div className="text-center">
+              {/* Dynamic Icon based on result type */}
+              <div className={`mx-auto flex items-center justify-center h-16 w-16 rounded-full ${getModalIconColor()} mb-4`}>
+                <img 
+                  src={getModalIcon()} 
+                  alt={resultData.type} 
+                  className="h-8 w-8" 
+                />
+              </div>
+
+              <h3 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">
+                {resultData.title}
+              </h3>
+              
+              <div className="mt-4 mb-6">
+                <p className="text-sm text-gray-600 mb-3">
+                  {resultData.message}
+                </p>
+                {resultData.type === "success" && (
+                  <div className="bg-gray-50 rounded-lg p-4 text-left">
+                    <p className="text-base sm:text-lg font-semibold text-gray-900">
+                      Accounts have been activated successfully
+                    </p>
+                    <p className="text-sm text-gray-600 mt-2">
+                      • Total users processed: {users.length}
+                    </p>
+                    <p className="text-sm text-gray-600">
+                      • Emails sent with temporary passwords
+                    </p>
+                    <p className="text-sm text-gray-600">
+                      • Users can now login with their temporary credentials
+                    </p>
+                  </div>
+                )}
+                {resultData.type === "error" && (
+                  <div className="bg-gray-50 rounded-lg p-4 text-left">
+                    <p className="text-base sm:text-lg font-semibold text-gray-900">
+                      Operation failed
+                    </p>
+                    <p className="text-sm text-gray-600 mt-2">
+                      • Please check if the server is running
+                    </p>
+                    <p className="text-sm text-gray-600">
+                      • Verify the database connection
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-3">
+                <button
+                  onClick={() => setShowResultModal(false)}
+                  className={`flex-1 ${getConfirmButtonColor()} text-white font-bold py-3 rounded-md transition-all duration-200 cursor-pointer`}
+                >
+                  OK
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <style>{`
+            .overlay-fade { animation: overlayFade .18s ease-out both; }
+            @keyframes overlayFade { from { opacity: 0 } to { opacity: 1 } }
+
+            .modal-pop {
+              transform-origin: top center;
+              animation: popIn .22s cubic-bezier(.2,.8,.2,1) both;
+            }
+            @keyframes popIn {
+              from { opacity: 0; transform: translateY(-8px) scale(.98); }
+              to   { opacity: 1; transform: translateY(0)   scale(1);    }
+            }
+          `}</style>
+        </div>
+      )}
     </div>
   );
-  
 }

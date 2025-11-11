@@ -12,6 +12,7 @@ import Archive from "../../assets/Archive(Light).svg";
 import ArchiveRow from "../../assets/ArchiveRow(Light).svg";
 import Details from "../../assets/Details(Light).svg";
 import ArchiveWarningIcon from "../../assets/Warning(Yellow).svg";
+import Restore from "../../assets/Unarchive.svg";
 
 export default function UserManagementStudentAccounts() {
   const [isOpen, setIsOpen] = useState(false);
@@ -26,31 +27,112 @@ export default function UserManagementStudentAccounts() {
 
   // Fetch students from backend
   useEffect(() => {
+    fetchStudents();
+  }, []);
+
+  const fetchStudents = () => {
     fetch("http://localhost/TrackEd/src/Pages/Admin/StudentAccountsDB/get_students.php")
       .then((res) => res.json())
-      .then((data) => setStudents(data))
-      .catch((err) => console.error(err));
-  }, []);
+      .then((data) => {
+        // Handle different response formats
+        if (Array.isArray(data)) {
+          setStudents(data);
+        } else if (data.success && data.student) {
+          // If it returns a single student, wrap it in an array
+          setStudents([data.student]);
+        } else if (data.success && Array.isArray(data.students)) {
+          setStudents(data.students);
+        } else {
+          console.error("Unexpected response format:", data);
+          setStudents([]); // Set empty array as fallback
+        }
+      })
+      .catch((err) => {
+        console.error(err);
+        setStudents([]); // Set empty array on error
+      });
+  };
+
+  // Filter students based on selected filter
+  const filteredStudents = students.filter(stud => {
+    if (selectedFilter === "All") return true;
+    return stud.tracked_Status === selectedFilter;
+  });
 
   // Pagination setup
   const indexOfLast = currentPage * itemsPerPage;
   const indexOfFirst = indexOfLast - itemsPerPage;
-  const currentStudents = students.slice(indexOfFirst, indexOfLast);
-  const totalPages = Math.ceil(students.length / itemsPerPage);
+  const currentStudents = filteredStudents.slice(indexOfFirst, indexOfLast);
+  const totalPages = Math.ceil(filteredStudents.length / itemsPerPage);
 
   const handlePageChange = (pageNumber) => setCurrentPage(pageNumber);
 
-  const handleArchiveClick = (stud) => {
+  const handleStatusChange = (stud) => {
     setSelectedStudent(stud);
     setShowArchiveModal(true);
   };
 
-  const confirmArchive = () => {
-    // Add your archive logic here
-    console.log("Archiving student:", selectedStudent);
-    setShowArchiveModal(false);
-    setSelectedStudent(null);
+  const confirmStatusChange = async () => {
+    if (!selectedStudent) return;
+
+    const newStatus = selectedStudent.tracked_Status === "Active" ? "Deactivated" : "Active";
+    
+    try {
+      const response = await fetch("http://localhost/TrackEd/src/Pages/Admin/StudentAccountsDB/update_student_status.php", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          studentId: selectedStudent.tracked_ID,
+          newStatus: newStatus
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      
+      if (data.success) {
+        // Update local state
+        setStudents(prevStudents => 
+          prevStudents.map(stud => 
+            stud.tracked_ID === selectedStudent.tracked_ID 
+              ? { ...stud, tracked_Status: newStatus }
+              : stud
+          )
+        );
+        console.log("Status updated successfully:", data.message);
+      } else {
+        console.error("Failed to update status:", data.message);
+        alert(`Failed to update student status: ${data.message}`);
+      }
+    } catch (error) {
+      console.error("Error updating status:", error);
+      alert(`Network error: ${error.message}. Please check if the server is running.`);
+    } finally {
+      setShowArchiveModal(false);
+      setSelectedStudent(null);
+    }
   };
+
+  const getModalContent = () => {
+    if (!selectedStudent) return null;
+    
+    const isDeactivating = selectedStudent.tracked_Status === "Active";
+    const action = isDeactivating ? "Deactivated" : "Restore";
+    
+    return {
+      title: `${action} Account?`,
+      message: `Are you sure you want to ${action.toLowerCase()} this student account?`,
+      confirmText: action,
+      confirmColor: isDeactivating ? "bg-[#FF6666] hover:bg-[#FF5555]" : "bg-[#00A15D] hover:bg-[#00874E]"
+    };
+  };
+
+  const modalContent = getModalContent();
 
   return (
     <div>
@@ -116,6 +198,7 @@ export default function UserManagementStudentAccounts() {
                         onClick={() => {
                           setSelectedFilter(f);
                           setOpen(false);
+                          setCurrentPage(1); // Reset to first page when filter changes
                         }}
                       >
                         {f}
@@ -151,7 +234,7 @@ export default function UserManagementStudentAccounts() {
                 </button>
               </div>
 
-              <Link to="/AdminAccountArchive">
+              {/* <Link to="/AdminAccountArchive">
                 <button className="font-bold py-2 bg-[#fff] rounded-md w-9 sm:w-10 lg:w-11 h-9 sm:h-10 lg:h-11 shadow-md flex items-center justify-center border-2 border-transparent hover:border-[#00874E] transition-all duration-200 cursor-pointer">
                   <img
                     src={Archive}
@@ -159,7 +242,7 @@ export default function UserManagementStudentAccounts() {
                     className="h-5 w-5 sm:h-5 sm:w-5 lg:h-6 lg:w-6"
                   />
                 </button>
-              </Link>
+              </Link> */}
             </div>
           </div>
 
@@ -179,7 +262,7 @@ export default function UserManagementStudentAccounts() {
                   </tr>
                 </thead>
                 <tbody className="text-[#465746]">
-                  {currentStudents.map((stud, index) => (
+                  {currentStudents.map((stud) => (
                     <tr
                       key={stud.tracked_ID}
                       className="bg-[#fff] rounded-lg shadow hover:bg-gray-50 transition-colors duration-200"
@@ -206,16 +289,20 @@ export default function UserManagementStudentAccounts() {
                       <td className="py-3 px-2 sm:px-3 rounded-r-lg">
                         <div className="flex gap-2">
                           <img
-                            onClick={() => handleArchiveClick(stud)}
-                            src={ArchiveRow}
-                            alt="Archive"
-                            className="h-5 w-5 sm:h-6 sm:w-6 cursor-pointer hover:opacity-70 transition-opacity"
+                            onClick={() => handleStatusChange(stud)}
+                            src={stud.tracked_Status === "Active" ? ArchiveRow : Restore}
+                            alt={stud.tracked_Status === "Active" ? "Deactivated" : "Restore"}
+                            className="h-5 w-5 sm:h-6 sm:w-6 cursor-pointer hover:opacity-70 transition-opacity duration-200"
+                            title={stud.tracked_Status === "Active" ? "Deactivated" : "Restore"}
                           />
-                          <Link to="/UserManagementStudentAccountDetails">
+                          {/* UPDATED: Use query parameter instead of URL parameter */}
+                          <Link 
+                            to={`/UserManagementStudentAccountDetails?id=${stud.tracked_ID}`}
+                          >
                             <img
                               src={Details}
                               alt="Details"
-                              className="h-5 w-5 sm:h-6 sm:w-6 hover:opacity-70 transition-opacity"
+                              className="h-5 w-5 sm:h-6 sm:w-6 hover:opacity-70 transition-opacity duration-200"
                             />
                           </Link>
                         </div>
@@ -242,13 +329,17 @@ export default function UserManagementStudentAccounts() {
                     </div>
                     <div className="flex gap-2">
                       <img
-                        onClick={() => handleArchiveClick(stud)}
-                        src={ArchiveRow}
-                        alt="Archive"
-                        className="h-5 w-5 cursor-pointer"
+                        onClick={() => handleStatusChange(stud)}
+                        src={stud.tracked_Status === "Active" ? ArchiveRow : Restore}
+                        alt={stud.tracked_Status === "Active" ? "Deactivated" : "Restore"}
+                        className="h-5 w-5 cursor-pointer hover:opacity-70 transition-opacity duration-200"
+                        title={stud.tracked_Status === "Active" ? "Deactivated" : "Restore"}
                       />
-                      <Link to="/UserManagementStudentAccountDetails">
-                        <img src={Details} alt="Details" className="h-5 w-5" />
+                      {/* UPDATED: Use query parameter instead of URL parameter */}
+                      <Link 
+                        to={`/UserManagementStudentAccountDetails?id=${stud.tracked_ID}`}
+                      >
+                        <img src={Details} alt="Details" className="h-5 w-5 hover:opacity-70 transition-opacity duration-200" />
                       </Link>
                     </div>
                   </div>
@@ -288,65 +379,74 @@ export default function UserManagementStudentAccounts() {
               ))}
             </div>
 
+            {/* No results message */}
+            {currentStudents.length === 0 && (
+              <div className="text-center py-8 text-gray-500">
+                No students found matching the current filter.
+              </div>
+            )}
+
             {/* Pagination */}
-            <div className="flex flex-wrap justify-center mt-5 sm:mt-6 gap-2">
-              {/* Previous Button */}
-              {currentPage > 1 && (
-                <button
-                  onClick={() => handlePageChange(currentPage - 1)}
-                  className="px-3 py-1.5 sm:px-4 sm:py-2 rounded-md shadow-md bg-white text-[#465746] hover:bg-gray-100 font-medium text-xs sm:text-sm transition-colors duration-200"
-                >
-                  Previous
-                </button>
-              )}
+            {totalPages > 1 && (
+              <div className="flex flex-wrap justify-center mt-5 sm:mt-6 gap-2">
+                {/* Previous Button */}
+                {currentPage > 1 && (
+                  <button
+                    onClick={() => handlePageChange(currentPage - 1)}
+                    className="px-3 py-1.5 sm:px-4 sm:py-2 rounded-md shadow-md bg-white text-[#465746] hover:bg-gray-100 font-medium text-xs sm:text-sm transition-colors duration-200"
+                  >
+                    Previous
+                  </button>
+                )}
 
-              {/* Page Numbers */}
-              {Array.from({ length: totalPages }, (_, i) => {
-                const pageNum = i + 1;
-                if (
-                  pageNum === 1 ||
-                  pageNum === totalPages ||
-                  (pageNum >= currentPage - 1 && pageNum <= currentPage + 1)
-                ) {
-                  return (
-                    <button
-                      key={pageNum}
-                      onClick={() => handlePageChange(pageNum)}
-                      className={`px-3 py-1.5 sm:px-4 sm:py-2 rounded-md shadow-md text-xs sm:text-sm font-medium transition-colors duration-200 ${
-                        currentPage === pageNum
-                          ? "bg-[#00874E] text-white"
-                          : "bg-white text-[#465746] hover:bg-gray-100"
-                      }`}
-                    >
-                      {pageNum}
-                    </button>
-                  );
-                } else if (
-                  pageNum === currentPage - 2 ||
-                  pageNum === currentPage + 2
-                ) {
-                  return (
-                    <span key={pageNum} className="px-2 py-1.5 sm:py-2 text-[#465746]">
-                      ...
-                    </span>
-                  );
-                }
-                return null;
-              })}
+                {/* Page Numbers */}
+                {Array.from({ length: totalPages }, (_, i) => {
+                  const pageNum = i + 1;
+                  if (
+                    pageNum === 1 ||
+                    pageNum === totalPages ||
+                    (pageNum >= currentPage - 1 && pageNum <= currentPage + 1)
+                  ) {
+                    return (
+                      <button
+                        key={pageNum}
+                        onClick={() => handlePageChange(pageNum)}
+                        className={`px-3 py-1.5 sm:px-4 sm:py-2 rounded-md shadow-md text-xs sm:text-sm font-medium transition-colors duration-200 ${
+                          currentPage === pageNum
+                            ? "bg-[#00874E] text-white"
+                            : "bg-white text-[#465746] hover:bg-gray-100"
+                        }`}
+                      >
+                        {pageNum}
+                      </button>
+                    );
+                  } else if (
+                    pageNum === currentPage - 2 ||
+                    pageNum === currentPage + 2
+                  ) {
+                    return (
+                      <span key={pageNum} className="px-2 py-1.5 sm:py-2 text-[#465746]">
+                        ...
+                      </span>
+                    );
+                  }
+                  return null;
+                })}
 
-              {/* Next Button */}
-              {currentPage < totalPages && (
-                <button
-                  onClick={() => handlePageChange(currentPage + 1)}
-                  className="px-3 py-1.5 sm:px-4 sm:py-2 rounded-md shadow-md bg-white text-[#465746] hover:bg-gray-100 font-medium text-xs sm:text-sm transition-colors duration-200"
-                >
-                  Next
-                </button>
-              )}
-            </div>
+                {/* Next Button */}
+                {currentPage < totalPages && (
+                  <button
+                    onClick={() => handlePageChange(currentPage + 1)}
+                    className="px-3 py-1.5 sm:px-4 sm:py-2 rounded-md shadow-md bg-white text-[#465746] hover:bg-gray-100 font-medium text-xs sm:text-sm transition-colors duration-200"
+                  >
+                    Next
+                  </button>
+                )}
+              </div>
+            )}
 
-            {/* Archive Confirmation Modal */}
-            {showArchiveModal && selectedStudent && (
+            {/* Status Change Confirmation Modal */}
+            {showArchiveModal && selectedStudent && modalContent && (
               <div
                 className="fixed inset-0 bg-black/50 flex justify-center items-center z-50 overlay-fade p-4"
                 onClick={(e) => {
@@ -370,16 +470,16 @@ export default function UserManagementStudentAccounts() {
                     </div>
 
                     <h3 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">
-                      Archive Account?
+                      {modalContent.title}
                     </h3>
                     
                     <div className="mt-4 mb-6">
                       <p className="text-sm text-gray-600 mb-3">
-                        Are you sure you want to archive this student account?
+                        {modalContent.message}
                       </p>
                       <div className="bg-gray-50 rounded-lg p-4 text-left">
                         <p className="text-base sm:text-lg font-semibold text-gray-900 break-words">
-                          {selectedStudent.tracked_firstname} {stud.tracked_middlename} {selectedStudent.tracked_lastname}
+                          {selectedStudent.tracked_firstname} {selectedStudent.tracked_middlename} {selectedStudent.tracked_lastname}
                         </p>
                         <p className="text-sm text-gray-600 mt-1">
                           ID: {selectedStudent.tracked_ID}
@@ -404,10 +504,10 @@ export default function UserManagementStudentAccounts() {
                         Cancel
                       </button>
                       <button
-                        onClick={confirmArchive}
-                        className="flex-1 bg-[#00A15D] hover:bg-[#00874E] text-white font-bold py-3 rounded-md transition-all duration-200 cursor-pointer"
+                        onClick={confirmStatusChange}
+                        className={`flex-1 ${modalContent.confirmColor} text-white font-bold py-3 rounded-md transition-all duration-200 cursor-pointer`}
                       >
-                        Archive
+                        {modalContent.confirmText}
                       </button>
                     </div>
                   </div>

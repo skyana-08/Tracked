@@ -6,8 +6,6 @@ import ProfilePhoto from '../assets/ProfilePhoto.svg';
 import LogOut from "../assets/LogOut(Dark).svg";
 import Profile from "../assets/Profile(Dark).svg";
 import AccountSettings from "../assets/Settings(Light).svg";
-// import LogOut from "../assets/LogOut(dark).svg";
-// import AccountSettings from "../assets/Settings(dark).svg";
 
 function Header({ setIsOpen }) {
   const navigate = useNavigate();
@@ -16,7 +14,7 @@ function Header({ setIsOpen }) {
   const [weekday, setWeekday] = useState("");
   const [fullDate, setFullDate] = useState("");
   const [year, setYear] = useState("");
-  const [userName, setUserName] = useState("User");
+  const [userName, setUserName] = useState("");
   const [userId, setUserId] = useState("");
   const [userRole, setUserRole] = useState("");
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -27,34 +25,45 @@ function Header({ setIsOpen }) {
     setFullDate(today.toLocaleDateString("en-US", { month: "long", day: "numeric" }));
     setYear(today.getFullYear());
 
-  // Pagkuha ng username sa Login.php localStorage
+    // Get user data from localStorage - updated to match new Login.php structure
     try {
       const userStr = localStorage.getItem("user");
       if (userStr) {
         const user = JSON.parse(userStr);
+        console.log("User data from localStorage:", user); // Debug log
 
-        // Use fullName if available, otherwise construct from firstName and lastName
+        // Use fullName if available, otherwise construct from firstname and lastname
+        // Note: Updated to match the camelCase properties from Login.php
         if (user.fullName) {
           setUserName(user.fullName);
-        } else if (user.firstName && user.lastName) {
-          setUserName(`${user.firstName} ${user.lastName}`);
-        } else if (user.firstName) {
-          setUserName(user.firstName);
+        } else if (user.firstname && user.lastname) {
+          setUserName(`${user.firstname} ${user.lastname}`);
+        } else if (user.firstname) {
+          setUserName(user.firstname);
+        } else {
+          setUserName("User"); // Fallback
         }
 
-        if (user.id){
+        if (user.id) {
           setUserId(user.id);
+        } else {
+          setUserId(""); // Fallback if no ID
         }
+
         if (user.role) {
           setUserRole(user.role);
+        } else {
+          setUserRole(""); // Fallback if no role
         }
+      } else {
+        console.warn("No user data found in localStorage");
       }
     } catch (error) {
-    console.error("Error reading user from localStorage:", error);
+      console.error("Error reading user from localStorage:", error);
     } 
   }, []);
 
-  // Pag close ng dropdown when clickng outside
+  // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
@@ -71,7 +80,7 @@ function Header({ setIsOpen }) {
   // Check if should display ID (Student or Professor only)
   const shouldShowId = userRole === "Student" || userRole === "Professor";
 
-  // pag determine sa navigation paths based sa roles
+  // Determine navigation paths based on roles
   const getNavigationPaths = () => {
     if (userRole === "Professor") {
       return {
@@ -85,34 +94,41 @@ function Header({ setIsOpen }) {
         profile: "/ProfileStudent",
         accountSettings: "/AccountSetting"
       };
+    } else if (userRole === "Admin") {
+      return {
+        notification: "/#",
+        profile: "/#",
+        accountSettings: "/#"
+      };
     }
-    return {
-      notification: "/#",
-      profile: "/#",
-      accountSettings: "/#"
-    };
   };
 
   const paths = getNavigationPaths();
 
   const handleLogout = () => {
-    // clears the user data from the localStorage
+    // Clear the user data from localStorage
     localStorage.removeItem("user");
+    console.log("User logged out, localStorage cleared");
 
-    // pag close ng dropdown
+    // Close dropdown
     setIsDropdownOpen(false);
 
-    // navigation paputang login
+    // Navigate to login
     navigate("/Login");
   };
+
   const handleProfile = () => {
     setIsDropdownOpen(false);
-    navigate(paths.profile);
+    if (paths.profile !== "/#") {
+      navigate(paths.profile);
+    }
   };
 
   const handleAccountSettings = () => {
     setIsDropdownOpen(false);
-    navigate(paths.accountSettings);
+    if (paths.accountSettings !== "/#") {
+      navigate(paths.accountSettings);
+    }
   };
 
   const toggleDropdown = () => {
@@ -120,7 +136,9 @@ function Header({ setIsOpen }) {
   };
 
   const handleNotificationClick = () => {
-    navigate(paths.notification);
+    if (paths.notification !== "/#") {
+      navigate(paths.notification);
+    }
   };
 
   return (
@@ -146,7 +164,7 @@ function Header({ setIsOpen }) {
 
         {/* Right: Notifications + Profile */}
         <div className="flex items-center gap-2 sm:gap-4 mt-0 sm:mt-0 mr-1">
-          {/* notification para lang sa students and prof */}
+          {/* Notification for Students and Professors only */}
           {(userRole === "Student" || userRole === "Professor") && (
             <div 
               className="flex items-center gap-2 sm:gap-3 relative cursor-pointer hover:opacity-80 transition-opacity"
@@ -167,7 +185,7 @@ function Header({ setIsOpen }) {
             </div>
           )}
 
-          {/* dropdown start */}
+          {/* Dropdown start */}
           <div className="relative" ref={dropdownRef}>
             <div className="flex items-center gap-3 sm:gap-2 cursor-pointer" onClick={toggleDropdown}>
               <img
@@ -177,20 +195,25 @@ function Header({ setIsOpen }) {
               />
               <div className="hidden md:flex flex-col items-start">
                 <p className="text-[#465746] text-sm sm:text-base md:text-md font-medium leading-tight hidden lg:block">
-                  {userName}
+                  {userName || "Loading..."}
                 </p>
                 {shouldShowId && userId && (
                   <p className="text-[#00A15D] text-sm sm:text-base md:text-xs font-medium leading-tight hidden lg:block">
                     {userId}
                   </p>
                 )}
+                {userRole === "Admin" && (
+                  <p className="text-[#00A15D] text-sm sm:text-base md:text-xs font-medium leading-tight hidden lg:block">
+                    Administrator
+                  </p>
+                )}
               </div>
             </div>
             
-            {/* dropdown menu/s (if ever may idadagdag) */}
+            {/* Dropdown menu */}
             {isDropdownOpen && (
               <div className="absolute right-0 mt-2 w-48 sm:w-52 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
-                {/* Show Profile and Account Settings only for Student and Professor */}
+                {/* Show Profile and Account Settings for Student and Professor */}
                 {(userRole === "Student" || userRole === "Professor") && (
                   <>
                     <button 
@@ -223,7 +246,9 @@ function Header({ setIsOpen }) {
                 <button 
                   onClick={handleLogout}
                   className={`w-full px-4 py-3 text-left text-sm sm:text-base text-[#456746] border-2 border-transparent hover:border-[#00874E] transition-colors duration-200 cursor-pointer font-medium flex items-center gap-2 ${
-                    userRole === "Admin" ? "rounded-lg" : "rounded-lg"
+                    (userRole === "Admin" && !(userRole === "Student" || userRole === "Professor")) 
+                      ? "rounded-lg" 
+                      : "rounded-lg"
                   }`}
                 >
                   <img
