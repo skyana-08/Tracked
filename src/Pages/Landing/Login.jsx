@@ -184,14 +184,14 @@ export default function Login() {
         </form>
 
         {/* Register link */}
-        <div className="text-center mt-3 sm:mt-4 md:mt-6 text-xs sm:text-sm">
+        {/* <div className="text-center mt-3 sm:mt-4 md:mt-6 text-xs sm:text-sm">
           <span>Don't have an account? </span>
           <Link to={"/Signup"}>
             <span className="text-[#00A15D] font-semibold cursor-pointer hover:underline">
               Register Here
             </span>
           </Link>
-        </div>
+        </div> */}
       </div>
 
       {/* Footer */}
