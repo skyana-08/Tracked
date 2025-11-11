@@ -37,7 +37,7 @@ try {
         INNER JOIN student_classes sc ON t.tracked_ID = sc.student_ID
         WHERE sc.subject_code = ? AND sc.archived = 0
         AND t.tracked_Role = 'Student' AND t.tracked_Status = 'Active'
-        ORDER BY t.tracked_fname, t.tracked_lname
+        ORDER BY t.tracked_firstname, t.tracked_lastname
     ");
     $enrolledStmt->execute([$subject_code]);
     $allEnrolledStudents = $enrolledStmt->fetchAll(PDO::FETCH_ASSOC);
@@ -65,7 +65,7 @@ try {
         
         // Get attendance records for this date using tracked_users
         $attendanceStmt = $pdo->prepare("
-            SELECT a.student_ID, a.status, CONCAT(t.tracked_fname, ' ', t.tracked_lname) as user_Name 
+            SELECT a.student_ID, a.status, CONCAT(t.tracked_firstname, ' ', t.tracked_lastname) as user_Name 
             FROM attendance a 
             JOIN tracked_users t ON a.student_ID = t.tracked_ID 
             WHERE a.subject_code = ? AND a.professor_ID = ? AND a.attendance_date = ?

@@ -76,7 +76,7 @@ if ($stmt->num_rows === 0) {
     exit;
 }
 
-$stmt->bind_result($dbPasswordHash, $status, $role, $fname, $lname, $mi);
+$stmt->bind_result($dbPasswordHash, $status, $role, $firstname, $lastname, $middlename);
 $stmt->fetch();
 $stmt->close();
 
@@ -114,7 +114,7 @@ if (!$passwordValid) {
 }
 
 // Format full name
-$fullName = trim($fname . ' ' . ($mi ? $mi . ". " : '') . $lname);
+$fullName = trim($firstname . ' ' . ($middlename ? $middlename . ". " : '') . $lastname);
 
 // Success response
 echo json_encode([
@@ -122,9 +122,9 @@ echo json_encode([
     "user" => [
         "id" => $idNumber,
         "role" => $role,
-        "firstname" => $fname,
-        "lastname" => $lname,
-        "middleInitial" => $mi,
+        "firstname" => $firstname,
+        "lastname" => $lastname,
+        "middlename" => $middlename,
         "fullName" => $fullName
     ],
     "message" => "Login successful"
