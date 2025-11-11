@@ -59,7 +59,7 @@ function Linking() {
     <Router>
       <Routes>
         {/* Starting Flow */} 
-        <Route path="/" element={<SuperAdminAccountList />} />  
+        <Route path="/" element={<Login />} />  
         
         {/* Navigations for Landing */}
         <Route path ="/Login" element={<Login />} />

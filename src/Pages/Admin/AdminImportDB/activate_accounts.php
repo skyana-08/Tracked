@@ -26,8 +26,8 @@ require "../../Landing/PHPMailer/src/SMTP.php";
 // SMTP Configuration
 define("SMTP_HOST", "smtp.gmail.com");
 define("SMTP_PORT", 587);
-define("SMTP_USER", "xyrilljohnabreu25@gmail.com");
-define("SMTP_PASS", "qovk myly ukpz rljq");
+define("SMTP_USER", "tracked.0725@gmail.com");
+define("SMTP_PASS", "nmvi itzx dqrh qimh");
 define("FROM_EMAIL", "noreply@tracked.com");
 define("FROM_NAME", "TrackED System");
 
