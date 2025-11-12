@@ -1,62 +1,70 @@
-import React, { useState, useEffect } from "react";
-import { Link, useLocation } from "react-router-dom";
+import React, { useState, useEffect } from 'react';
+import { Link, useLocation } from 'react-router-dom';
 
 import Sidebar from "../../Components/Sidebar";
 import Header from "../../Components/Header";
-
-import ArrowDown from "../../assets/ArrowDown(Light).svg";
-import Subject from '../../assets/Subjects(Light).svg';
-import Search from "../../assets/Search.svg";
-import BackButton from "../../assets/BackButton(Light).svg";
-
 import ActivityCardStudent from "../../Components/ActivityCardStudent";
 
+import SubjectDetailsIcon from '../../assets/SubjectDetails.svg';
+import BackButton from '../../assets/BackButton(Light).svg';
+
 export default function SubjectDetailsStudent() {
-  const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
   const searchParams = new URLSearchParams(location.search);
   const subjectCode = searchParams.get('code');
-
-  // Filter and search states
-  const [filterOption, setFilterOption] = useState("Filter");
-  const [searchQuery, setSearchQuery] = useState("");
-  const [filterDropdownOpen, setFilterDropdownOpen] = useState(false);
-
-  // Activities state
+  
+  const [isOpen, setIsOpen] = useState(false);
   const [activities, setActivities] = useState([]);
   const [classInfo, setClassInfo] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [studentId, setStudentId] = useState('');
 
   // Get student ID from localStorage
-  const getStudentId = () => {
-    try {
-      const userStr = localStorage.getItem("user");
-      if (userStr) {
-        const user = JSON.parse(userStr);
-        return user.id;
+  useEffect(() => {
+    const getStudentId = () => {
+      try {
+        const userDataString = localStorage.getItem('user');
+        if (userDataString) {
+          const userData = JSON.parse(userDataString);
+          setStudentId(userData.id);
+          return userData.id;
+        }
+      } catch (error) {
+        console.error('Error parsing user data:', error);
       }
-    } catch (error) {
-      console.error("Error parsing user data:", error);
-    }
-    return null;
-  };
+      return null;
+    };
 
+    getStudentId();
+  }, []);
+
+  // Fetch class details
   useEffect(() => {
     if (subjectCode) {
       fetchClassDetails();
-      fetchActivities();
     }
   }, [subjectCode]);
 
+  // Fetch activities after classInfo and studentId are available
+  useEffect(() => {
+    if (classInfo && studentId) {
+      fetchActivities();
+    }
+  }, [classInfo, studentId]);
+
   const fetchClassDetails = async () => {
     try {
-      const response = await fetch(`http://localhost/TrackEd/src/Pages/Professor/SubjectDetailsDB/get_class_details.php?subject_code=${subjectCode}`);
+      const response = await fetch(`http://localhost/TrackEd/src/Pages/Student/SubjectDetailsStudentDB/get_class_details_student.php?subject_code=${subjectCode}`);
       
       if (response.ok) {
-        const data = await response.json();
-        if (data.success) {
-          setClassInfo(data.class_data);
+        const result = await response.json();
+        if (result.success) {
+          setClassInfo(result.class_data);
+        } else {
+          console.error('Error fetching class details:', result.message);
         }
+      } else {
+        console.error('HTTP error fetching class details:', response.status);
       }
     } catch (error) {
       console.error('Error fetching class details:', error);
@@ -64,17 +72,21 @@ export default function SubjectDetailsStudent() {
   };
 
   const fetchActivities = async () => {
+    if (!studentId) return;
+    
     try {
-      const studentId = getStudentId();
-      
       const response = await fetch(`http://localhost/TrackEd/src/Pages/Student/SubjectDetailsStudentDB/get_activities_student.php?subject_code=${subjectCode}&student_id=${studentId}`);
       
       if (response.ok) {
-        const data = await response.json();
-        
-        if (data.success) {
-          setActivities(data.activities);
+        const result = await response.json();
+        console.log('Fetched activities result:', result);
+        if (result.success) {
+          setActivities(result.activities);
+        } else {
+          console.error('Error fetching activities:', result.message);
         }
+      } else {
+        console.error('HTTP error fetching activities:', response.status);
       }
     } catch (error) {
       console.error('Error fetching activities:', error);
@@ -83,199 +95,181 @@ export default function SubjectDetailsStudent() {
     }
   };
 
-  // NEW: Helper function to get student status (matching ActivityCardStudent.jsx)
-  const getStudentStatus = (activity) => {
-    const isSubmitted = activity.submitted === 1 || activity.submitted === true;
-    const isLate = activity.late === 1 || activity.late === true;
+  const handleMarkAsDone = async (activityId) => {
+    if (!studentId) {
+      alert("Student ID not found. Please log in again.");
+      return;
+    }
 
-    if (isSubmitted && isLate) return "Late";
-    if (isSubmitted) return "Submitted";
-    return "Missed";
+    try {
+      const response = await fetch('http://localhost/TrackEd/src/Pages/Student/SubjectDetailsStudentDB/mark_activity_done.php', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          activity_id: activityId,
+          student_id: studentId,
+          subject_code: subjectCode
+        })
+      });
+
+      const result = await response.json();
+      console.log('Mark as done response:', result);
+
+      if (result.success) {
+        // Refresh activities to get updated status
+        await fetchActivities();
+      } else {
+        alert('Error marking activity: ' + result.message);
+      }
+    } catch (error) {
+      console.error('Error marking activity as done:', error);
+      alert('Error marking activity as done. Please try again.');
+    }
   };
 
-  // UPDATED: filter logic based on ActivityCardStudent statuses
-  const filtered = activities.filter(act => {
-    let matchesFilter = true;
-    
-    // Get the status for this activity (matching ActivityCardStudent logic)
-    const status = getStudentStatus(act);
-    
-    // Apply filters based on status
-    if (filterOption === "Submitted") matchesFilter = status === "Submitted";
-    else if (filterOption === "Late") matchesFilter = status === "Late";
-    else if (filterOption === "Missed") matchesFilter = status === "Missed";
-
-    const q = searchQuery.trim().toLowerCase();
-    const matchesSearch = !q || 
-      act.title.toLowerCase().includes(q) || 
-      (act.instruction && act.instruction.toLowerCase().includes(q));
-
-    return matchesFilter && matchesSearch;
-  });
-
-  // sort newest first by created_at
-  const sorted = [...filtered].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-
-  // close dropdown on outside click
-  useEffect(() => {
-    const onClick = (e) => {
-      if (filterDropdownOpen && !e.target.closest(".filter-dropdown")) {
-        setFilterDropdownOpen(false);
-      }
-    };
-    document.addEventListener("click", onClick);
-    return () => document.removeEventListener("click", onClick);
-  }, [filterDropdownOpen]);
-
-  // Format date for display with time
+  // Format date for display
   const formatDate = (dateString) => {
     if (!dateString) return 'No deadline';
+    
     try {
       const date = new Date(dateString);
-      
-      // Check if the date has time component
-      const hasTime = dateString.includes(' ') || dateString.includes('T');
-      
-      if (hasTime) {
-        // Format with time
-        return date.toLocaleDateString('en-US', { 
-          year: 'numeric', 
-          month: 'long', 
-          day: 'numeric' 
-        }) + ' | ' + date.toLocaleTimeString('en-US', {
-          hour: 'numeric',
-          minute: '2-digit',
-          hour12: true
-        });
-      } else {
-        // Format without time (legacy date-only format)
-        return date.toLocaleDateString('en-US', { 
-          year: 'numeric', 
-          month: 'long', 
-          day: 'numeric' 
-        });
-      }
-    } catch {
+      return date.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    } catch (error) {
       return dateString;
     }
   };
 
+  // Get student status for an activity
+  const getStudentStatus = (activity) => {
+    // Check if activity has been submitted
+    const isSubmitted = activity.submitted === 1 || activity.submitted === true || activity.submitted === '1';
+    const isLate = activity.late === 1 || activity.late === true || activity.late === '1';
+    
+    if (isSubmitted) {
+      return isLate ? 'Late' : 'Submitted';
+    }
+    
+    // Check if deadline has passed
+    if (activity.deadline) {
+      const now = new Date();
+      const deadline = new Date(activity.deadline);
+      
+      if (now > deadline) {
+        return 'Missed';
+      }
+    }
+    
+    return 'Pending';
+  };
+
+  // Render empty state when no activities
+  const renderEmptyState = () => (
+    <div className="col-span-full text-center py-8 sm:py-12 lg:py-16">
+      <div className="mx-auto w-16 h-16 sm:w-20 sm:h-20 lg:w-24 lg:h-24 mb-4 sm:mb-6 rounded-full bg-gray-100 flex items-center justify-center">
+        <img 
+          src={SubjectDetailsIcon} 
+          alt="No activities" 
+          className="h-8 w-8 sm:h-10 sm:w-10 lg:h-12 lg:w-12 opacity-50" 
+        />
+      </div>
+      <p className="text-gray-500 text-sm sm:text-base lg:text-lg mb-2">
+        No activities available yet.
+      </p>
+      <p className="text-gray-400 text-xs sm:text-sm lg:text-base">
+        Check back later for new activities from your professor.
+      </p>
+    </div>
+  );
+
+  if (loading) {
+    return (
+      <div>
+        <Sidebar role="student" isOpen={isOpen} setIsOpen={setIsOpen} />
+        <div className={`transition-all duration-300 ${isOpen ? 'lg:ml-[250px] xl:ml-[280px] 2xl:ml-[300px]' : 'ml-0'}`}>
+          <Header setIsOpen={setIsOpen} isOpen={isOpen} />
+          <div className="p-5 text-center">Loading...</div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div>
       <Sidebar role="student" isOpen={isOpen} setIsOpen={setIsOpen} />
-      <div className={`transition-all duration-300 ${isOpen ? "lg:ml-[250px] xl:ml-[280px] 2xl:ml-[300px]" : "ml-0"}`}>
-        <Header setIsOpen={setIsOpen} isOpen={isOpen} userName="Student" />
+      <div className={`transition-all duration-300 ${isOpen ? 'lg:ml-[250px] xl:ml-[280px] 2xl:ml-[300px]' : 'ml-0'}`}>
+        <Header setIsOpen={setIsOpen} isOpen={isOpen} />
 
-        <div className="text-[#465746] p-4 sm:p-5 md:p-6 lg:p-8">
+        {/* Main Content */}
+        <div className="p-4 sm:p-5 md:p-6 lg:p-8">
+          
           {/* Page Header */}
           <div className="mb-4 sm:mb-4">
             <div className="flex items-center mb-2">
               <img
-                src={Subject}
-                alt="Subjects"
+                src={SubjectDetailsIcon}
+                alt="SubjectDetailsIcon"
                 className="h-7 w-7 sm:h-9 sm:w-9 mr-2 sm:mr-3"
               />
-              <h1 className="font-bold text-xl sm:text-2xl lg:text-3xl">
-                Subjects
+              <h1 className="font-bold text-xl sm:text-2xl lg:text-3xl text-[#465746]">
+                Subject Details
               </h1>
             </div>
-            <p className="text-sm sm:text-base lg:text-lg">
+            <p className="text-sm sm:text-base lg:text-lg text-[#465746]">
               Academic Management
             </p>
           </div>
 
           {/* Subject Information */}
-          <div className="flex flex-col gap-2 text-sm sm:text-base lg:text-[1.125rem] mb-4 sm:mb-5">
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex flex-wrap items-center gap-1 sm:gap-3">
-                <span className="font-semibold">SUBJECT CODE:</span>
-                <span>{classInfo?.subject_code || 'Loading...'}</span>
+          <div className="flex flex-col gap-2 text-sm sm:text-base lg:text-[1.125rem] text-[#465746] mb-4 sm:mb-5">
+            <div className="flex flex-wrap items-center gap-1 sm:gap-3">
+              <span className="font-semibold">SUBJECT CODE:</span>
+              <span>{classInfo?.subject_code || subjectCode || 'Loading...'}</span>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-1 sm:gap-3">
+              <span className="font-semibold">SUBJECT:</span>
+              <span>{classInfo?.subject || 'Loading...'}</span>
+            </div>
+
+            <div className="flex items-center justify-between sm:justify-start gap-2 sm:gap-3">
+              <div className="flex items-center gap-2">
+                <span className="font-semibold">Section:</span>
+                <span>{classInfo?.section || 'Loading...'}</span>
               </div>
-              <Link to="/Subjects" className="flex-shrink-0">
+              <Link to={"/StudentClassManagement"} className="sm:hidden">
                 <img 
                   src={BackButton} 
                   alt="Back" 
-                  className="h-6 w-6 cursor-pointer hover:opacity-70 transition-opacity sm:hidden" 
+                  className="h-6 w-6 cursor-pointer hover:opacity-70 transition-opacity" 
                 />
               </Link>
-            </div>
-
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex flex-wrap items-center gap-1 sm:gap-3">
-                <span className="font-semibold">SUBJECT:</span>
-                <span>{classInfo?.subject || 'Loading...'}</span>
-              </div>
-              <div className='flex items-center gap-2 flex-shrink-0'>
-                <span className="whitespace-nowrap">2nd Semester 2024 - 2025</span>
-                <img src={ArrowDown} alt="ArrowDown" className="h-5 w-5 sm:h-6 sm:w-6" />
-              </div>
             </div>
           </div>
 
           <hr className="border-[#465746]/30 mb-5 sm:mb-6" />
 
-          {/* Filter + Search */}
-          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-5 sm:mb-6">
-            <div className="relative sm:flex-initial filter-dropdown">
-              <button
-                onClick={() => setFilterDropdownOpen(!filterDropdownOpen)}
-                className="flex items-center justify-between w-full sm:w-auto font-bold px-4 py-2.5 bg-white rounded-md shadow-md hover:border-[#00874E] transition-all text-sm sm:text-base sm:min-w-[160px] border-2 border-transparent cursor-pointer"
-              >
-                <span>{filterOption}</span>
-                <img src={ArrowDown} alt="" className={`ml-3 h-4 w-4 sm:h-5 sm:w-5 transition-transform ${filterDropdownOpen ? "rotate-180" : ""}`} />
-              </button>
-
-              {filterDropdownOpen && (
-                <div className="absolute top-full mt-2 bg-white rounded-md w-full sm:min-w-[200px] shadow-xl border border-gray-200 z-20 overflow-hidden">
-                  {/* UPDATED: Filter options - removed "Graded" and "Not graded" */}
-                  {["All", "Submitted", "Late", "Missed"].map(opt => (
-                    <button
-                      key={opt}
-                      onClick={() => { setFilterOption(opt); setFilterDropdownOpen(false); }}
-                      className={`block px-4 py-2.5 w-full text-left hover:bg-gray-200 text-sm sm:text-base cursor-pointer ${filterOption === opt ? "bg-gray-50 font-semibold" : ""}`}
-                    >
-                      {opt}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <div className="relative flex-1">
-              <input
-                type="text"
-                placeholder="Search activities..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full h-11 sm:h-12 rounded-md px-4 py-2.5 pr-12 shadow-md outline-none bg-white text-sm sm:text-base focus:border-[#00874E] border border-gray-300"
-              />
-              <button className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500">
-                <img src={Search} alt="Search" className="h-5 w-5 sm:h-6 sm:w-6" />
-              </button>
-            </div>
-          </div>
-
-          {/* Activities */}
-          <div className="space-y-4 sm:space-y-5">
-            {loading ? (
-              <div className="text-center py-12">
-                <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-[#00874E] border-r-transparent"></div>
-                <p className="mt-3 text-gray-600">Loading activities...</p>
-              </div>
-            ) : sorted.length > 0 ? (
-              sorted.map((activity) => (
+          {/* ACTIVITY CARDS */}
+          <div className="space-y-4 mt-4 sm:mt-5">
+            {activities.length === 0 ? (
+              renderEmptyState()
+            ) : (
+              activities.map((activity) => (
                 <ActivityCardStudent
                   key={activity.id}
                   activity={activity}
                   formatDate={formatDate}
+                  getStudentStatus={getStudentStatus}
+                  onMarkAsDone={handleMarkAsDone}
                 />
               ))
-            ) : (
-              <div className="text-center py-12">
-                <p className="text-gray-500 text-sm sm:text-base">
-                  {searchQuery ? "No activities match your search" : "No activities found"}
-                </p>
-              </div>
             )}
           </div>
         </div>

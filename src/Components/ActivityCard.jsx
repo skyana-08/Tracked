@@ -15,27 +15,37 @@ export default function ActivityCard({
 }) {
   const [isOpen, setIsOpen] = useState(false);
 
-  // Calculate status counts - FIXED: Use proper counting logic
+  // UPDATED: Calculate status counts based on deadline
   const getStatusCounts = () => {
     if (!activity.students || activity.students.length === 0) {
-      return { submitted: 0, late: 0, missed: 0 };
+      return { submitted: 0, late: 0, pending: 0, missed: 0 };
     }
 
     let submitted = 0;
     let late = 0;
+    let pending = 0;
     let missed = 0;
 
+    const now = new Date();
+    const deadline = new Date(activity.deadline);
+    const isDeadlinePassed = now > deadline;
+
     activity.students.forEach(student => {
-      if (student.late) {
+      const isSubmitted = student.submitted;
+      const isLate = student.late;
+
+      if (isSubmitted && isLate) {
         late++;
-      } else if (student.submitted) {
+      } else if (isSubmitted) {
         submitted++;
-      } else {
+      } else if (isDeadlinePassed) {
         missed++;
+      } else {
+        pending++;
       }
     });
 
-    return { submitted, late, missed };
+    return { submitted, late, pending, missed };
   };
 
   const statusCounts = getStatusCounts();
@@ -89,7 +99,7 @@ export default function ActivityCard({
       // Auto-mark as submitted when a grade is entered, BUT only if not already late
       if (value && value > 0) {
         const currentStudent = activity.students?.find(s => (s.user_ID || s.id) === studentId);
-        // Only auto-submit if the student doesn't already have a status (is in "missed" state)
+        // Only auto-submit if the student doesn't already have a status (is in "pending" or "missed" state)
         if (currentStudent && !currentStudent.late && !currentStudent.submitted && onSubmissionChange) {
           onSubmissionChange(studentId, 'submitted');
         }
@@ -97,8 +107,19 @@ export default function ActivityCard({
     }
   };
 
+  // UPDATED: Handle status change with deadline logic
   const handleStatusChange = (studentId, statusType) => {
     if (onSubmissionChange) {
+      const now = new Date();
+      const deadline = new Date(activity.deadline);
+      const isDeadlinePassed = now > deadline;
+
+      // Prevent changing from missed to other statuses if deadline has passed
+      if (isDeadlinePassed && statusType !== 'missed') {
+        alert("Cannot change status because the deadline has passed.");
+        return;
+      }
+
       onSubmissionChange(studentId, statusType);
       
       // FIX: Automatically set grade to 0 when marking as missed
@@ -117,10 +138,16 @@ export default function ActivityCard({
     }
   };
 
+  // UPDATED: Get student status based on deadline
   const getStudentStatus = (student) => {
+    const now = new Date();
+    const deadline = new Date(activity.deadline);
+    const isDeadlinePassed = now > deadline;
+
     if (student.late) return 'late';
     if (student.submitted) return 'submitted';
-    return 'missed';
+    if (isDeadlinePassed) return 'missed';
+    return 'pending';
   };
 
   // Format grade for display - remove .0 from whole numbers
@@ -263,7 +290,7 @@ export default function ActivityCard({
               </p>
             </div>
             
-            {/* Status Counts - Horizontal badges */}
+            {/* UPDATED: Status Counts - Added Pending badge */}
             <div className="flex flex-wrap items-center gap-2">
               <div className="flex items-center gap-1.5 bg-green-50 px-3 py-1.5 rounded-md">
                 <p className="font-semibold text-xs sm:text-sm text-[#00A15D]">Submitted:</p>
@@ -275,6 +302,12 @@ export default function ActivityCard({
                 <p className="font-semibold text-xs sm:text-sm text-[#767EE0]">Late:</p>
                 <p className="text-xs sm:text-sm text-[#767EE0]">
                   {statusCounts.late}
+                </p>
+              </div>
+              <div className="flex items-center gap-1.5 bg-blue-50 px-3 py-1.5 rounded-md">
+                <p className="font-semibold text-xs sm:text-sm text-[#3B82F6]">Pending:</p>
+                <p className="text-xs sm:text-sm text-[#3B82F6]">
+                  {statusCounts.pending}
                 </p>
               </div>
               <div className="flex items-center gap-1.5 bg-red-50 px-3 py-1.5 rounded-md">
@@ -336,6 +369,7 @@ export default function ActivityCard({
                   </th>
                   <th className="p-2 text-center text-[#00A15D]">Submitted</th>
                   <th className="p-2 text-center text-[#767EE0]">Late</th>
+                  <th className="p-2 text-center text-[#3B82F6]">Pending</th>
                   <th className="p-2 text-center text-[#EF4444]">Missed</th>
                 </tr>
               </thead>
@@ -344,6 +378,10 @@ export default function ActivityCard({
                   activity.students.map((student) => {
                     const currentStatus = getStudentStatus(student);
                     const gradeExceeded = isGradeExceeded(student.grade);
+                    const now = new Date();
+                    const deadline = new Date(activity.deadline);
+                    const isDeadlinePassed = now > deadline;
+                    
                     // FIX: Include activity ID in the radio name to make it unique per activity
                     const radioName = `status-${activity.id}-${student.user_ID || student.id}`;
                     
@@ -373,7 +411,7 @@ export default function ActivityCard({
                                     handleStatusChange(student.user_ID || student.id, 'submitted');
                                   }
                                 }}
-                                disabled={!isEditing}
+                                disabled={!isEditing || (isDeadlinePassed && currentStatus === 'missed')}
                                 max={activity.points || 100}
                                 min="0"
                                 step="1"
@@ -400,7 +438,7 @@ export default function ActivityCard({
                             className="appearance-none w-5 h-5 sm:w-6 sm:h-6 border-2 border-[#00A15D] rounded-md checked:bg-[#00A15D] cursor-pointer disabled:cursor-not-allowed"
                             checked={currentStatus === 'submitted'}
                             onChange={() => handleStatusChange(student.user_ID || student.id, 'submitted')}
-                            disabled={!isEditing}
+                            disabled={!isEditing || (isDeadlinePassed && currentStatus === 'missed')}
                           />
                         </td>
                         
@@ -412,7 +450,19 @@ export default function ActivityCard({
                             className="appearance-none w-5 h-5 sm:w-6 sm:h-6 border-2 border-[#767EE0] rounded-md checked:bg-[#767EE0] cursor-pointer disabled:cursor-not-allowed"
                             checked={currentStatus === 'late'}
                             onChange={() => handleStatusChange(student.user_ID || student.id, 'late')}
-                            disabled={!isEditing}
+                            disabled={!isEditing || (isDeadlinePassed && currentStatus === 'missed')}
+                          />
+                        </td>
+                        
+                        {/* Pending */}
+                        <td className="p-2 text-center w-10">
+                          <input
+                            type="radio"
+                            name={radioName}
+                            className="appearance-none w-5 h-5 sm:w-6 sm:h-6 border-2 border-[#3B82F6] rounded-md checked:bg-[#3B82F6] cursor-pointer disabled:cursor-not-allowed"
+                            checked={currentStatus === 'pending'}
+                            onChange={() => handleStatusChange(student.user_ID || student.id, 'pending')}
+                            disabled={!isEditing || isDeadlinePassed}
                           />
                         </td>
                         
@@ -432,7 +482,7 @@ export default function ActivityCard({
                   })
                 ) : (
                   <tr>
-                    <td colSpan="6" className="p-4 text-center text-gray-500 text-xs sm:text-sm">
+                    <td colSpan="7" className="p-4 text-center text-gray-500 text-xs sm:text-sm">
                       No students found for this activity.
                     </td>
                   </tr>
@@ -463,7 +513,7 @@ export default function ActivityCard({
                 >
                   Edit School Works
                 </button>
-                {statusCounts.missed > 0 && hasStudents && (
+                {(statusCounts.pending > 0 || statusCounts.missed > 0) && hasStudents && (
                   <button 
                     onClick={handleMarkAllSubmitted}
                     className="w-full sm:w-auto px-4 py-2 bg-[#00A15D] text-[#fff] text-sm sm:text-base font-semibold rounded-md border-transparent border-2 hover:border-[#007846] transition-all duration-200 cursor-pointer"

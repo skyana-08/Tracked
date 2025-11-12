@@ -83,7 +83,7 @@ try {
 
     $user = $result->fetch_assoc();
     $userId = $user["tracked_ID"];
-    $userName = $user["tracked_firstname"] . ' ' . $user["tracked_lastnameme"];
+    $userName = $user["tracked_firstname"] . ' ' . $user["tracked_lastname"];
 
     $token = bin2hex(random_bytes(32));
     $expiry = date("Y-m-d H:i:s", strtotime("+24 hours"));

@@ -47,7 +47,7 @@ export default function DashboardProf() {
               if (data.success) {
                 setUserData(data.user);
                 // Set username from database
-                const fullName = `${data.user.tracked_fname} ${data.user.tracked_lname}`;
+                const fullName = `${data.user.tracked_firstname} ${data.user.tracked_lastname}`;
                 setUserName(fullName);
                 
                 // Set email from database

@@ -71,7 +71,7 @@ try {
     $pdo->beginTransaction();
 
     try {
-        // Remove student from student_classes table (set as archived)
+        // Remove student from student_classes table
         $removeEnrollmentStmt = $pdo->prepare("
             DELETE FROM student_classes 
             WHERE student_ID = ? AND subject_code = ?
@@ -98,16 +98,7 @@ try {
 
         echo json_encode([
             "success" => true, 
-            "message" => "Student removed successfully",
-            "debug" => [
-                "student_ID" => $student_ID,
-                "student_name" => $student_name,
-                "subject_code" => $subject_code,
-                "professor_ID" => $professor_ID,
-                "enrollment_removed" => $removeEnrollmentStmt->rowCount(),
-                "attendance_records_removed" => $removeAttendanceStmt->rowCount(),
-                "activity_grades_removed" => $removeGradesStmt->rowCount()
-            ]
+            "message" => "Student removed successfully"
         ]);
 
     } catch (Exception $e) {

@@ -32,7 +32,9 @@ if (empty($subject_code) || empty($professor_ID)) {
 try {
     // Get all students enrolled in this class from tracked_users
     $enrolledStmt = $pdo->prepare("
-        SELECT t.tracked_ID as user_ID, CONCAT(t.tracked_firstname, ' ', t.tracked_lastname) as user_Name
+        SELECT t.tracked_ID as user_ID, 
+               CONCAT(t.tracked_firstname, ' ', t.tracked_lastname) as user_Name,
+               t.tracked_yearandsec
         FROM tracked_users t
         INNER JOIN student_classes sc ON t.tracked_ID = sc.student_ID
         WHERE sc.subject_code = ? AND sc.archived = 0
@@ -65,7 +67,9 @@ try {
         
         // Get attendance records for this date using tracked_users
         $attendanceStmt = $pdo->prepare("
-            SELECT a.student_ID, a.status, CONCAT(t.tracked_firstname, ' ', t.tracked_lastname) as user_Name 
+            SELECT a.student_ID, a.status, 
+                   CONCAT(t.tracked_firstname, ' ', t.tracked_lastname) as user_Name,
+                   t.tracked_yearandsec
             FROM attendance a 
             JOIN tracked_users t ON a.student_ID = t.tracked_ID 
             WHERE a.subject_code = ? AND a.professor_ID = ? AND a.attendance_date = ?
@@ -93,6 +97,7 @@ try {
                 $completeStudentList[] = [
                     'student_ID' => $studentId,
                     'user_Name' => $enrolledStudent['user_Name'],
+                    'tracked_yearandsec' => $enrolledStudent['tracked_yearandsec'],
                     'status' => 'absent' // Default status for missing records
                 ];
             }
@@ -115,14 +120,7 @@ try {
 
     echo json_encode([
         "success" => true,
-        "attendance_history" => $attendance_history,
-        "debug" => [
-            "subject_code" => $subject_code,
-            "professor_ID" => $professor_ID,
-            "total_enrolled_students" => count($allEnrolledStudents),
-            "total_attendance_dates" => count($dates),
-            "enrolled_students" => $allEnrolledStudents
-        ]
+        "attendance_history" => $attendance_history
     ]);
 
 } catch (Exception $e) {

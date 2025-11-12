@@ -1,4 +1,10 @@
 <?php
+// Add extensive error reporting at the very top
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+ini_set('log_errors', 1);
+
+// Headers must come before any output
 header('Content-Type: application/json');
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: POST, GET, OPTIONS');
@@ -89,14 +95,14 @@ try {
         try {
             $gradeStmt->execute([
                 $activity_ID,
-                $student['tracked_ID'], // Use tracked_ID from tracked_users table
+                $student['user_ID'], // Fixed: use user_ID instead of tracked_ID
                 null, // initial grade is null
                 false, // initial submitted status is false
                 false  // initial late status is false
             ]);
             $studentsAdded++;
         } catch (Exception $e) {
-            error_log("Error adding student {$student['tracked_ID']} to activity: " . $e->getMessage());
+            error_log("Error adding student {$student['user_ID']} to activity: " . $e->getMessage());
             // Continue with other students even if one fails
             continue;
         }
@@ -107,7 +113,7 @@ try {
     // Prepare student data for response
     $studentsWithData = array_map(function($student) {
         return [
-            'user_ID' => $student['tracked_ID'],
+            'user_ID' => $student['user_ID'],
             'user_Name' => $student['user_Name'],
             'grade' => null,
             'submitted' => false,

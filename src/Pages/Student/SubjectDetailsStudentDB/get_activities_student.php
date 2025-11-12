@@ -40,7 +40,7 @@ try {
         exit;
     }
 
-    // Get activities for this subject with formatted deadline
+    // Get activities for this subject with formatted deadline - REMOVED GRADE FROM SELECT
     $stmt = $pdo->prepare("
         SELECT 
             a.id,
@@ -54,12 +54,9 @@ try {
             DATE_FORMAT(a.deadline, '%Y-%m-%d %H:%i:%s') as deadline,
             a.created_at,
             a.updated_at,
-            ag.grade, 
-            ag.submitted, 
-            ag.late, 
-            ag.submitted_at,
-            -- Use the school_work_edited column instead of the calculated is_edited
-            a.school_work_edited as is_edited
+            COALESCE(ag.submitted, 0) as submitted, 
+            COALESCE(ag.late, 0) as late, 
+            ag.submitted_at
         FROM activities a 
         LEFT JOIN activity_grades ag ON a.id = ag.activity_ID AND ag.student_ID = ?
         WHERE a.subject_code = ? AND (a.archived = 0 OR a.archived IS NULL)

@@ -36,36 +36,23 @@ if (empty($input['subject_code']) || empty($input['professor_ID']) || empty($inp
 try {
     $pdo->beginTransaction();
 
-    // Check if attendance already exists for this date and subject
-    $checkStmt = $pdo->prepare("SELECT id FROM attendance WHERE subject_code = ? AND attendance_date = ? LIMIT 1");
-    $checkStmt->execute([$input['subject_code'], $input['attendance_date']]);
-    $existingRecord = $checkStmt->fetch(PDO::FETCH_ASSOC);
+    // First, delete existing attendance records for this date and subject
+    $deleteStmt = $pdo->prepare("DELETE FROM attendance WHERE subject_code = ? AND attendance_date = ?");
+    $deleteStmt->execute([$input['subject_code'], $input['attendance_date']]);
 
-    if ($existingRecord) {
-        // Update existing attendance records
-        $updateStmt = $pdo->prepare("UPDATE attendance SET status = ? WHERE subject_code = ? AND attendance_date = ? AND student_ID = ?");
-        
-        foreach ($input['attendance_records'] as $record) {
-            $updateStmt->execute([
-                $record['status'],
-                $input['subject_code'],
-                $input['attendance_date'],
-                $record['student_ID']
-            ]);
-        }
-    } else {
-        // Insert new attendance records
-        $insertStmt = $pdo->prepare("INSERT INTO attendance (subject_code, professor_ID, attendance_date, student_ID, status) VALUES (?, ?, ?, ?, ?)");
-        
-        foreach ($input['attendance_records'] as $record) {
-            $insertStmt->execute([
-                $input['subject_code'],
-                $input['professor_ID'],
-                $input['attendance_date'],
-                $record['student_ID'],
-                $record['status']
-            ]);
-        }
+    // Insert new attendance records
+    $insertStmt = $pdo->prepare("INSERT INTO attendance (subject_code, professor_ID, attendance_date, student_ID, status) VALUES (?, ?, ?, ?, ?)");
+    
+    $recordsSaved = 0;
+    foreach ($input['attendance_records'] as $record) {
+        $insertStmt->execute([
+            $input['subject_code'],
+            $input['professor_ID'],
+            $input['attendance_date'],
+            $record['student_ID'],
+            $record['status']
+        ]);
+        $recordsSaved++;
     }
 
     $pdo->commit();
@@ -73,11 +60,7 @@ try {
     echo json_encode([
         "success" => true,
         "message" => "Attendance saved successfully",
-        "debug" => [
-            "subject_code" => $input['subject_code'],
-            "attendance_date" => $input['attendance_date'],
-            "records_saved" => count($input['attendance_records'])
-        ]
+        "records_saved" => $recordsSaved
     ]);
 
 } catch (Exception $e) {

@@ -59,7 +59,6 @@ export default function VerifyAcc() {
     }
 
     try {
-      // Update this URL to match your backend location
       const response = await fetch("http://localhost/TrackEd/src/Pages/Landing/VerifyAcc.php", {
         method: "POST",
         headers: {
@@ -71,7 +70,18 @@ export default function VerifyAcc() {
         }),
       });
 
-      const data = await response.json();
+      // Get the response text first
+      const responseText = await response.text();
+      
+      let data;
+      try {
+        // Try to parse as JSON
+        data = JSON.parse(responseText);
+      } catch (parseError) {
+        // If parsing fails, it's likely an HTML error page
+        console.error("Failed to parse JSON:", responseText);
+        throw new Error("Server returned an invalid response. Please try again.");
+      }
 
       if (response.ok && data.success) {
         setMessage({ 
@@ -90,7 +100,7 @@ export default function VerifyAcc() {
     } catch (error) {
       setMessage({ 
         type: "error", 
-        text: "Connection error. Please try again later." 
+        text: error.message || "Connection error. Please try again later." 
       });
       console.error("Error:", error);
     } finally {

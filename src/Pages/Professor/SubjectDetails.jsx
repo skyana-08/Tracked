@@ -117,65 +117,89 @@ export default function SubjectDetails() {
     }
   };
 
-  const handleCreateActivity = async () => {
-    // Validate required fields
-    if (!activityType || !taskNumber || !title) {
-      alert("Please fill in all required fields (Activity Type, Task Number, and Title)");
+const handleCreateActivity = async () => {
+  // Validate required fields
+  if (!activityType || !taskNumber || !title) {
+    alert("Please fill in all required fields (Activity Type, Task Number, and Title)");
+    return;
+  }
+
+  try {
+    const professorId = getProfessorId();
+    const activityData = {
+      subject_code: subjectCode,
+      professor_ID: professorId,
+      activity_type: activityType,
+      task_number: taskNumber,
+      title: title,
+      instruction: instruction,
+      link: link,
+      points: points || 0,
+      deadline: deadline
+    };
+
+    console.log('Creating activity with data:', activityData);
+
+    const response = await fetch('http://localhost/TrackEd/src/Pages/Professor/SubjectDetailsDB/create_activity.php', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(activityData)
+    });
+
+    // Get the raw response text first
+    const rawResponse = await response.text();
+    console.log('Raw response from server:', rawResponse);
+    console.log('Response status:', response.status);
+    console.log('Response OK:', response.ok);
+
+    // Check if response looks like HTML/error
+    if (rawResponse.trim().startsWith('<') || rawResponse.includes('<br />') || rawResponse.includes('<!DOCTYPE')) {
+      console.error('Server returned HTML instead of JSON. This indicates a PHP error.');
+      alert('Server error: Please check the PHP error logs');
       return;
     }
 
+    // Try to parse as JSON
+    let result;
     try {
-      const professorId = getProfessorId();
-      const activityData = {
-        subject_code: subjectCode,
-        professor_ID: professorId,
-        activity_type: activityType,
-        task_number: taskNumber,
-        title: title,
-        instruction: instruction,
-        link: link,
-        points: points || 0,
-        deadline: deadline
-      };
-
-      console.log('Creating activity with data:', activityData);
-
-      const response = await fetch('http://localhost/TrackEd/src/Pages/Professor/SubjectDetailsDB/create_activity.php', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(activityData)
-      });
-
-      const result = await response.json();
-      console.log('Create activity response:', result);
-
-      if (result.success) {
-        await fetchActivities();
-        
-        setActivityType("");
-        setTaskNumber("");
-        setTitle("");
-        setInstruction("");
-        setLink("");
-        setPoints("");
-        setDeadline("");
-        setShowCreateModal(false);
-        
-        setShowSuccessModal(true);
-        
-        setTimeout(() => {
-          setShowSuccessModal(false);
-        }, 2000);
-      } else {
-        alert('Error creating activity: ' + result.message);
-      }
-    } catch (error) {
-      console.error('Error creating activity:', error);
-      alert('Error creating activity. Please try again.');
+      result = JSON.parse(rawResponse);
+    } catch (parseError) {
+      console.error('JSON parse error:', parseError);
+      console.error('Raw response that failed to parse:', rawResponse);
+      alert('Server returned invalid JSON. Check console for details.');
+      return;
     }
-  };
+
+    console.log('Parsed result:', result);
+
+    if (result.success) {
+      await fetchActivities();
+      
+      // Reset form fields
+      setActivityType("");
+      setTaskNumber("");
+      setTitle("");
+      setInstruction("");
+      setLink("");
+      setPoints("");
+      setDeadline("");
+      setShowCreateModal(false);
+      
+      setShowSuccessModal(true);
+      
+      setTimeout(() => {
+        setShowSuccessModal(false);
+      }, 2000);
+    } else {
+      alert('Error creating activity: ' + result.message);
+    }
+  } catch (error) {
+    console.error('Network error creating activity:', error);
+    alert('Network error creating activity. Please try again.');
+  }
+};
 
   const handleEditSchoolWork = (activity) => {
     setEditingActivity(activity);
