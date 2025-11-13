@@ -100,19 +100,19 @@ export default function ProfileProf() {
                   {/* First Name */}
                   <div className="flex flex-col sm:grid sm:grid-cols-2 gap-1 text-sm sm:text-base md:text-lg">
                     <span className="font-medium text-gray-600">First Name :</span>
-                    <span>{userData?.tracked_fname || "N/A"}</span>
+                    <span>{userData?.tracked_firstname || "N/A"}</span>
                   </div>
 
                   {/* Middle Initial */}
                   <div className="flex flex-col sm:grid sm:grid-cols-2 gap-1 text-sm sm:text-base md:text-lg">
                     <span className="font-medium text-gray-600">Middle Initial :</span>
-                    <span>{userData?.tracked_mi ? `${userData.tracked_mi}.` : "N/A"}</span>
+                    <span>{userData?.tracked_middlename ? `${userData.tracked_middlename}` : "N/A"}</span>
                   </div>
 
                   {/* Last Name */}
                   <div className="flex flex-col sm:grid sm:grid-cols-2 gap-1 text-sm sm:text-base md:text-lg">
                     <span className="font-medium text-gray-600">Last Name :</span>
-                    <span>{userData?.tracked_lname || "N/A"}</span>
+                    <span>{userData?.tracked_lastname || "N/A"}</span>
                   </div>
 
                   {/* Sex */}

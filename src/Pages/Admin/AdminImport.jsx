@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 
 import Sidebar from "../../Components/Sidebar";
@@ -24,14 +24,106 @@ export default function AdminImport() {
   const [showActivateModal, setShowActivateModal] = useState(false);
   const [showResultModal, setShowResultModal] = useState(false);
   const [resultData, setResultData] = useState({ type: "", title: "", message: "" });
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [importFile, setImportFile] = useState(null);
+  const [isImporting, setIsImporting] = useState(false);
+
+  const fileInputRef = useRef(null);
 
   // Fetch Professors and Students
   useEffect(() => {
+    fetchUsers();
+  }, []);
+
+  const fetchUsers = () => {
     fetch("http://localhost/TrackEd/src/Pages/Admin/AdminImportDB/get_users.php")
       .then((res) => res.json())
       .then((data) => setUsers(data))
       .catch((err) => console.error(err));
-  }, []);
+  };
+
+  const handleImportDatabase = () => {
+    setShowImportModal(true);
+  };
+
+  const handleFileSelect = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      // Check if file is SQL
+      if (file.name.endsWith('.sql') || file.type === 'application/sql') {
+        setImportFile(file);
+      } else {
+        setResultData({
+          type: "error",
+          title: "Invalid File!",
+          message: "Please select a valid SQL file."
+        });
+        setShowResultModal(true);
+      }
+    }
+  };
+
+  const triggerFileInput = () => {
+    fileInputRef.current?.click();
+  };
+
+  const confirmImportDatabase = () => {
+    if (!importFile) {
+      setResultData({
+        type: "error",
+        title: "No File Selected!",
+        message: "Please select an SQL file to import."
+      });
+      setShowResultModal(true);
+      return;
+    }
+
+    setIsImporting(true);
+    const formData = new FormData();
+    formData.append("sqlFile", importFile);
+
+    fetch("http://localhost/TrackEd/src/Pages/Admin/AdminImportDB/import_data.php", {
+      method: "POST",
+      body: formData,
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success) {
+          setResultData({
+            type: "success",
+            title: "Import Successful!",
+            message: data.message
+          });
+          // Refresh the user list after successful import
+          fetchUsers();
+        } else {
+          setResultData({
+            type: "error",
+            title: "Import Failed!",
+            message: data.message + (data.details ? `\n\nErrors: ${data.details.join(', ')}` : '')
+          });
+        }
+        setShowResultModal(true);
+      })
+      .catch((err) => {
+        console.error("Error importing database:", err);
+        setResultData({
+          type: "error",
+          title: "Network Error!",
+          message: "An error occurred while importing the database. Please try again."
+        });
+        setShowResultModal(true);
+      })
+      .finally(() => {
+        setIsImporting(false);
+        setShowImportModal(false);
+        setImportFile(null);
+        // Reset file input
+        if (fileInputRef.current) {
+          fileInputRef.current.value = '';
+        }
+      });
+  };
 
   const handleActivateAccounts = () => {
     setShowActivateModal(true);
@@ -44,7 +136,6 @@ export default function AdminImport() {
     })
       .then((res) => res.json())
       .then((data) => {
-        // Show result modal instead of alert
         if (data.status === "success") {
           setResultData({
             type: "success",
@@ -127,6 +218,15 @@ export default function AdminImport() {
       >
         <Header setIsOpen={setIsOpen} isOpen={isOpen} />
 
+        {/* Hidden file input */}
+        <input
+          type="file"
+          ref={fileInputRef}
+          onChange={handleFileSelect}
+          accept=".sql,application/sql"
+          className="hidden"
+        />
+
         {/* content of ADMIN IMPORT */}
         <div className="p-4 sm:p-5 md:p-6 lg:p-8">
           {/* "Header" */}
@@ -181,12 +281,11 @@ export default function AdminImport() {
                 )}
               </div>
 
-              <button className="font-bold px-3 sm:px-4 py-2 bg-[#fff] rounded-md shadow-md border-2 border-transparent hover:border-[#00874E] text-xs sm:text-sm lg:text-base whitespace-nowrap transition-all duration-200 cursor-pointer">
+              <button 
+                onClick={handleImportDatabase}
+                className="font-bold px-3 sm:px-4 py-2 bg-[#fff] rounded-md shadow-md border-2 border-transparent hover:border-[#00874E] text-xs sm:text-sm lg:text-base whitespace-nowrap transition-all duration-200 cursor-pointer"
+              >
                 Import Database
-              </button>
-
-              <button className="font-bold px-3 sm:px-4 py-2 bg-[#fff] rounded-md shadow-md border-2 border-transparent hover:border-[#00874E] text-xs sm:text-sm lg:text-base transition-all duration-200 cursor-pointer">
-                Backup
               </button>
 
               <button
@@ -357,6 +456,99 @@ export default function AdminImport() {
         </div>
       </div>
 
+      {/* Import Database Modal */}
+      {showImportModal && (
+        <div
+          className="fixed inset-0 bg-black/50 flex justify-center items-center z-50 overlay-fade p-4"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setShowImportModal(false);
+            }
+          }}
+          role="dialog"
+          aria-modal="true"
+        >
+          <div className="bg-white text-black rounded-lg shadow-2xl w-full max-w-sm sm:max-w-md p-6 sm:p-8 relative modal-pop">
+            <div className="text-center">
+              {/* Import Icon */}
+              <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-blue-100 mb-4">
+                <img 
+                  src={Import} 
+                  alt="Import" 
+                  className="h-8 w-8" 
+                />
+              </div>
+
+              <h3 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">
+                Import Database
+              </h3>
+              
+              <div className="mt-4 mb-6">
+                <p className="text-sm text-gray-600 mb-4">
+                  Select an SQL file to import into the database. This will replace existing data with matching primary keys.
+                </p>
+                
+                <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 mb-4">
+                  {importFile ? (
+                    <div className="text-center">
+                      <p className="text-green-600 font-semibold">✓ File Selected</p>
+                      <p className="text-sm text-gray-600 mt-1">{importFile.name}</p>
+                      <p className="text-xs text-gray-500">{(importFile.size / 1024).toFixed(2)} KB</p>
+                    </div>
+                  ) : (
+                    <div className="text-center">
+                      <p className="text-gray-500">No file selected</p>
+                      <p className="text-xs text-gray-400 mt-1">Click below to choose an SQL file</p>
+                    </div>
+                  )}
+                </div>
+
+                <button
+                  onClick={triggerFileInput}
+                  className="w-full bg-gray-100 hover:bg-gray-200 text-gray-800 font-bold py-3 rounded-md transition-all duration-200 cursor-pointer border-2 border-dashed border-gray-300"
+                >
+                  Choose SQL File
+                </button>
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-3">
+                <button
+                  onClick={() => {
+                    setShowImportModal(false);
+                    setImportFile(null);
+                  }}
+                  className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-3 rounded-md transition-all duration-200 cursor-pointer"
+                  disabled={isImporting}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmImportDatabase}
+                  className="flex-1 bg-[#00A15D] hover:bg-[#00874E] text-white font-bold py-3 rounded-md transition-all duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={!importFile || isImporting}
+                >
+                  {isImporting ? "Importing..." : "Import Database"}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <style>{`
+            .overlay-fade { animation: overlayFade .18s ease-out both; }
+            @keyframes overlayFade { from { opacity: 0 } to { opacity: 1 } }
+
+            .modal-pop {
+              transform-origin: top center;
+              animation: popIn .22s cubic-bezier(.2,.8,.2,1) both;
+            }
+            @keyframes popIn {
+              from { opacity: 0; transform: translateY(-8px) scale(.98); }
+              to   { opacity: 1; transform: translateY(0)   scale(1);    }
+            }
+          `}</style>
+        </div>
+      )}
+
       {/* Activate Accounts Confirmation Modal */}
       {showActivateModal && (
         <div
@@ -468,17 +660,25 @@ export default function AdminImport() {
                 {resultData.type === "success" && (
                   <div className="bg-gray-50 rounded-lg p-4 text-left">
                     <p className="text-base sm:text-lg font-semibold text-gray-900">
-                      Accounts have been activated successfully
+                      {resultData.title.includes("Import") ? "Database imported successfully!" : "Accounts have been activated successfully"}
                     </p>
                     <p className="text-sm text-gray-600 mt-2">
                       • Total users processed: {users.length}
                     </p>
-                    <p className="text-sm text-gray-600">
-                      • Emails sent with temporary passwords
-                    </p>
-                    <p className="text-sm text-gray-600">
-                      • Users can now login with their temporary credentials
-                    </p>
+                    {resultData.title.includes("Import") ? (
+                      <p className="text-sm text-gray-600">
+                        • Data has been successfully imported into the database
+                      </p>
+                    ) : (
+                      <>
+                        <p className="text-sm text-gray-600">
+                          • Emails sent with temporary passwords
+                        </p>
+                        <p className="text-sm text-gray-600">
+                          • Users can now login with their temporary credentials
+                        </p>
+                      </>
+                    )}
                   </div>
                 )}
                 {resultData.type === "error" && (
@@ -492,6 +692,11 @@ export default function AdminImport() {
                     <p className="text-sm text-gray-600">
                       • Verify the database connection
                     </p>
+                    {resultData.title.includes("Import") && (
+                      <p className="text-sm text-gray-600">
+                        • Ensure the SQL file is valid and properly formatted
+                      </p>
+                    )}
                   </div>
                 )}
               </div>

@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Nov 12, 2025 at 09:07 AM
+-- Generation Time: Nov 13, 2025 at 08:50 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -44,23 +44,6 @@ CREATE TABLE `activities` (
   `school_work_edited` tinyint(1) DEFAULT 0
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
---
--- Dumping data for table `activities`
---
-
-INSERT INTO `activities` (`id`, `subject_code`, `professor_ID`, `activity_type`, `task_number`, `title`, `instruction`, `link`, `points`, `deadline`, `created_at`, `updated_at`, `archived`, `school_work_edited`) VALUES
-(53, 'DQ1766', '202210602', 'Assignment', 'Assignment', 'Song lyricist', 'Create a musicalkhfilubawlb', '', 10, '2025-11-12 20:45:00', '2025-11-11 12:47:49', '2025-11-11 12:47:49', 0, 0),
-(54, 'DQ1766', '202210602', 'Assignment', 'Assignment 2', 'Songerist', 'dubi dubi duwa', '', 20, '2025-11-13 20:58:00', '2025-11-11 12:58:14', '2025-11-11 13:15:59', 1, 0),
-(55, 'DQ1766', '202210602', 'Assignment', 'Assignment 2', 'Songerist', 'dubi dubi duwa', '', 20, '2025-11-13 20:58:00', '2025-11-11 12:58:18', '2025-11-11 13:15:54', 1, 0),
-(56, 'DQ1766', '202210602', 'Activity', 'Activity 1', 'Dance and Sing', 'Sing along with Elsa.', '', 30, '2025-11-14 22:52:00', '2025-11-11 14:52:26', '2025-11-11 14:52:26', 0, 0),
-(57, 'DQ1766', '202210602', 'Project', 'Project 1', 'Idol Project', 'Do a concert', '', 50, '2025-11-14 23:06:00', '2025-11-11 15:06:31', '2025-11-11 15:06:31', 0, 0),
-(58, 'DQ1766', '202210602', 'Laboratory', 'Laboratory 1', 'Lab Live', 'work as a team and produce a concert worthy of your fans', '', 50, '2025-11-17 06:42:00', '2025-11-11 22:42:15', '2025-11-11 22:42:15', 0, 0),
-(59, 'DQ1766', '202210602', 'Assignment', 'Assignment 5', 'Cover Up', 'Produce a cover song of a famous song', '', 30, '2025-11-19 07:40:00', '2025-11-11 23:40:19', '2025-11-11 23:40:19', 0, 0),
-(60, 'DQ1766', '202210602', 'Laboratory', 'Laboratory 2', 'Anonymous Concerto', 'Produce your own concert without the help of your agency', '', 30, '2025-11-20 08:04:00', '2025-11-12 00:04:55', '2025-11-12 00:04:55', 0, 0),
-(61, 'DQ1766', '202210602', 'Laboratory', 'Laboratory 3', 'Actingerist', 'Be more than just an Idol', '', 50, '2025-11-15 09:06:00', '2025-11-12 01:06:08', '2025-11-12 01:06:08', 0, 0),
-(62, 'DQ1766', '202210602', 'Laboratory', 'Laboratory 4', 'Musical Heart', 'Create a song that brings out your soul', '', 40, '2025-11-18 09:39:00', '2025-11-12 01:39:20', '2025-11-12 01:39:20', 0, 0),
-(63, 'DQ1766', '202210602', 'Laboratory', 'Laboratory 5', 'Dance the night away', 'Produce a dance concert under the moonlight using the custom Lily pad lake stage', '', 60, '2025-11-18 10:20:00', '2025-11-12 02:20:45', '2025-11-12 02:20:45', 0, 0);
-
 -- --------------------------------------------------------
 
 --
@@ -78,23 +61,6 @@ CREATE TABLE `activity_grades` (
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- Dumping data for table `activity_grades`
---
-
-INSERT INTO `activity_grades` (`id`, `activity_ID`, `student_ID`, `grade`, `submitted`, `submitted_at`, `late`, `created_at`, `updated_at`) VALUES
-(317, 53, '202210718', 10.00, 1, '2025-11-11 12:57:28', 0, '2025-11-11 12:56:36', '2025-11-11 12:57:28'),
-(319, 55, '202210718', 0.00, 0, NULL, 0, '2025-11-11 13:03:48', '2025-11-11 13:07:47'),
-(321, 54, '202210718', NULL, 0, NULL, 0, '2025-11-11 13:03:48', '2025-11-11 13:03:48'),
-(323, 56, '202210718', NULL, 0, NULL, 0, '2025-11-11 15:05:11', '2025-11-11 15:05:11'),
-(325, 57, '202210718', NULL, 0, NULL, 0, '2025-11-11 15:06:31', '2025-11-11 15:06:31'),
-(327, 58, '202210718', NULL, 0, NULL, 0, '2025-11-11 22:42:15', '2025-11-11 22:42:15'),
-(329, 59, '202210718', NULL, 0, NULL, 0, '2025-11-11 23:40:19', '2025-11-11 23:40:19'),
-(331, 60, '202210718', NULL, 0, NULL, 0, '2025-11-12 00:04:55', '2025-11-12 00:04:55'),
-(333, 61, '202210718', NULL, 0, NULL, 0, '2025-11-12 01:06:08', '2025-11-12 01:06:08'),
-(335, 62, '202210718', NULL, 0, NULL, 0, '2025-11-12 01:39:20', '2025-11-12 01:39:20'),
-(337, 63, '202210718', 50.00, 1, '2025-11-12 06:42:02', 0, '2025-11-12 02:20:45', '2025-11-12 06:42:02');
 
 -- --------------------------------------------------------
 
@@ -114,13 +80,6 @@ CREATE TABLE `announcements` (
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
---
--- Dumping data for table `announcements`
---
-
-INSERT INTO `announcements` (`announcement_ID`, `professor_ID`, `classroom_ID`, `title`, `description`, `link`, `deadline`, `created_at`, `updated_at`) VALUES
-(15, '202210602', 'DQ1766', 'SIngerist', 'Baby SHark doo doo', NULL, '2025-11-19 14:43:00', '2025-11-12 06:43:48', '2025-11-12 06:43:48');
-
 -- --------------------------------------------------------
 
 --
@@ -138,13 +97,6 @@ CREATE TABLE `attendance` (
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
---
--- Dumping data for table `attendance`
---
-
-INSERT INTO `attendance` (`id`, `subject_code`, `professor_ID`, `attendance_date`, `student_ID`, `status`, `created_at`, `updated_at`) VALUES
-(43, 'DQ1766', '202210602', '2025-11-12', '202210718', 'present', '2025-11-12 06:42:44', '2025-11-12 06:42:44');
-
 -- --------------------------------------------------------
 
 --
@@ -161,13 +113,6 @@ CREATE TABLE `classes` (
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   `status` varchar(10) NOT NULL DEFAULT 'Active'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- Dumping data for table `classes`
---
-
-INSERT INTO `classes` (`subject_code`, `year_level`, `subject`, `section`, `professor_ID`, `created_at`, `updated_at`, `status`) VALUES
-('DQ1766', '1st Year', 'Song Class', 'A', '202210602', '2025-11-11 07:21:11', '2025-11-11 07:21:11', 'Active');
 
 -- --------------------------------------------------------
 
@@ -199,13 +144,6 @@ CREATE TABLE `student_classes` (
   `archived_at` timestamp NULL DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
---
--- Dumping data for table `student_classes`
---
-
-INSERT INTO `student_classes` (`id`, `student_ID`, `subject_code`, `enrolled_at`, `archived`, `archived_at`) VALUES
-(8, '202210718', 'DQ1766', '2025-11-11 07:29:15', 0, NULL);
-
 -- --------------------------------------------------------
 
 --
@@ -228,20 +166,21 @@ CREATE TABLE `tracked_users` (
   `tracked_phone` varchar(15) DEFAULT NULL,
   `tracked_Status` varchar(10) NOT NULL DEFAULT 'Active',
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
-  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `temporary_password` varchar(255) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `tracked_users`
 --
 
-INSERT INTO `tracked_users` (`tracked_ID`, `tracked_Role`, `tracked_email`, `tracked_password`, `tracked_firstname`, `tracked_lastname`, `tracked_middlename`, `tracked_program`, `tracked_yearandsec`, `tracked_semester`, `tracked_bday`, `tracked_gender`, `tracked_phone`, `tracked_Status`, `created_at`, `updated_at`) VALUES
-('12345', 'Admin', 'ic.brielle.balatayo@cvsu.edu.ph', '$2y$10$B3yrvzrWdNFmq.e0rS/u6eVStEKlWSPpv/idHypuZhPQoWgi5oCy2', 'Brielle Edrian', 'Balatayo', 'Ana', 'Not Applicable', 'Not Applicable', 'Not Applicable', '2002-08-18', 'Male', '9153406553', 'Active', '2025-11-10 18:51:38', '2025-11-12 07:55:29'),
-('202210602', 'Professor', 'ic.dhenizekristafaith.lopez@cvsu.edu.ph', '$2y$10$6H/SCZLMwlKwVb2ellhE8OJ4D154dE8MWKUrGWeKoQ0mmNClE3Qbe', 'Dhenize Krista Faith', 'Lopez', 'Cabardo', 'Information Technology', 'Not Applicable', 'Not Applicable', '2004-11-24', 'Male', '9988262316', 'Active', '2025-11-10 18:51:38', '2025-11-12 07:55:34'),
-('202210718', 'Student', 'ic.michaelrhoi.gonzales@cvsu.edu.ph', '$2y$10$IzdNzXPizuoPIR3oWMvbC.igOyWkjUVq6yFm6F1O1b/LY1ITDw7XK', 'Michael Rhoi', 'Gonzales', 'Ladrica', 'BSIT', '4D', 'FIRST', '2004-06-20', 'Female', '9085527790', 'Active', '2025-11-12 06:13:21', '2025-11-12 07:55:42'),
-('202210784', 'Student', 'ic.jeannen.basay@cvsu.edu.ph', '$2y$10$QwgY/r6MrhcjlMZg5DzcIur12fgtBo2Jo4Owp4opMUvAQ9hhyspiS', 'Jeannen', 'Basay', 'Kummer', 'BSIT', '4D', 'SECOND', '2002-03-24', 'Female', '0', 'Active', '2025-11-10 18:51:38', '2025-11-12 07:55:51'),
-('202210870', 'Student', 'ic.xyrilljohn.abreu@cvsu.edu.ph', '$2y$10$gDY1LQreqxfD/UIiE19/weHxN.jWIsMuwpg8HUqowO9tvujhKAu8W', 'Xyrill John', 'Abreu', 'Fecundo', 'BSIT', '4D', 'FIRST', '2003-08-03', 'Female', '9422169425', 'Active', '2025-11-10 18:51:39', '2025-11-12 07:55:59'),
-('20230003', 'Professor', 'ic.juliaann.fajardo@cvsu.edu.ph', '$2y$10$fJcns6eh3Xh0SJVF6mSxOeuLN0cVtmUvqiOoS4MiAOSY7BUSXkCeu', 'Julia Ann', 'Fajardo', 'Sisno', 'Information Technology', 'Not Applicable', 'Not Applicable', '2001-06-07', 'Female', '9679532083', 'Active', '2025-11-10 18:51:39', '2025-11-12 07:56:08');
+INSERT INTO `tracked_users` (`tracked_ID`, `tracked_Role`, `tracked_email`, `tracked_password`, `tracked_firstname`, `tracked_lastname`, `tracked_middlename`, `tracked_program`, `tracked_yearandsec`, `tracked_semester`, `tracked_bday`, `tracked_gender`, `tracked_phone`, `tracked_Status`, `created_at`, `updated_at`, `temporary_password`) VALUES
+('12345', 'Admin', 'ic.brielle.balatayo@cvsu.edu.ph', '$2y$10$rwNNDwVE.VOuQ7Kljc46.OHDBvQGbDd72iY3wyw.5b07noRgemBw6', 'Brielle Edrian', 'Balatayo', 'Ana', 'Not Applicable', 'Not Applicable', 'Not Applicable', '2002-08-18', 'Male', '9153406553', 'Active', '2025-11-10 18:51:38', '2025-11-13 17:57:34', '08182002Admin12345NTL'),
+('202210602', 'Professor', 'ic.dhenizekristafaith.lopez@cvsu.edu.ph', '$2y$10$e1u9aKZ7vOFOfBvvEplsGOG.z/pUt5sF.ZupaWmp7PgugfRGREziW', 'Dhenize Krista Faith', 'Lopez', 'Cabardo', 'Information Technology', 'Not Applicable', 'Not Applicable', '2004-11-24', 'Male', '9988262316', 'Active', '2025-11-10 18:51:38', '2025-11-13 19:46:53', '11242004Professor202210602FOT'),
+('202210718', 'Student', 'ic.michaelrhoi.gonzales@cvsu.edu.ph', '$2y$10$edvJGZZc3ftzz7AmHU7cvOdksWG0NEd4aOlWbPCIUn9gMEd86yPEC', 'Michael Rhoi', 'Gonzales', 'Ladrica', 'BSIT', '4D', 'FIRST', '2004-06-20', 'Female', '9085527790', 'Active', '2025-11-12 06:13:21', '2025-11-13 18:54:14', '06202004Student202210718CZP'),
+('202210784', 'Student', 'ic.jeannen.basay@cvsu.edu.ph', '$2y$10$QN.GT8z65puL9pZUiYwi5e6YW/m.ZiEKUBumYYKEvhpL2/SIJWRBS', 'Jeannen', 'Basay', 'Kummer', 'BSIT', '4D', 'SECOND', '2002-03-24', 'Female', '0', 'Active', '2025-11-10 18:51:38', '2025-11-13 17:31:13', '03242002Student202210784847'),
+('202210870', 'Student', 'ic.xyrilljohn.abreu@cvsu.edu.ph', '$2y$10$RDNcVIT7vP7wDWOGcZAfHudu0IIxo8ginsCrMjD5IIoGW468kmVdO', 'Xyrill John', 'Abreu', 'Fecundo', 'BSIT', '4D', 'FIRST', '2003-08-03', 'Female', '9422169425', 'Active', '2025-11-10 18:51:39', '2025-11-13 17:31:19', '08032003Student202210870GCM'),
+('20230003', 'Professor', 'ic.juliaann.fajardo@cvsu.edu.ph', '$2y$10$jg72Vd4BASuZNECAeCWAJOzMygwF5dZzK4cR6m8SJRW0dRIamimr.', 'Julia Ann', 'Fajardo', 'Sisno', 'Information Technology', 'Not Applicable', 'Not Applicable', '2001-06-07', 'Female', '9679532083', 'Active', '2025-11-10 18:51:39', '2025-11-13 17:31:24', '06072001Professor20230003HMU');
 
 -- --------------------------------------------------------
 
@@ -359,13 +298,13 @@ ALTER TABLE `users`
 -- AUTO_INCREMENT for table `activities`
 --
 ALTER TABLE `activities`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=64;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=65;
 
 --
 -- AUTO_INCREMENT for table `activity_grades`
 --
 ALTER TABLE `activity_grades`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=339;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=340;
 
 --
 -- AUTO_INCREMENT for table `announcements`

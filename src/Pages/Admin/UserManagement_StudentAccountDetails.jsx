@@ -14,10 +14,10 @@ export default function UserManagement_StudentAccountDetails() {
   const [student, setStudent] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
   const [editedData, setEditedData] = useState({
-    tracked_firstname: '',
-    tracked_middlename: '',
-    tracked_lastname: '',
-    tracked_phone: ''
+    tracked_firstname: "",
+    tracked_middlename: "",
+    tracked_lastname: "",
+    tracked_phone: "",
   });
   const [isLoading, setIsLoading] = useState(false);
   const [isFetching, setIsFetching] = useState(true);
@@ -27,7 +27,7 @@ export default function UserManagement_StudentAccountDetails() {
   // Get ID from query parameters
   const getStudentId = () => {
     const urlParams = new URLSearchParams(location.search);
-    return urlParams.get('id');
+    return urlParams.get("id");
   };
 
   // Try to get student data from location state first
@@ -37,10 +37,10 @@ export default function UserManagement_StudentAccountDetails() {
     if (studentFromState) {
       setStudent(studentFromState);
       setEditedData({
-        tracked_firstname: studentFromState.tracked_firstname || '',
-        tracked_middlename: studentFromState.tracked_middlename || '',
-        tracked_lastname: studentFromState.tracked_lastname || '',
-        tracked_phone: studentFromState.tracked_phone || ''
+        tracked_firstname: studentFromState.tracked_firstname || "",
+        tracked_middlename: studentFromState.tracked_middlename || "",
+        tracked_lastname: studentFromState.tracked_lastname || "",
+        tracked_phone: studentFromState.tracked_phone || "",
       });
       setIsFetching(false);
     } else {
@@ -56,25 +56,27 @@ export default function UserManagement_StudentAccountDetails() {
 
   const fetchStudentData = (studentId) => {
     setIsFetching(true);
-    fetch(`http://localhost/TrackEd/src/Pages/Admin/StudentAccountsDB/get_students.php?id=${studentId}`)
+    fetch(
+      `http://localhost/TrackEd/src/Pages/Admin/StudentAccountsDB/get_students.php?id=${studentId}`
+    )
       .then((res) => res.json())
       .then((data) => {
         if (data.success && data.student) {
           setStudent(data.student);
           setEditedData({
-            tracked_firstname: data.student.tracked_firstname || '',
-            tracked_middlename: data.student.tracked_middlename || '',
-            tracked_lastname: data.student.tracked_lastname || '',
-            tracked_phone: data.student.tracked_phone || ''
+            tracked_firstname: data.student.tracked_firstname || "",
+            tracked_middlename: data.student.tracked_middlename || "",
+            tracked_lastname: data.student.tracked_lastname || "",
+            tracked_phone: data.student.tracked_phone || "",
           });
         } else {
           console.error("Student not found:", data.message);
-          setPopupType('error');
+          setPopupType("error");
         }
       })
       .catch((err) => {
         console.error("Error fetching student data:", err);
-        setPopupType('error');
+        setPopupType("error");
       })
       .finally(() => {
         setIsFetching(false);
@@ -85,10 +87,10 @@ export default function UserManagement_StudentAccountDetails() {
   const formatDate = (dateString) => {
     if (!dateString) return "N/A";
     const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { 
-      year: 'numeric', 
-      month: 'long', 
-      day: 'numeric' 
+    return date.toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
     });
   };
 
@@ -98,8 +100,8 @@ export default function UserManagement_StudentAccountDetails() {
     const yearMatch = yearAndSec.match(/^(\d+)/);
     if (yearMatch) {
       const year = parseInt(yearMatch[1]);
-      const suffixes = ['', 'st', 'nd', 'rd', 'th'];
-      const suffix = year <= 4 ? suffixes[year] || 'th' : 'th';
+      const suffixes = ["", "st", "nd", "rd", "th"];
+      const suffix = year <= 4 ? suffixes[year] || "th" : "th";
       return `${year}${suffix} Year`;
     }
     return yearAndSec;
@@ -121,10 +123,10 @@ export default function UserManagement_StudentAccountDetails() {
     // Reset edited data to original values
     if (student) {
       setEditedData({
-        tracked_firstname: student.tracked_firstname || '',
-        tracked_middlename: student.tracked_middlename || '',
-        tracked_lastname: student.tracked_lastname || '',
-        tracked_phone: student.tracked_phone || ''
+        tracked_firstname: student.tracked_firstname || "",
+        tracked_middlename: student.tracked_middlename || "",
+        tracked_lastname: student.tracked_lastname || "",
+        tracked_phone: student.tracked_phone || "",
       });
     }
   };
@@ -134,43 +136,46 @@ export default function UserManagement_StudentAccountDetails() {
 
     setIsLoading(true);
     try {
-      const response = await fetch('http://localhost/TrackEd/src/Pages/Admin/StudentAccountsDB/update_student.php', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          tracked_ID: student.tracked_ID,
-          ...editedData
-        }),
-      });
+      const response = await fetch(
+        "http://localhost/TrackEd/src/Pages/Admin/StudentAccountsDB/update_student.php",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            tracked_ID: student.tracked_ID,
+            ...editedData,
+          }),
+        }
+      );
 
       const result = await response.json();
 
       if (result.success) {
         // Update local state with new data
-        setStudent(prev => ({
+        setStudent((prev) => ({
           ...prev,
-          ...editedData
+          ...editedData,
         }));
         setIsEditing(false);
-        setPopupType('success');
+        setPopupType("success");
       } else {
-        setPopupType('error');
-        console.error('Update failed:', result.message);
+        setPopupType("error");
+        console.error("Update failed:", result.message);
       }
     } catch (error) {
-      setPopupType('error');
-      console.error('Error updating student:', error);
+      setPopupType("error");
+      console.error("Error updating student:", error);
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleInputChange = (field, value) => {
-    setEditedData(prev => ({
+    setEditedData((prev) => ({
       ...prev,
-      [field]: value
+      [field]: value,
     }));
   };
 
@@ -239,12 +244,16 @@ export default function UserManagement_StudentAccountDetails() {
               <div className="space-y-3 sm:space-y-2">
                 {/* First Name */}
                 <div className="flex flex-col sm:grid sm:grid-cols-2 gap-1 text-sm sm:text-base md:text-lg">
-                  <span className="font-medium text-gray-600">First Name :</span>
+                  <span className="font-medium text-gray-600">
+                    First Name :
+                  </span>
                   {isEditing ? (
                     <input
                       type="text"
                       value={editedData.tracked_firstname}
-                      onChange={(e) => handleInputChange('tracked_firstname', e.target.value)}
+                      onChange={(e) =>
+                        handleInputChange("tracked_firstname", e.target.value)
+                      }
                       className="border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#00874E] focus:border-transparent"
                     />
                   ) : (
@@ -254,12 +263,16 @@ export default function UserManagement_StudentAccountDetails() {
 
                 {/* Middle Name */}
                 <div className="flex flex-col sm:grid sm:grid-cols-2 gap-1 text-sm sm:text-base md:text-lg">
-                  <span className="font-medium text-gray-600">Middle Name :</span>
+                  <span className="font-medium text-gray-600">
+                    Middle Name :
+                  </span>
                   {isEditing ? (
                     <input
                       type="text"
                       value={editedData.tracked_middlename}
-                      onChange={(e) => handleInputChange('tracked_middlename', e.target.value)}
+                      onChange={(e) =>
+                        handleInputChange("tracked_middlename", e.target.value)
+                      }
                       className="border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#00874E] focus:border-transparent"
                     />
                   ) : (
@@ -274,7 +287,9 @@ export default function UserManagement_StudentAccountDetails() {
                     <input
                       type="text"
                       value={editedData.tracked_lastname}
-                      onChange={(e) => handleInputChange('tracked_lastname', e.target.value)}
+                      onChange={(e) =>
+                        handleInputChange("tracked_lastname", e.target.value)
+                      }
                       className="border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#00874E] focus:border-transparent"
                     />
                   ) : (
@@ -290,30 +305,42 @@ export default function UserManagement_StudentAccountDetails() {
 
                 {/* Date of Birth */}
                 <div className="flex flex-col sm:grid sm:grid-cols-2 gap-1 text-sm sm:text-base md:text-lg">
-                  <span className="font-medium text-gray-600">Date of Birth :</span>
+                  <span className="font-medium text-gray-600">
+                    Date of Birth :
+                  </span>
                   <span>{formatDate(student.tracked_bday)}</span>
                 </div>
 
                 {/* Student ID */}
                 <div className="flex flex-col sm:grid sm:grid-cols-2 gap-1 text-sm sm:text-base md:text-lg">
-                  <span className="font-medium text-gray-600">Student ID :</span>
+                  <span className="font-medium text-gray-600">
+                    Student ID :
+                  </span>
                   <span>{student.tracked_ID || "N/A"}</span>
                 </div>
 
                 {/* CVSU Email Address */}
                 <div className="flex flex-col sm:grid sm:grid-cols-2 gap-1 text-sm sm:text-base md:text-lg">
-                  <span className="font-medium text-gray-600">CVSU Email Address :</span>
-                  <span className="break-all">{student.tracked_email || "N/A"}</span>
+                  <span className="font-medium text-gray-600">
+                    CVSU Email Address :
+                  </span>
+                  <span className="break-all">
+                    {student.tracked_email || "N/A"}
+                  </span>
                 </div>
 
                 {/* Phone Number */}
                 <div className="flex flex-col sm:grid sm:grid-cols-2 gap-1 text-sm sm:text-base md:text-lg">
-                  <span className="font-medium text-gray-600">Phone Number :</span>
+                  <span className="font-medium text-gray-600">
+                    Phone Number :
+                  </span>
                   {isEditing ? (
                     <input
                       type="text"
                       value={editedData.tracked_phone}
-                      onChange={(e) => handleInputChange('tracked_phone', e.target.value)}
+                      onChange={(e) =>
+                        handleInputChange("tracked_phone", e.target.value)
+                      }
                       className="border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#00874E] focus:border-transparent"
                     />
                   ) : (
@@ -329,7 +356,9 @@ export default function UserManagement_StudentAccountDetails() {
 
                 {/* Year Level */}
                 <div className="flex flex-col sm:grid sm:grid-cols-2 gap-1 text-sm sm:text-base md:text-lg">
-                  <span className="font-medium text-gray-600">Year Level :</span>
+                  <span className="font-medium text-gray-600">
+                    Year Level :
+                  </span>
                   <span>{getYearLevel(student.tracked_yearandsec)}</span>
                 </div>
 
@@ -337,6 +366,15 @@ export default function UserManagement_StudentAccountDetails() {
                 <div className="flex flex-col sm:grid sm:grid-cols-2 gap-1 text-sm sm:text-base md:text-lg">
                   <span className="font-medium text-gray-600">Section :</span>
                   <span>{getSection(student.tracked_yearandsec)}</span>
+                </div>
+
+                <div className="flex flex-col sm:grid sm:grid-cols-2 gap-1 text-sm sm:text-base md:text-lg">
+                  <span className="font-medium text-gray-600">
+                    Temporary Password :
+                  </span>
+                  <span className="font-semibold">
+                    {student.temporary_password || "N/A"}
+                  </span>
                 </div>
               </div>
             </div>
@@ -349,26 +387,31 @@ export default function UserManagement_StudentAccountDetails() {
                 Account Information
               </h2>
               <div className="space-y-3 sm:space-y-2">
-                {/* Date Created */}
                 <div className="flex flex-col sm:grid sm:grid-cols-2 gap-1 text-sm sm:text-base md:text-lg">
-                  <span className="font-medium text-gray-600">Date Created :</span>
+                  <span className="font-medium text-gray-600">
+                    Date Created :
+                  </span>
                   <span>{formatDate(student.created_at)}</span>
                 </div>
 
-                {/* Last Login */}
                 <div className="flex flex-col sm:grid sm:grid-cols-2 gap-1 text-sm sm:text-base md:text-lg">
-                  <span className="font-medium text-gray-600">Last Login :</span>
+                  <span className="font-medium text-gray-600">
+                    Last Login :
+                  </span>
                   <span>{formatDate(student.updated_at)}</span>
                 </div>
 
-                {/* Account Status */}
                 <div className="flex flex-col sm:grid sm:grid-cols-2 gap-1 text-sm sm:text-base md:text-lg">
-                  <span className="font-medium text-gray-600">Account Status :</span>
-                  <span className={`font-semibold ${
-                    student.tracked_Status === "Active" 
-                      ? "text-green-600" 
-                      : "text-red-600"
-                  }`}>
+                  <span className="font-medium text-gray-600">
+                    Account Status :
+                  </span>
+                  <span
+                    className={`font-semibold ${
+                      student.tracked_Status === "Active"
+                        ? "text-green-600"
+                        : "text-red-600"
+                    }`}
+                  >
                     {student.tracked_Status || "N/A"}
                   </span>
                 </div>
@@ -386,9 +429,9 @@ export default function UserManagement_StudentAccountDetails() {
                       disabled={isLoading}
                       className="font-bold text-white py-2.5 px-4 sm:px-6 bg-[#00874E] rounded-md shadow-md text-center hover:bg-[#006F3A] disabled:bg-gray-400 disabled:cursor-not-allowed text-sm sm:text-base w-full sm:w-auto transition-colors duration-200 cursor-pointer"
                     >
-                      {isLoading ? 'Saving...' : 'Save'}
+                      {isLoading ? "Saving..." : "Save"}
                     </button>
-                    
+
                     {/* Cancel Button */}
                     <button
                       onClick={handleCancelClick}

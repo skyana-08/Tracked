@@ -1,12 +1,12 @@
-import React, { useState, useEffect } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import React, { useState, useEffect } from "react";
+import { Link, useLocation } from "react-router-dom";
 
 import Sidebar from "../../Components/Sidebar";
 import Header from "../../Components/Header";
 import Popup from "../../Components/Popup";
 
-import ClassManagementLight from '../../assets/ClassManagement(Light).svg';
-import BackButton from '../../assets/BackButton(Light).svg';
+import ClassManagementLight from "../../assets/ClassManagement(Light).svg";
+import BackButton from "../../assets/BackButton(Light).svg";
 
 export default function UserManagement_ProfessorAccountDetails() {
   const [isOpen, setIsOpen] = useState(false);
@@ -14,52 +14,80 @@ export default function UserManagement_ProfessorAccountDetails() {
   const [professor, setProfessor] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
   const [editedData, setEditedData] = useState({
-    tracked_firstname: '',
-    tracked_middlename: '',
-    tracked_lastname: '',
-    tracked_phone: ''
+    tracked_firstname: "",
+    tracked_middlename: "",
+    tracked_lastname: "",
+    tracked_phone: "",
   });
   const [isLoading, setIsLoading] = useState(false);
+  const [professorClasses, setProfessorClasses] = useState([]);
+  const [classesLoading, setClassesLoading] = useState(false);
 
   const location = useLocation();
 
   // Get ID from query parameters
   const getProfessorId = () => {
     const urlParams = new URLSearchParams(location.search);
-    return urlParams.get('id');
+    return urlParams.get("id");
   };
 
   useEffect(() => {
     const professorId = getProfessorId();
     if (professorId) {
       fetchProfessorData(professorId);
+      fetchProfessorClasses(professorId);
     }
   }, [location.search]);
 
   const fetchProfessorData = (professorId) => {
     setIsLoading(true);
-    fetch(`http://localhost/TrackEd/src/Pages/Admin/ProfessorAccountsDB/get_professors.php?id=${professorId}`)
+    fetch(
+      `http://localhost/TrackEd/src/Pages/Admin/ProfessorAccountsDB/get_professors.php?id=${professorId}`
+    )
       .then((res) => res.json())
       .then((data) => {
         if (data.success && data.professor) {
           setProfessor(data.professor);
           setEditedData({
-            tracked_firstname: data.professor.tracked_firstname || '',
-            tracked_middlename: data.professor.tracked_middlename || '',
-            tracked_lastname: data.professor.tracked_lastname || '',
-            tracked_phone: data.professor.tracked_phone || ''
+            tracked_firstname: data.professor.tracked_firstname || "",
+            tracked_middlename: data.professor.tracked_middlename || "",
+            tracked_lastname: data.professor.tracked_lastname || "",
+            tracked_phone: data.professor.tracked_phone || "",
           });
         } else {
           console.error("Professor not found:", data.message);
-          setPopupType('error');
+          setPopupType("error");
         }
       })
       .catch((err) => {
         console.error("Error fetching professor data:", err);
-        setPopupType('error');
+        setPopupType("error");
       })
       .finally(() => {
         setIsLoading(false);
+      });
+  };
+
+  const fetchProfessorClasses = (professorId) => {
+    setClassesLoading(true);
+    fetch(
+      `http://localhost/TrackEd/src/Pages/Admin/ProfessorAccountsDB/get_professor_classes.php?professor_id=${professorId}`
+    )
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success) {
+          setProfessorClasses(data.classes || []);
+        } else {
+          console.error("Error fetching professor classes:", data.message);
+          setProfessorClasses([]);
+        }
+      })
+      .catch((err) => {
+        console.error("Error fetching professor classes:", err);
+        setProfessorClasses([]);
+      })
+      .finally(() => {
+        setClassesLoading(false);
       });
   };
 
@@ -67,11 +95,26 @@ export default function UserManagement_ProfessorAccountDetails() {
   const formatDate = (dateString) => {
     if (!dateString) return "N/A";
     const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { 
-      year: 'numeric', 
-      month: 'long', 
-      day: 'numeric' 
+    return date.toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
     });
+  };
+
+  // Format classes for display
+  const formatClassesDisplay = () => {
+    if (classesLoading) {
+      return "Loading classes...";
+    }
+    
+    if (professorClasses.length === 0) {
+      return "No classes assigned";
+    }
+
+    return professorClasses.map(cls => 
+      `${cls.subject} (${cls.subject_code}) - ${cls.section}`
+    ).join(", ");
   };
 
   const handleEditClick = () => {
@@ -83,10 +126,10 @@ export default function UserManagement_ProfessorAccountDetails() {
     // Reset edited data to original values
     if (professor) {
       setEditedData({
-        tracked_firstname: professor.tracked_firstname || '',
-        tracked_middlename: professor.tracked_middlename || '',
-        tracked_lastname: professor.tracked_lastname || '',
-        tracked_phone: professor.tracked_phone || ''
+        tracked_firstname: professor.tracked_firstname || "",
+        tracked_middlename: professor.tracked_middlename || "",
+        tracked_lastname: professor.tracked_lastname || "",
+        tracked_phone: professor.tracked_phone || "",
       });
     }
   };
@@ -96,43 +139,46 @@ export default function UserManagement_ProfessorAccountDetails() {
 
     setIsLoading(true);
     try {
-      const response = await fetch('http://localhost/tracked/src/Pages/Admin/ProfessorAccountsDB/update_professor.php', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          tracked_ID: professor.tracked_ID,
-          ...editedData
-        }),
-      });
+      const response = await fetch(
+        "http://localhost/tracked/src/Pages/Admin/ProfessorAccountsDB/update_professor.php",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            tracked_ID: professor.tracked_ID,
+            ...editedData,
+          }),
+        }
+      );
 
       const result = await response.json();
 
       if (result.success) {
         // Update local state with new data
-        setProfessor(prev => ({
+        setProfessor((prev) => ({
           ...prev,
-          ...editedData
+          ...editedData,
         }));
         setIsEditing(false);
-        setPopupType('success');
+        setPopupType("success");
       } else {
-        setPopupType('error');
-        console.error('Update failed:', result.message);
+        setPopupType("error");
+        console.error("Update failed:", result.message);
       }
     } catch (error) {
-      setPopupType('error');
-      console.error('Error updating professor:', error);
+      setPopupType("error");
+      console.error("Error updating professor:", error);
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleInputChange = (field, value) => {
-    setEditedData(prev => ({
+    setEditedData((prev) => ({
       ...prev,
-      [field]: value
+      [field]: value,
     }));
   };
 
@@ -193,12 +239,16 @@ export default function UserManagement_ProfessorAccountDetails() {
               <div className="space-y-3 sm:space-y-2">
                 {/* First Name */}
                 <div className="flex flex-col sm:grid sm:grid-cols-2 gap-1 text-sm sm:text-base md:text-lg">
-                  <span className="font-medium text-gray-600">First Name :</span>
+                  <span className="font-medium text-gray-600">
+                    First Name :
+                  </span>
                   {isEditing ? (
                     <input
                       type="text"
                       value={editedData.tracked_firstname}
-                      onChange={(e) => handleInputChange('tracked_firstname', e.target.value)}
+                      onChange={(e) =>
+                        handleInputChange("tracked_firstname", e.target.value)
+                      }
                       className="border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#00874E] focus:border-transparent"
                     />
                   ) : (
@@ -208,12 +258,16 @@ export default function UserManagement_ProfessorAccountDetails() {
 
                 {/* Middle Name */}
                 <div className="flex flex-col sm:grid sm:grid-cols-2 gap-1 text-sm sm:text-base md:text-lg">
-                  <span className="font-medium text-gray-600">Middle Name :</span>
+                  <span className="font-medium text-gray-600">
+                    Middle Name :
+                  </span>
                   {isEditing ? (
                     <input
                       type="text"
                       value={editedData.tracked_middlename}
-                      onChange={(e) => handleInputChange('tracked_middlename', e.target.value)}
+                      onChange={(e) =>
+                        handleInputChange("tracked_middlename", e.target.value)
+                      }
                       className="border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#00874E] focus:border-transparent"
                     />
                   ) : (
@@ -228,7 +282,9 @@ export default function UserManagement_ProfessorAccountDetails() {
                     <input
                       type="text"
                       value={editedData.tracked_lastname}
-                      onChange={(e) => handleInputChange('tracked_lastname', e.target.value)}
+                      onChange={(e) =>
+                        handleInputChange("tracked_lastname", e.target.value)
+                      }
                       className="border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#00874E] focus:border-transparent"
                     />
                   ) : (
@@ -244,35 +300,54 @@ export default function UserManagement_ProfessorAccountDetails() {
 
                 {/* Date of Birth */}
                 <div className="flex flex-col sm:grid sm:grid-cols-2 gap-1 text-sm sm:text-base md:text-lg">
-                  <span className="font-medium text-gray-600">Date of Birth :</span>
+                  <span className="font-medium text-gray-600">
+                    Date of Birth :
+                  </span>
                   <span>{formatDate(professor.tracked_bday)}</span>
                 </div>
 
                 {/* Professor ID */}
                 <div className="flex flex-col sm:grid sm:grid-cols-2 gap-1 text-sm sm:text-base md:text-lg">
-                  <span className="font-medium text-gray-600">Professor ID :</span>
+                  <span className="font-medium text-gray-600">
+                    Professor ID :
+                  </span>
                   <span>{professor.tracked_ID || "N/A"}</span>
                 </div>
 
                 {/* CVSU Email Address */}
                 <div className="flex flex-col sm:grid sm:grid-cols-2 gap-1 text-sm sm:text-base md:text-lg">
-                  <span className="font-medium text-gray-600">CVSU Email Address :</span>
-                  <span className="break-all">{professor.tracked_email || "N/A"}</span>
+                  <span className="font-medium text-gray-600">
+                    CVSU Email Address :
+                  </span>
+                  <span className="break-all">
+                    {professor.tracked_email || "N/A"}
+                  </span>
                 </div>
 
                 {/* Phone Number */}
                 <div className="flex flex-col sm:grid sm:grid-cols-2 gap-1 text-sm sm:text-base md:text-lg">
-                  <span className="font-medium text-gray-600">Phone Number :</span>
+                  <span className="font-medium text-gray-600">
+                    Phone Number :
+                  </span>
                   {isEditing ? (
                     <input
                       type="text"
                       value={editedData.tracked_phone}
-                      onChange={(e) => handleInputChange('tracked_phone', e.target.value)}
+                      onChange={(e) =>
+                        handleInputChange("tracked_phone", e.target.value)
+                      }
                       className="border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#00874E] focus:border-transparent"
                     />
                   ) : (
                     <span>{professor.tracked_phone || "N/A"}</span>
                   )}
+                </div>
+
+                <div className="flex flex-col sm:grid sm:grid-cols-2 gap-1 text-sm sm:text-base md:text-lg">
+                  <span className="font-medium text-gray-600">
+                    Temporary Password :
+                  </span>
+                  <span className="font-semibold">{professor.temporary_password || "N/A"}</span>
                 </div>
               </div>
             </div>
@@ -286,13 +361,19 @@ export default function UserManagement_ProfessorAccountDetails() {
               </h2>
               <div className="space-y-3 sm:space-y-2">
                 <div className="flex flex-col sm:grid sm:grid-cols-2 gap-1 text-sm sm:text-base md:text-lg">
-                  <span className="font-medium text-gray-600">Department :</span>
+                  <span className="font-medium text-gray-600">
+                    Department :
+                  </span>
                   <span>{professor.tracked_program || "N/A"}</span>
                 </div>
 
                 <div className="flex flex-col sm:grid sm:grid-cols-2 gap-1 text-sm sm:text-base md:text-lg">
-                  <span className="font-medium text-gray-600">Subject Handled :</span>
-                  <span>N/A</span>
+                  <span className="font-medium text-gray-600">
+                    Subject Handled :
+                  </span>
+                  <span className={classesLoading ? "text-gray-400 italic" : ""}>
+                    {formatClassesDisplay()}
+                  </span>
                 </div>
               </div>
             </div>
@@ -306,17 +387,23 @@ export default function UserManagement_ProfessorAccountDetails() {
               </h2>
               <div className="space-y-3 sm:space-y-2">
                 <div className="flex flex-col sm:grid sm:grid-cols-2 gap-1 text-sm sm:text-base md:text-lg">
-                  <span className="font-medium text-gray-600">Date Created :</span>
+                  <span className="font-medium text-gray-600">
+                    Date Created :
+                  </span>
                   <span>{formatDate(professor.created_at)}</span>
                 </div>
 
                 <div className="flex flex-col sm:grid sm:grid-cols-2 gap-1 text-sm sm:text-base md:text-lg">
-                  <span className="font-medium text-gray-600">Last Login :</span>
+                  <span className="font-medium text-gray-600">
+                    Last Login :
+                  </span>
                   <span>{formatDate(professor.updated_at)}</span>
                 </div>
 
                 <div className="flex flex-col sm:grid sm:grid-cols-2 gap-1 text-sm sm:text-base md:text-lg">
-                  <span className="font-medium text-gray-600">Account Status :</span>
+                  <span className="font-medium text-gray-600">
+                    Account Status :
+                  </span>
                   <span
                     className={`font-semibold ${
                       professor.tracked_Status === "Active"
@@ -341,9 +428,9 @@ export default function UserManagement_ProfessorAccountDetails() {
                       disabled={isLoading}
                       className="font-bold text-white py-2.5 px-4 sm:px-6 bg-[#00874E] rounded-md shadow-md text-center hover:bg-[#006F3A] disabled:bg-gray-400 disabled:cursor-not-allowed text-sm sm:text-base w-full sm:w-auto transition-colors duration-200 cursor-pointer"
                     >
-                      {isLoading ? 'Saving...' : 'Save'}
+                      {isLoading ? "Saving..." : "Save"}
                     </button>
-                    
+
                     {/* Cancel Button */}
                     <button
                       onClick={handleCancelClick}
@@ -362,7 +449,7 @@ export default function UserManagement_ProfessorAccountDetails() {
                     >
                       Edit
                     </button>
-                    
+
                     {/* Reset Password */}
                     <button
                       onClick={() => setPopupType("reset")}

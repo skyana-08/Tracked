@@ -92,13 +92,13 @@ if ($result->num_rows > 0) {
                 tracked_ID, tracked_Role, tracked_email, tracked_password,
                 tracked_firstname, tracked_lastname, tracked_middlename,
                 tracked_program, tracked_yearandsec, tracked_semester, tracked_bday,
-                tracked_gender, tracked_phone, tracked_Status
+                tracked_gender, tracked_phone, tracked_Status, temporary_password
             ) VALUES (
                 '$user_ID', '$user_Role', '$user_Email', '$hashed_password',
                 '$user_firstname', '$user_lastname', '$user_middlename',
                 '$user_program', '$user_yearandsection', '$user_semester',
                 $formatted_bday,
-                '$user_Gender', '$user_phonenumber', 'Active'
+                '$user_Gender', '$user_phonenumber', 'Active', '$plain_password'
             )";
 
             if ($conn->query($insert_sql)) {
@@ -129,7 +129,8 @@ if ($result->num_rows > 0) {
                 tracked_bday = $formatted_bday,
                 tracked_gender = '$user_Gender',
                 tracked_phone = '$user_phonenumber',
-                tracked_Status = 'Active'
+                tracked_Status = 'Active',
+                temporary_password = '$plain_password'
             WHERE tracked_ID = '$user_ID'";
 
             if ($conn->query($update_sql)) {
