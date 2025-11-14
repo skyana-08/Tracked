@@ -1,10 +1,13 @@
 <IfModule mod_mime.c>
-    # Treat JSX files as JavaScript modules
-    AddType application/javascript .jsx
+    AddType application/javascript .js
+    AddType application/wasm .wasm
     AddType text/css .css
 </IfModule>
 
-# Enable CORS if needed (for module imports)
-<IfModule mod_headers.c>
-    Header always set Access-Control-Allow-Origin "*"
-</IfModule>
+# Handle client-side routing
+RewriteEngine On
+RewriteBase /
+RewriteRule ^index\.html$ - [L]
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule . /index.html [L]
