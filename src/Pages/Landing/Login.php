@@ -1,5 +1,5 @@
 <?php
-// Enable error reporting for debugging
+// Enable error reporting for debugging (disable in production)
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
@@ -14,15 +14,17 @@ header("Access-Control-Allow-Origin: *");
 header("Access-Control-Allow-Headers: Content-Type");
 header("Access-Control-Allow-Methods: POST");
 
-// Database connection settings
-$dbHost = "localhost";
-$dbUser = "root";
-$dbPass = "";
-$dbName = "tracked";
+// Hostinger Database connection settings
+// You can find these in your Hostinger control panel -> Databases
+$dbHost = "localhost"; // Usually localhost on Hostinger
+$dbUser = "u713320770_trackedDB"; // Your database username from Hostinger
+$dbPass = "TrackEd@2025"; // Your database password from Hostinger
+$dbName = "u713320770_tracked"; // Your database name from Hostinger
 
 // Create DB connection
 $conn = new mysqli($dbHost, $dbUser, $dbPass, $dbName);
 if ($conn->connect_error) {
+    error_log("Database connection failed: " . $conn->connect_error);
     echo json_encode(["success" => false, "message" => "Database connection failed"]);
     exit;
 }
@@ -49,20 +51,22 @@ if (empty($idNumber) || empty($inputPassword)) {
     exit;
 }
 
-// Fetch user from DB - UPDATED COLUMN NAMES to match your schema
+// Fetch user from DB
 $sql = "SELECT tracked_password, tracked_Status, tracked_Role, tracked_firstname, tracked_lastname, tracked_middlename 
         FROM tracked_users 
         WHERE tracked_ID = ? LIMIT 1";
 $stmt = $conn->prepare($sql);
 
 if (!$stmt) {
-    echo json_encode(["success" => false, "message" => "Database error: " . $conn->error]);
+    error_log("Prepare failed: " . $conn->error);
+    echo json_encode(["success" => false, "message" => "Database error"]);
     exit;
 }
 
 $stmt->bind_param("s", $idNumber);
 
 if (!$stmt->execute()) {
+    error_log("Execute failed: " . $stmt->error);
     echo json_encode(["success" => false, "message" => "Database query failed"]);
     $stmt->close();
     exit;
