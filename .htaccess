@@ -1,0 +1,10 @@
+<IfModule mod_mime.c>
+    # Treat JSX files as JavaScript modules
+    AddType application/javascript .jsx
+    AddType text/css .css
+</IfModule>
+
+# Enable CORS if needed (for module imports)
+<IfModule mod_headers.c>
+    Header always set Access-Control-Allow-Origin "*"
+</IfModule>
