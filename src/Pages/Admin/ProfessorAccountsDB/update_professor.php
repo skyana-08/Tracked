@@ -4,7 +4,7 @@ header("Content-Type: application/json");
 header("Access-Control-Allow-Methods: POST");
 header("Access-Control-Allow-Headers: Content-Type");
 
-$conn = new mysqli("localhost", "root", "", "tracked");
+$conn = new mysqli("localhost", "u713320770_trackedDB", "Tracked@2025", "u713320770_tracked");
 
 if ($conn->connect_error) {
     die(json_encode(["success" => false, "message" => "Database connection failed"]));

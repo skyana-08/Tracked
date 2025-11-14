@@ -1,5 +1,3 @@
-Login.php
-
 <?php
 // Enable error reporting for debugging
 error_reporting(E_ALL);
@@ -16,16 +14,16 @@ header("Access-Control-Allow-Origin: *");
 header("Access-Control-Allow-Headers: Content-Type");
 header("Access-Control-Allow-Methods: POST");
 
-// Database connection settings
-$dbHost = "localhost";
-$dbUser = "root";
-$dbPass = "";
-$dbName = "tracked";
+// Database connection settings - UPDATED FOR HOST
+$dbHost = "mysql.tracked.6minds.site"; // or your host server IP if different
+$dbUser = "u713320770_trackedDB";
+$dbPass = "Tracked@2025";
+$dbName = "u713320770_tracked";
 
 // Create DB connection
 $conn = new mysqli($dbHost, $dbUser, $dbPass, $dbName);
 if ($conn->connect_error) {
-    echo json_encode(["success" => false, "message" => "Database connection failed"]);
+    echo json_encode(["success" => false, "message" => "Database connection failed: " . $conn->connect_error]);
     exit;
 }
 $conn->set_charset('utf8mb4');

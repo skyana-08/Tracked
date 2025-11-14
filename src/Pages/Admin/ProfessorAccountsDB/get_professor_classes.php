@@ -11,10 +11,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
 }
 
 // Database connection configuration
-$host = 'localhost';
-$dbname = 'tracked';
-$username = 'root';
-$password = '';
+$servername = "localhost";
+$username = "u713320770_trackedDB";
+$password = "Tracked@2025";
+$dbname = "u713320770_tracked";
 
 try {
     $pdo = new PDO("mysql:host=$host;dbname=$dbname;charset=utf8mb4", $username, $password);

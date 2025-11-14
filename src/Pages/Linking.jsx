@@ -1,6 +1,6 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 
-{/* Admin Links */}
+// Admin Links
 import UserManagement from './Admin/UserManagement.jsx';
 import Report from './Admin/Report.jsx';
 import UserManagementProfessorAccounts from './Admin/UserManagement_ProfessorAccounts.jsx';
@@ -10,13 +10,13 @@ import UserManagementStudentAccountDetails from './Admin/UserManagement_StudentA
 import AdminAccountArchive from './Admin/AdminAccountArchive.jsx';
 import Import from './Admin/AdminImport.jsx';
 
-{/* Landing Links */}
+// Landing Links
 import Login from './Landing/Login.jsx';
 import Signup from './Landing/Signup.jsx';
 import VerifyAcc from './Landing/VerifyAcc.jsx';
 import ForgotPass from './Landing/ForgotPass.jsx';
 
-{/* Professor Links */}
+// Professor Links
 import DashboardProf from './Professor/DashboardProf.jsx';
 import ClassManagement from './Professor/ClassManagement.jsx';
 import AnalyticsProf from './Professor/AnalyticsProf.jsx';
@@ -32,7 +32,7 @@ import AnalyticsAttendanceInfo from './Professor/AnalyticsAttendanceInfo.jsx';
 import ArchiveClass from './Professor/ArchiveClass.jsx'; 
 import ArchiveActivities from './Professor/ArchiveActivities.jsx';
 
-{/* Student Links */}
+// Student Links
 import DashboardStudent from './Student/DashboardStudent.jsx';
 import Subjects from './Student/Subjects.jsx';
 import AnalyticsStudent from './Student/AnalyticsStudent.jsx';
@@ -43,7 +43,7 @@ import AttendanceHistoryStudent from './Student/AttendanceHistoryStudent.jsx';
 import SubjectDetailsStudent from './Student/SubjectDetailsStudent.jsx';
 import ArchiveClassStudent from './Student/ArchiveClassStudent.jsx';
 
-{/* Super Admin Links */}
+// Super Admin Links
 import SuperAdminAccountList from './SuperAdmin/SuperAdminAccountList.jsx';
 import SuperAdminLanding from './SuperAdmin/SuperAdminLanding.jsx';
 import SuperAdminAdminAccountDetails from './SuperAdmin/SuperAdminAdminAccountDetails.jsx';
@@ -53,31 +53,30 @@ import SuperAdminAdminAccount from './SuperAdmin/SuperAdminAdminAccount.jsx';
 import SuperAdminProfAccount from './SuperAdmin/SuperAdminProfAccount.jsx';
 import SuperAdminStudentAccount from './SuperAdmin/SuperAdminStudentAccount.jsx';
 
-
 function Linking() {
   return (
     <Router>
       <Routes>
         {/* Starting Flow */} 
-        <Route path="/" element={<SuperAdminAccountList />} />  
+        <Route path="/" element={<Login />} />  
         
         {/* Navigations for Landing */}
-        <Route path ="/Login" element={<Login />} />
-        <Route path ="/Signup" element={<Signup />} />
+        <Route path="/Login" element={<Login />} />
+        <Route path="/Signup" element={<Signup />} />
         <Route path="/VerifyAcc" element={<VerifyAcc />} />
         <Route path="/ForgotPass" element={<ForgotPass />} />
 
         {/* Navigations for ADMIN */} 
-        <Route path ="/UserManagement" element={<UserManagement />} />
-        <Route path ="/UserManagementProfessorAccounts" element={<UserManagementProfessorAccounts />} />
-        <Route path ="/UserManagementProfessorAccountsDetails" element={<UserManagementProfessorAccountsDetails />} />
-        <Route path ="/UserManagementStudentAccounts" element={<UserManagementStudentAccounts />} />
-        <Route path ="/UserManagementStudentAccountDetails" element={<UserManagementStudentAccountDetails />} />
-        <Route path ="/Report" element={<Report />} />
-        <Route path ="/AdminAccountArchive" element={<AdminAccountArchive />} />
-        <Route path ="/Import" element={<Import/>} />
+        <Route path="/UserManagement" element={<UserManagement />} />
+        <Route path="/UserManagementProfessorAccounts" element={<UserManagementProfessorAccounts />} />
+        <Route path="/UserManagementProfessorAccountsDetails" element={<UserManagementProfessorAccountsDetails />} />
+        <Route path="/UserManagementStudentAccounts" element={<UserManagementStudentAccounts />} />
+        <Route path="/UserManagementStudentAccountDetails" element={<UserManagementStudentAccountDetails />} />
+        <Route path="/Report" element={<Report />} />
+        <Route path="/AdminAccountArchive" element={<AdminAccountArchive />} />
+        <Route path="/Import" element={<Import/>} />
         
-        {/* Navigations for Professor  */} 
+        {/* Navigations for Professor */} 
         <Route path="/DashboardProf" element={<DashboardProf />} />  
         <Route path="/ClassManagement" element={<ClassManagement />} />  
         <Route path="/AnalyticsProf" element={<AnalyticsProf />} />  
@@ -113,7 +112,6 @@ function Linking() {
         <Route path="/SuperAdminAdminAccount" element={<SuperAdminAdminAccount />} />
         <Route path="/SuperAdminProfAccount" element={<SuperAdminProfAccount />} />
         <Route path="/SuperAdminStudentAccount" element={<SuperAdminStudentAccount />} />
-
       </Routes>
     </Router>
   );

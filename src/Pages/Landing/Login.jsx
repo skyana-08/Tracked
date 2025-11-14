@@ -37,7 +37,7 @@ export default function Login() {
     try {
       console.log("Sending login request...", { idNumber, password });
       
-      const response = await fetch("http://localhost/TrackEd/src/Pages/Landing/Login.php", {
+      const response = await fetch("https://tracked.6minds.site/Login.php", {
         method: "POST",
         headers: { 
           "Content-Type": "application/json",

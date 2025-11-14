@@ -1,12 +1,18 @@
 <?php 
-// Enable error reporting for debugging (remove in production)
+// Enable error reporting for debugging
 error_reporting(E_ALL);
 ini_set("display_errors", 1);
 
-header("Access-Control-Allow-Origin: *");
-header("Access-Control-Allow-Methods: POST, OPTIONS");
-header("Access-Control-Allow-Headers: Content-Type");
+// Clear any output buffers to prevent unwanted output
+while (ob_get_level()) {
+    ob_end_clean();
+}
+
+// Set headers FIRST to prevent any output issues
 header("Content-Type: application/json");
+header("Access-Control-Allow-Origin: *");
+header("Access-Control-Allow-Headers: Content-Type");
+header("Access-Control-Allow-Methods: POST, OPTIONS");
 
 if ($_SERVER["REQUEST_METHOD"] === "OPTIONS") {
     http_response_code(200);
@@ -14,7 +20,6 @@ if ($_SERVER["REQUEST_METHOD"] === "OPTIONS") {
 }
 
 if ($_SERVER["REQUEST_METHOD"] !== "POST") {
-    http_response_code(405);
     echo json_encode(["success" => false, "message" => "Method not allowed"]);
     exit();
 }
@@ -26,22 +31,34 @@ require "PHPMailer/src/Exception.php";
 require "PHPMailer/src/PHPMailer.php";
 require "PHPMailer/src/SMTP.php";
 
-define("DB_HOST", "localhost");
-define("DB_USER", "root");
-define("DB_PASS", "");
-define("DB_NAME", "tracked");
+// Database connection settings - UPDATED FOR HOST
+$dbHost = "mysql.tracked.6minds.site";
+$dbUser = "u713320770_xDB";
+$dbPass = "Tracked@2025";
+$dbName = "u713320770_tracked";
 
-define("SMTP_HOST", "smtp.gmail.com");
-define("SMTP_PORT", 587);
-define("SMTP_USER", "tracked.0725@gmail.com");
-define("SMTP_PASS", "nmvi itzx dqrh qimh");
-define("FROM_EMAIL", "noreply@tracked.com");
-define("FROM_NAME", "TrackED System");
+// SMTP Configuration
+$smtpHost = "smtp.gmail.com";
+$smtpPort = 587;
+$smtpUser = "tracked.0725@gmail.com";
+$smtpPass = "nmvi itzx dqrh qimh";
+$fromEmail = "noreply@tracked.com";
+$fromName = "TrackED System";
 
-$input = json_decode(file_get_contents("php://input"), true);
+// Read JSON input
+$raw = file_get_contents("php://input");
+if (empty($raw)) {
+    echo json_encode(["success" => false, "message" => "No data received"]);
+    exit;
+}
+
+$input = json_decode($raw, true);
+if (json_last_error() !== JSON_ERROR_NONE) {
+    echo json_encode(["success" => false, "message" => "Invalid JSON data"]);
+    exit;
+}
 
 if (!isset($input["email"]) || !isset($input["idNumber"])) {
-    http_response_code(400);
     echo json_encode(["success" => false, "message" => "Email and ID Number are required"]);
     exit();
 }
@@ -50,31 +67,38 @@ $email = filter_var(trim($input["email"]), FILTER_SANITIZE_EMAIL);
 $idNumber = trim($input["idNumber"]);
 
 if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-    http_response_code(400);
     echo json_encode(["success" => false, "message" => "Invalid email format"]);
     exit();
 }
 
 if (!preg_match('/^\d{9}$/', $idNumber)) {
-    http_response_code(400);
     echo json_encode(["success" => false, "message" => "Invalid ID number format"]);
     exit();
 }
 
+// Create DB connection
+$conn = new mysqli($dbHost, $dbUser, $dbPass, $dbName);
+if ($conn->connect_error) {
+    echo json_encode(["success" => false, "message" => "Database connection failed: " . $conn->connect_error]);
+    exit;
+}
+$conn->set_charset('utf8mb4');
+
 try {
-    $conn = new mysqli(DB_HOST, DB_USER, DB_PASS, DB_NAME);
-
-    if ($conn->connect_error) {
-        throw new Exception("Database connection failed");
-    }
-
     $stmt = $conn->prepare("SELECT tracked_ID, tracked_firstname, tracked_lastname, tracked_email FROM tracked_users WHERE tracked_email = ? AND tracked_ID = ?");
+    if (!$stmt) {
+        throw new Exception("Database error: " . $conn->error);
+    }
+    
     $stmt->bind_param("ss", $email, $idNumber);
-    $stmt->execute();
+    
+    if (!$stmt->execute()) {
+        throw new Exception("Database query failed");
+    }
+    
     $result = $stmt->get_result();
 
     if ($result->num_rows === 0) {
-        http_response_code(404);
         echo json_encode(['success' => false, 'message' => 'No account found with this email and ID number']);
         $stmt->close();
         $conn->close();
@@ -84,14 +108,22 @@ try {
     $user = $result->fetch_assoc();
     $userId = $user["tracked_ID"];
     $userName = $user["tracked_firstname"] . ' ' . $user["tracked_lastname"];
+    $stmt->close();
 
     $token = bin2hex(random_bytes(32));
     $expiry = date("Y-m-d H:i:s", strtotime("+24 hours"));
 
     $stmt = $conn->prepare("INSERT INTO password_resets (tracked_ID, token, expiry) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE token = ?, expiry = ?");
+    if (!$stmt) {
+        throw new Exception("Database error: " . $conn->error);
+    }
+    
     $stmt->bind_param("sssss", $userId, $token, $expiry, $token, $expiry);
-    $stmt->execute();
-
+    
+    if (!$stmt->execute()) {
+        throw new Exception("Failed to generate reset token");
+    }
+    
     $stmt->close();
     $conn->close();
 
@@ -99,23 +131,21 @@ try {
     
     try {
         $mail->isSMTP();
-        $mail->Host = SMTP_HOST;
+        $mail->Host = $smtpHost;
         $mail->SMTPAuth = true;
-        $mail->Username = SMTP_USER;
-        $mail->Password = SMTP_PASS;
+        $mail->Username = $smtpUser;
+        $mail->Password = $smtpPass;
         $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
-        $mail->Port = SMTP_PORT;
+        $mail->Port = $smtpPort;
 
-        $mail->setFrom(FROM_EMAIL, FROM_NAME);
+        $mail->setFrom($fromEmail, $fromName);
         $mail->addAddress($email, $userName);
 
         $mail->isHTML(true);
         $mail->Subject = "Password Reset Request - TrackED";
         
-        // for development
-        $resetLink = "http://localhost:5173/ForgotPass?token=" . $token;
-        // for production
-        // $resetLink = "https://ywwebsitenatin.com/ForgotPass?token=" . $token;
+        // Use production link for host
+        $resetLink = "https://tracked.6minds.site/ForgotPass?token=" . $token;
 
         $mail->Body = '
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f9f9f9;">
@@ -155,17 +185,18 @@ try {
             'message' => 'Password reset link has been sent to your email'
         ]);        
     } catch (Exception $e) {
-        http_response_code(500);
         echo json_encode([
             "success" => false,
             "message" => "Failed to send email: " . $mail->ErrorInfo
         ]);
     }
 } catch (Exception $e) {
-    http_response_code(500);
     echo json_encode([
         "success" => false,
         "message" => "An error occurred. Please try again later."
     ]);
+    error_log($e->getMessage());
 }
+
+exit;
 ?>

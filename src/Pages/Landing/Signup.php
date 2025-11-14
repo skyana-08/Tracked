@@ -1,34 +1,56 @@
 <?php
-header("Access-Control-Allow-Origin: *");
-header("Access-Control-Allow-Headers: Content-Type");
-header("Access-Control-Allow-Methods: POST");
-header("Content-Type: application/json");
-
+// Enable error reporting for debugging
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
-$servername = "localhost";
-$username   = "root";
-$password   = "";
-$dbname     = "tracked";
+// Clear any output buffers to prevent unwanted output
+while (ob_get_level()) {
+    ob_end_clean();
+}
 
-$conn = new mysqli($servername, $username, $password, $dbname);
+// Set headers FIRST to prevent any output issues
+header("Content-Type: application/json");
+header("Access-Control-Allow-Origin: *");
+header("Access-Control-Allow-Headers: Content-Type");
+header("Access-Control-Allow-Methods: POST");
 
+// Database connection settings - UPDATED FOR HOST
+$dbHost = "mysql.tracked.6minds.site";
+$dbUser = "u713320770_trackedDB";
+$dbPass = "Tracked@2025";
+$dbName = "u713320770_tracked";
+
+// Create DB connection
+$conn = new mysqli($dbHost, $dbUser, $dbPass, $dbName);
 if ($conn->connect_error) {
-    echo json_encode(["success" => false, "message" => "Database connection failed"]);
+    echo json_encode(["success" => false, "message" => "Database connection failed: " . $conn->connect_error]);
+    exit;
+}
+$conn->set_charset('utf8mb4');
+
+// Read JSON input
+$raw = file_get_contents("php://input");
+if (empty($raw)) {
+    echo json_encode(["success" => false, "message" => "No data received"]);
     exit;
 }
 
-// Get POST data
-$user_ID     = $_POST['tracked_ID'] ?? '';
-$user_email  = $_POST['tracked_email'] ?? '';
-$user_pass   = $_POST['tracked_password'] ?? '';
-$user_fname  = $_POST['tracked_fname'] ?? '';
-$user_lname  = $_POST['tracked_lname'] ?? '';
-$user_mi     = $_POST['tracked_mi'] ?? '';
-$user_prog   = $_POST['tracked_program'] ?? '';
-$user_bday   = $_POST['tracked_bday'] ?? '';
-$user_phone  = $_POST['tracked_phone'] ?? '';
+$data = json_decode($raw, true);
+if (json_last_error() !== JSON_ERROR_NONE) {
+    echo json_encode(["success" => false, "message" => "Invalid JSON data"]);
+    exit;
+}
+
+// Get POST data - using JSON input instead of $_POST
+$user_ID     = $data['tracked_ID'] ?? '';
+$user_email  = $data['tracked_email'] ?? '';
+$user_pass   = $data['tracked_password'] ?? '';
+$user_fname  = $data['tracked_fname'] ?? '';
+$user_lname  = $data['tracked_lname'] ?? '';
+$user_mi     = $data['tracked_mi'] ?? '';
+$user_prog   = $data['tracked_program'] ?? '';
+$user_bday   = $data['tracked_bday'] ?? '';
+$user_phone  = $data['tracked_phone'] ?? '';
 
 // Validate required fields
 if (empty($user_ID) || empty($user_email) || empty($user_pass) || empty($user_fname) || empty($user_lname)) {
@@ -48,7 +70,7 @@ error_log("Hashed password: " . $hashed_pass);
 // Step 1: Check if user exists in whitelist (users table)
 $check = $conn->prepare("SELECT user_ID, user_Role, user_Gender, YearandSection FROM users WHERE user_ID = ?");
 if (!$check) {
-    echo json_encode(["success" => false, "message" => "Database error"]);
+    echo json_encode(["success" => false, "message" => "Database error: " . $conn->error]);
     $conn->close();
     exit;
 }
@@ -65,7 +87,7 @@ if ($row = $result->fetch_assoc()) {
     // Step 2: Check if user already registered in tracked_users
     $check_tracked = $conn->prepare("SELECT tracked_ID FROM tracked_users WHERE tracked_ID = ?");
     if (!$check_tracked) {
-        echo json_encode(["success" => false, "message" => "Database error"]);
+        echo json_encode(["success" => false, "message" => "Database error: " . $conn->error]);
         $check->close();
         $conn->close();
         exit;
@@ -86,8 +108,8 @@ if ($row = $result->fetch_assoc()) {
 
     // Step 3: Insert into tracked_users
     $insert = $conn->prepare("INSERT INTO tracked_users 
-        (tracked_ID, tracked_Role, tracked_email, tracked_password, tracked_fname, tracked_lname, tracked_mi, tracked_program,tracked_yearandsec, tracked_bday, tracked_gender, tracked_phone, tracked_Status)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?,? , ?, ?, 'Active')");
+        (tracked_ID, tracked_Role, tracked_email, tracked_password, tracked_firstname, tracked_lastname, tracked_middlename, tracked_program, tracked_yearandsec, tracked_birthday, tracked_gender, tracked_phone, tracked_Status)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Active')");
     
     if (!$insert) {
         echo json_encode(["success" => false, "message" => "Database error: " . $conn->error]);
@@ -136,4 +158,5 @@ if ($row = $result->fetch_assoc()) {
 
 $check->close();
 $conn->close();
+exit;
 ?>

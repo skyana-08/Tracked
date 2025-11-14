@@ -39,7 +39,7 @@ export default function UserManagementProfessorAccounts() {
   }, []);
 
   const fetchProfessors = () => {
-    fetch("http://localhost/TrackEd/src/Pages/Admin/ProfessorAccountsDB/get_professors.php")
+    fetch("https://tracked.6minds.site/src/Pages/Admin/ProfessorAccountsDB/get_professors.php")
       .then((res) => res.json())
       .then((data) => setProfessors(data))
       .catch((err) => console.error(err));
@@ -48,7 +48,7 @@ export default function UserManagementProfessorAccounts() {
   // Backup function
   const handleBackup = async () => {
     try {
-      const response = await fetch("http://localhost/TrackEd/src/Pages/Admin/ProfessorAccountsDB/backup_professors.php", {
+      const response = await fetch("https://tracked.6minds.site/src/Pages/Admin/ProfessorAccountsDB/backup_professors.php", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -100,7 +100,7 @@ export default function UserManagementProfessorAccounts() {
     setShowRestoreModal(false);
     
     try {
-      const response = await fetch("http://localhost/TrackEd/src/Pages/Admin/ProfessorAccountsDB/restore_professors.php", {
+      const response = await fetch("https://tracked.6minds.site/src/Pages/Admin/ProfessorAccountsDB/restore_professors.php", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -174,7 +174,7 @@ export default function UserManagementProfessorAccounts() {
     const newStatus = selectedProfessor.tracked_Status === "Active" ? "Deactivated" : "Active";
     
     try {
-      const response = await fetch("http://localhost/TrackEd/src/Pages/Admin/ProfessorAccountsDB/update_professor_status.php", {
+      const response = await fetch("https://tracked.6minds.site/src/Pages/Admin/ProfessorAccountsDB/update_professor_status.php", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

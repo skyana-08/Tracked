@@ -39,7 +39,7 @@ export default function UserManagementStudentAccounts() {
   }, []);
 
   const fetchStudents = () => {
-    fetch("http://localhost/TrackEd/src/Pages/Admin/StudentAccountsDB/get_students.php")
+    fetch("https://tracked.6minds.site/src/Pages/Admin/StudentAccountsDB/get_students.php")
       .then((res) => res.json())
       .then((data) => {
         // Handle different response formats
@@ -64,7 +64,7 @@ export default function UserManagementStudentAccounts() {
   // Backup function
   const handleBackup = async () => {
     try {
-      const response = await fetch("http://localhost/TrackEd/src/Pages/Admin/StudentAccountsDB/backup_students.php", {
+      const response = await fetch("https://tracked.6minds.site/src/Pages/Admin/StudentAccountsDB/backup_students.php", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

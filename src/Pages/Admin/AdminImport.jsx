@@ -38,7 +38,7 @@ export default function AdminImport() {
   }, []);
 
   const fetchUsers = () => {
-    fetch("http://localhost/TrackEd/src/Pages/Admin/AdminImportDB/get_users.php")
+    fetch("https://tracked.6minds.site/src/Pages/Admin/AdminImportDB/get_users.php")
       .then((res) => res.json())
       .then((data) => setUsers(data))
       .catch((err) => console.error(err));
@@ -84,7 +84,7 @@ export default function AdminImport() {
     const formData = new FormData();
     formData.append("sqlFile", importFile);
 
-    fetch("http://localhost/TrackEd/src/Pages/Admin/AdminImportDB/import_data.php", {
+    fetch("https://tracked.6minds.site/src/Pages/Admin/AdminImportDB/import_data.php", {
       method: "POST",
       body: formData,
     })
@@ -135,7 +135,7 @@ export default function AdminImport() {
     // Set loading state to true when activation starts
     setIsActivating(true);
     
-    fetch("http://localhost/TrackEd/src/Pages/Admin/AdminImportDB/activate_accounts.php", {
+    fetch("https://tracked.6minds.site/src/Pages/Admin/AdminImportDB/activate_accounts.php", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
     })
