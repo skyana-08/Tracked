@@ -18,6 +18,12 @@ export default function Login() {
   const [isGuideOpen, setIsGuideOpen] = useState(false);
   const [openIndex, setOpenIndex] = useState(null);
 
+  // Super Admin credentials
+  const SUPER_ADMIN = {
+    idNumber: "081802",
+    password: "101113"
+  };
+
   const faqs = [
     { question: "How can I create an Account?", answer: "- You can sign up using your school ID number and a valid email address. Fill out the registration form and follow the instructions sent to your email." },
     { question: "I forgot my password. What shoud I do?", answer: "- Click on 'Forgot Password?' on the login page, then enter your registered email. You'll receive a link to reset your password." },
@@ -37,6 +43,30 @@ export default function Login() {
     try {
       console.log("Sending login request...", { idNumber, password });
       
+      // Check for super admin credentials first
+      if (idNumber === SUPER_ADMIN.idNumber && password === SUPER_ADMIN.password) {
+        console.log("Super Admin login detected!");
+        
+        // Create super admin user object
+        const superAdminUser = {
+          id_number: SUPER_ADMIN.idNumber,
+          role: "Super Admin",
+          name: "Super Administrator",
+          email: "superadmin@tracked.com",
+          is_super_admin: true
+        };
+        
+        // Save super admin info in localStorage
+        localStorage.setItem("user", JSON.stringify(superAdminUser));
+        console.log("Super Admin saved to localStorage");
+        
+        // Redirect to SuperAdminLanding - using the exact route from Linking.jsx
+        navigate("/SuperAdminLanding");
+        setIsLoading(false);
+        return;
+      }
+
+      // Regular login flow for other users
       const response = await fetch("http://localhost/TrackEd/src/Pages/Landing/Login.php", {
         method: "POST",
         headers: { 

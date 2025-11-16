@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 
 import Sidebar from "../../Components/Sidebar";
 import Header from "../../Components/Header";
@@ -10,25 +10,37 @@ import BackButton from "../../assets/BackButton(Light).svg";
 
 export default function AnalyticsAttendanceInfo() {
   const [isOpen, setIsOpen] = useState(false);
+  const location = useLocation();
+  
+  // Get student data from navigation state
+  const student = location.state?.student;
 
-  const student = {
-    id: "202210718",
-    name: "Lastname, Firstname M.I.",
-  };
+  // If no student data is passed, show a message or redirect
+  if (!student) {
+    return (
+      <div>
+        <Sidebar role="teacher" isOpen={isOpen} setIsOpen={setIsOpen} />
+        <div className={isOpen ? 'lg:ml-[250px] xl:ml-[280px] 2xl:ml-[300px]' : 'ml-0'}>
+          <Header setIsOpen={setIsOpen} isOpen={isOpen}/>
+          <div className="p-8 text-center">
+            <p className="text-red-500 text-lg">No student data available.</p>
+            <Link to="/AnalyticsProf" className="text-blue-500 hover:underline">
+              Go back to Analytics
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const attendance = {
     absentDates: ["August 1, 2025", "August 3, 2025"],
     lateDates: ["August 5, 2025", "August 8, 2025"],
-    present: 35,
-    late: 5,
-    absent: 2,
-    total: 42,
+    present: student.presentCount || 0,
+    late: student.lateCount || 0,
+    absent: student.absentCount || 0,
+    total: (student.presentCount || 0) + (student.lateCount || 0) + (student.absentCount || 0),
   };
-
-  const missedActivities = [
-    { task: "Activity 1", title: "Mockup Design", date: "January 5, 2025", points: 10 },
-    { task: "Activity 2", title: "UI Concept", date: "January 12, 2025", points: 15 },
-  ];
 
   return (
     <div>
@@ -61,7 +73,7 @@ export default function AnalyticsAttendanceInfo() {
             <p className="text-sm sm:text-base lg:text-lg">
               Individual Student Attendance Record
             </p>
-            <Link to="/AnalyticsIndividualInfo" className="lg:hidden">
+            <Link to="/AnalyticsIndividualInfo" state={{ student: student }} className="lg:hidden">
               <img 
                 src={BackButton} 
                 alt="BackButton" 

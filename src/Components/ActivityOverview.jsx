@@ -67,17 +67,7 @@ export default function ActivityOverview({
           <p className="text-base sm:text-lg lg:text-xl font-bold">Activity Overview</p>
         </div>
 
-        <div className="sm:ml-auto w-full sm:w-auto">
-          <div className="relative">
-            <button
-              onClick={() => {}}
-              className="flex w-full sm:w-64 lg:w-80 items-center justify-between font-bold px-3 py-2 bg-[#D4D4D4] rounded-md cursor-pointer shadow-md text-sm sm:text-base text-[#465746]"
-            >
-              <span>Section</span>
-              <img src={ArrowDown} alt="ArrowDown" className="h-4 w-4 sm:h-5 sm:w-5 lg:h-6 lg:w-6" />
-            </button>
-          </div>
-        </div>
+
       </div>
 
       <hr className="border-[#465746]/30 mt-3 sm:mt-4 lg:mt-5" />

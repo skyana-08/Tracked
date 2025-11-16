@@ -1,6 +1,5 @@
-import React from 'react'
-import { useState } from "react";
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 
 import Sidebar from "../../Components/Sidebar";
 import Header from "../../Components/Header";
@@ -9,9 +8,146 @@ import Popup from "../../Components/Popup";
 import ClassManagementLight from '../../assets/ClassManagement(Light).svg';
 import BackButton from '../../assets/BackButton(Light).svg';
 
-export default function SuperAdminAdminAccountDetails() {
+export default function SuperAdminStudentAccountDetails() {
   const [isOpen, setIsOpen] = useState(false);
   const [popupType, setPopupType] = useState(null);
+  const [student, setStudent] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [searchParams] = useSearchParams();
+  const studentId = searchParams.get('id');
+
+  const baseUrl = "http://localhost/TrackEd/src/Pages/SuperAdmin/SuperAdminDB";
+
+  useEffect(() => {
+    if (studentId) {
+      fetchStudentDetails();
+    }
+  }, [studentId]);
+
+  const fetchStudentDetails = async () => {
+    try {
+      const response = await fetch(`${baseUrl}/get_superadmin_student_details.php?id=${studentId}`);
+      const data = await response.json();
+      if (data.success) {
+        setStudent(data.student);
+      } else {
+        console.error("Error fetching student details:", data.message);
+      }
+    } catch (error) {
+      console.error("Error fetching student details:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResetPassword = async () => {
+    try {
+      const response = await fetch(`${baseUrl}/reset_user_password.php`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: studentId, userType: 'student' })
+      });
+      const data = await response.json();
+      if (data.success) {
+        alert('Password reset successfully!');
+        setPopupType(null);
+      } else {
+        alert('Failed to reset password: ' + data.message);
+      }
+    } catch (error) {
+      console.error("Error resetting password:", error);
+      alert('Error resetting password');
+    }
+  };
+
+  const handleToggleAccount = async () => {
+    try {
+      const response = await fetch(`${baseUrl}/update_user_status.php`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          id: studentId, 
+          status: student?.tracked_Status === 'Active' ? 'Deactivated' : 'Active',
+          userType: 'student'
+        })
+      });
+      const data = await response.json();
+      if (data.success) {
+        alert(`Account ${student?.tracked_Status === 'Active' ? 'deactivated' : 'activated'} successfully!`);
+        setPopupType(null);
+        fetchStudentDetails();
+      } else {
+        alert('Failed to update account status: ' + data.message);
+      }
+    } catch (error) {
+      console.error("Error updating account status:", error);
+      alert('Error updating account status');
+    }
+  };
+
+  const getStatusColor = (status) => {
+    return status === 'Active' ? 'text-[#00A15D]' : 'text-[#FF6666]';
+  };
+
+  const getDisplayName = (user) => {
+    return `${user.tracked_firstname} ${user.tracked_middlename ? user.tracked_middlename + ' ' : ''}${user.tracked_lastname}`;
+  };
+
+  const formatDate = (dateString) => {
+    if (!dateString) return 'N/A';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  };
+
+  const getYearLevel = (yearSection) => {
+    if (!yearSection) return 'N/A';
+    const year = yearSection.charAt(0);
+    switch(year) {
+      case '1': return '1st Year';
+      case '2': return '2nd Year';
+      case '3': return '3rd Year';
+      case '4': return '4th Year';
+      default: return year + ' Year';
+    }
+  };
+
+  if (loading) {
+    return (
+      <div>
+        <Sidebar role="admin" isOpen={isOpen} setIsOpen={setIsOpen} />
+        <div className={`
+          transition-all duration-300
+          ${isOpen ? "lg:ml-[250px] xl:ml-[280px] 2xl:ml-[300px]" : "ml-0"}
+        `}>
+          <Header setIsOpen={setIsOpen} isOpen={isOpen} />
+          <div className="p-8 flex justify-center items-center">
+            <div className="text-[#465746]">Loading...</div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!student) {
+    return (
+      <div>
+        <Sidebar role="admin" isOpen={isOpen} setIsOpen={setIsOpen} />
+        <div className={`
+          transition-all duration-300
+          ${isOpen ? "lg:ml-[250px] xl:ml-[280px] 2xl:ml-[300px]" : "ml-0"}
+        `}>
+          <Header setIsOpen={setIsOpen} isOpen={isOpen} />
+          <div className="p-8 flex justify-center items-center">
+            <div className="text-[#465746]">Student not found</div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -24,9 +160,7 @@ export default function SuperAdminAdminAccountDetails() {
       >
         <Header setIsOpen={setIsOpen} isOpen={isOpen} />
 
-        {/* content of ADMIN USER MANAGEMENT STUDENT ACCOUNT DETAILS */}
         <div className="p-4 sm:p-5 md:p-6 lg:p-8">
-          {/* "Header" */}
           <div className="mb-4 sm:mb-6">
             <div className="flex items-center mb-2">
               <img
@@ -39,8 +173,8 @@ export default function SuperAdminAdminAccountDetails() {
               </h1>
             </div>
             <div className="flex items-center justify-between text-sm sm:text-base lg:text-lg text-[#465746]">
-              <span>Student Account Details</span>
-              <Link to="/UserManagementStudentAccounts">
+              <span>Student Account Details - {student.tracked_ID}</span>
+              <Link to="/SuperAdminLanding">
                 <img
                   src={BackButton}
                   alt="BackButton"
@@ -52,8 +186,6 @@ export default function SuperAdminAdminAccountDetails() {
 
           <hr className="border-[#465746]/30 mb-5 sm:mb-6" />
 
-          {/* main content of ADMIN STUDENT ACCOUNT DETAILS */}
-          {/* Student Account Details */}
           <div className="bg-white p-4 sm:p-5 lg:p-6 rounded-lg sm:rounded-xl space-y-5 sm:space-y-6 shadow-md text-[#465746]">
             {/* Student Information Section */}
             <div>
@@ -66,15 +198,15 @@ export default function SuperAdminAdminAccountDetails() {
                     Student Name:
                   </span>
                   <span className="sm:col-span-2 text-[#465746]">
-                    Firstname Middlename Middle Initial Lastname
+                    {getDisplayName(student)}
                   </span>
                 </div>
                 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-1 sm:gap-4 text-sm sm:text-base">
                   <span className="font-semibold text-gray-600 sm:text-[#465746] sm:font-normal">
-                    Student Number (ID Number):
+                    Student Number:
                   </span>
-                  <span className="sm:col-span-2 text-[#465746]">202210718</span>
+                  <span className="sm:col-span-2 text-[#465746]">{student.tracked_ID}</span>
                 </div>
                 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-1 sm:gap-4 text-sm sm:text-base">
@@ -82,7 +214,7 @@ export default function SuperAdminAdminAccountDetails() {
                     CVSU Email Address:
                   </span>
                   <span className="sm:col-span-2 text-[#465746] break-all sm:break-normal">
-                    Lastname@cvsu.edu.ph
+                    {student.tracked_email}
                   </span>
                 </div>
                 
@@ -91,29 +223,35 @@ export default function SuperAdminAdminAccountDetails() {
                     Program:
                   </span>
                   <span className="sm:col-span-2 text-[#465746]">
-                    Bachelor in Information Technology (IT)
+                    {student.tracked_program || 'N/A'}
                   </span>
                 </div>
                 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-1 sm:gap-4 text-sm sm:text-base">
                   <span className="font-semibold text-gray-600 sm:text-[#465746] sm:font-normal">
-                    Section:
+                    Year & Section:
                   </span>
-                  <span className="sm:col-span-2 text-[#465746]">X</span>
+                  <span className="sm:col-span-2 text-[#465746]">
+                    {student.tracked_yearandsec || 'N/A'}
+                  </span>
                 </div>
                 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-1 sm:gap-4 text-sm sm:text-base">
                   <span className="font-semibold text-gray-600 sm:text-[#465746] sm:font-normal">
                     Year Level:
                   </span>
-                  <span className="sm:col-span-2 text-[#465746]">2nd Year</span>
+                  <span className="sm:col-span-2 text-[#465746]">
+                    {getYearLevel(student.tracked_yearandsec)}
+                  </span>
                 </div>
                 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-1 sm:gap-4 text-sm sm:text-base">
                   <span className="font-semibold text-gray-600 sm:text-[#465746] sm:font-normal">
                     Semester:
                   </span>
-                  <span className="sm:col-span-2 text-[#465746]">2nd Semester 2024-2025</span>
+                  <span className="sm:col-span-2 text-[#465746]">
+                    {student.tracked_semester || 'N/A'}
+                  </span>
                 </div>
               </div>
             </div>
@@ -128,21 +266,27 @@ export default function SuperAdminAdminAccountDetails() {
                   <span className="font-semibold text-gray-600 sm:text-[#465746] sm:font-normal">
                     Date Created:
                   </span>
-                  <span className="sm:col-span-2 text-[#465746]">September 3, 2025</span>
+                  <span className="sm:col-span-2 text-[#465746]">
+                    {formatDate(student.created_at)}
+                  </span>
                 </div>
                 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-1 sm:gap-4 text-sm sm:text-base">
                   <span className="font-semibold text-gray-600 sm:text-[#465746] sm:font-normal">
-                    Last Login:
+                    Last Updated:
                   </span>
-                  <span className="sm:col-span-2 text-[#465746]">September 3, 2025</span>
+                  <span className="sm:col-span-2 text-[#465746]">
+                    {formatDate(student.updated_at)}
+                  </span>
                 </div>
                 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-1 sm:gap-4 text-sm sm:text-base">
                   <span className="font-semibold text-gray-600 sm:text-[#465746] sm:font-normal">
                     Account Status:
                   </span>
-                  <span className="sm:col-span-2 font-bold text-green-600">Active</span>
+                  <span className={`sm:col-span-2 font-bold ${getStatusColor(student.tracked_Status)}`}>
+                    {student.tracked_Status}
+                  </span>
                 </div>
               </div>
             </div>
@@ -150,23 +294,24 @@ export default function SuperAdminAdminAccountDetails() {
             {/* Action Buttons */}
             <div className="pt-4 sm:pt-5 border-t border-gray-200">
               <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
-                {/* Edit */}
-                <button className="font-bold text-white py-2.5 px-4 sm:px-6 bg-[#00874E] rounded-md shadow-md text-center hover:bg-[#006F3A] text-sm sm:text-base w-full sm:w-auto transition-colors duration-200 cursor-pointer">
-                  Edit
-                </button>
-
                 {/* Reset Password */}
                 <button 
-                  onClick={() => setPopupType("reset")}
-                  className="font-bold text-white py-2.5 px-4 sm:px-6 bg-[#00874E] rounded-md shadow-md text-center hover:bg-[#006F3A] text-sm sm:text-base w-full sm:w-auto transition-colors duration-200 cursor-pointer">
+                  onClick={() => setPopupType("reset")} 
+                  className="font-bold text-white py-2.5 px-4 sm:px-6 bg-[#00874E] rounded-md shadow-md text-center hover:bg-[#006F3A] text-sm sm:text-base w-full sm:w-auto transition-colors duration-200 cursor-pointer"
+                >
                   Reset Password
                 </button>
 
-                {/* Disable Account */}
+                {/* Toggle Account Status */}
                 <button 
-                  onClick={() => setPopupType("disable")} 
-                  className="font-bold text-white py-2.5 px-4 sm:px-6 bg-[#FF6666] rounded-md shadow-md text-center hover:bg-[#E55555] text-sm sm:text-base w-full sm:w-auto transition-colors duration-200 cursor-pointer">
-                  Disable Account
+                  onClick={() => setPopupType("toggle")}  
+                  className={`font-bold text-white py-2.5 px-4 sm:px-6 rounded-md shadow-md text-center text-sm sm:text-base w-full sm:w-auto transition-colors duration-200 cursor-pointer ${
+                    student.tracked_Status === 'Active' 
+                      ? 'bg-[#FF6666] hover:bg-[#E55555]' 
+                      : 'bg-[#00874E] hover:bg-[#006F3A]'
+                  }`}
+                >
+                  {student.tracked_Status === 'Active' ? 'Disable Account' : 'Enable Account'}
                 </button>
               </div>
             </div>
@@ -175,20 +320,22 @@ export default function SuperAdminAdminAccountDetails() {
             {popupType === "reset" && (
               <Popup 
                 setOpen={() => setPopupType(null)} 
-                message="Do you really want to reset this password?" 
+                message="Do you really want to reset this password? The default password will be 'password123'." 
                 confirmText="Reset" 
                 buttonColor="#00874E" 
-                hoverColor="#006F3A" 
+                hoverColor="#006F3A"
+                onConfirm={handleResetPassword}
               />
             )}
 
-            {popupType === "disable" && (
+            {popupType === "toggle" && (
               <Popup 
                 setOpen={() => setPopupType(null)} 
-                message="Are you sure you want to disable this account?" 
-                confirmText="Disable" 
-                buttonColor="#FF6666" 
-                hoverColor="#C23535" 
+                message={`Are you sure you want to ${student.tracked_Status === 'Active' ? 'disable' : 'enable'} this account?`} 
+                confirmText={student.tracked_Status === 'Active' ? 'Disable' : 'Enable'} 
+                buttonColor={student.tracked_Status === 'Active' ? '#FF6666' : '#00874E'} 
+                hoverColor={student.tracked_Status === 'Active' ? '#C23535' : '#006F3A'}
+                onConfirm={handleToggleAccount}
               />
             )}
           </div>

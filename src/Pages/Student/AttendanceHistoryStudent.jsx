@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { Link, useLocation } from "react-router-dom";
 
 import Sidebar from "../../Components/Sidebar";
 import Header from "../../Components/Header";
@@ -10,25 +10,108 @@ import BackButton from "../../assets/BackButton(Light).svg";
 
 export default function AttendanceHistoryStudent() {
   const [isOpen, setIsOpen] = useState(false);
+  const [attendanceData, setAttendanceData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [studentId, setStudentId] = useState('');
+  const location = useLocation();
+  
+  const subject = location.state?.subject || '';
+  const subjectName = location.state?.subjectName || 'Current Subject';
 
-  const student = {
-    id: "202210718",
-    name: "Lastname, Firstname M.I.",
+  // Get student ID from localStorage
+  useEffect(() => {
+    const userData = localStorage.getItem('user');
+    if (userData) {
+      try {
+        const user = JSON.parse(userData);
+        setStudentId(user.id || '');
+      } catch (error) {
+        setStudentId('');
+      }
+    } else {
+      setStudentId('');
+    }
+  }, []);
+
+  // Fetch attendance data
+  useEffect(() => {
+    const fetchAttendanceData = async () => {
+      if (!studentId || !subject) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        setLoading(true);
+        const attendanceUrl = `http://localhost/TrackEd/src/Pages/Student/StudentDB/get_attendance_history_student.php?student_id=${studentId}&subject_code=${subject}`;
+        const response = await fetch(attendanceUrl);
+        
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success) {
+            setAttendanceData(data);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching attendance data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchAttendanceData();
+  }, [studentId, subject]);
+
+  if (loading) {
+    return (
+      <div>
+        <Sidebar role="student" isOpen={isOpen} setIsOpen={setIsOpen} />
+        <div className={isOpen ? 'lg:ml-[250px] xl:ml-[280px] 2xl:ml-[300px]' : 'ml-0'}>
+          <Header setIsOpen={setIsOpen} isOpen={isOpen} userName="Jane Doe" />
+          <div className="p-8 text-center">
+            <p className="text-gray-500">Loading attendance data...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!attendanceData) {
+    return (
+      <div>
+        <Sidebar role="student" isOpen={isOpen} setIsOpen={setIsOpen} />
+        <div className={isOpen ? 'lg:ml-[250px] xl:ml-[280px] 2xl:ml-[300px]' : 'ml-0'}>
+          <Header setIsOpen={setIsOpen} isOpen={isOpen} userName="Jane Doe" />
+          <div className="p-8 text-center">
+            <p className="text-red-500">Error loading attendance data.</p>
+            <Link to="/AnalyticsStudent" className="text-blue-500 hover:underline">
+              Go back to Analytics
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const student = attendanceData.student || { 
+    id: studentId, 
+    name: "Student Name" 
   };
 
-  const attendance = {
-    absentDates: ["August 1, 2025", "August 3, 2025"],
-    lateDates: ["August 5, 2025", "August 8, 2025"],
-    present: 35,
-    late: 5,
-    absent: 2,
-    total: 42,
+  const attendance = attendanceData.attendance_summary || {
+    present: 0,
+    late: 0,
+    absent: 0,
+    total: 0
   };
 
-  const missedActivities = [
-    { task: "Activity 1", title: "Mockup Design", date: "January 5, 2025", points: 10 },
-    { task: "Activity 2", title: "UI Concept", date: "January 12, 2025", points: 15 },
-  ];
+  const attendanceDates = attendanceData.attendance_dates || {
+    absent: [],
+    late: []
+  };
+
+  // Find the maximum length to determine how many rows to show
+  const maxRows = Math.max(attendanceDates.absent.length, attendanceDates.late.length);
 
   return (
     <div>
@@ -59,7 +142,7 @@ export default function AttendanceHistoryStudent() {
 
           <div className="flex items-center justify-between mb-3 sm:mb-4">
             <p className="text-sm sm:text-base lg:text-lg">
-              Class Attendance Details
+              Class Attendance Details - {subjectName}
             </p>
             <Link to="/AnalyticsStudent" className="">
               <img 
@@ -107,14 +190,24 @@ export default function AttendanceHistoryStudent() {
                       </tr>
                     </thead>
                     <tbody>
-                      {attendance.absentDates.map((absent, i) => (
-                        <tr key={i} className="hover:bg-gray-50 border-b border-gray-200 last:border-0">
-                          <td className="p-2 sm:p-3">{absent}</td>
-                          <td className="p-2 sm:p-3">
-                            {attendance.lateDates[i] || "—"}
+                      {maxRows > 0 ? (
+                        Array.from({ length: maxRows }).map((_, index) => (
+                          <tr key={index} className="hover:bg-gray-50 border-b border-gray-200 last:border-0">
+                            <td className="p-2 sm:p-3">
+                              {attendanceDates.absent[index] || "—"}
+                            </td>
+                            <td className="p-2 sm:p-3">
+                              {attendanceDates.late[index] || "—"}
+                            </td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td colSpan="2" className="p-2 sm:p-3 text-center text-gray-500">
+                            No attendance records found
                           </td>
                         </tr>
-                      ))}
+                      )}
                     </tbody>
                   </table>
                 </div>
@@ -136,7 +229,7 @@ export default function AttendanceHistoryStudent() {
                 </span>
               </div>
               <div className="p-2 sm:p-3 bg-gray-50 rounded-md">
-                <p className="font-semibold text-[#767EE0] 0 mb-1 sm:mb-2">Late</p>
+                <p className="font-semibold text-[#767EE0] mb-1 sm:mb-2">Late</p>
                 <span className="text-lg sm:text-xl lg:text-2xl font-bold">
                   {attendance.late}
                 </span>

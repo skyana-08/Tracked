@@ -52,7 +52,7 @@ export default function SubjectDetails() {
   const [activityTypeDropdownOpen, setActivityTypeDropdownOpen] = useState(false);
   const [editActivityTypeDropdownOpen, setEditActivityTypeDropdownOpen] = useState(false);
   
-  const activityTypes = ["Assignment", "Activity", "Project", "Laboratory", "Announcement"];
+  const activityTypes = ["Assignment","Quiz", "Activity", "Project", "Laboratory", "Announcement"];
 
   // Get professor ID from localStorage
   const getProfessorId = () => {
