@@ -187,7 +187,7 @@ export default function UserManagementStudentAccounts() {
   const confirmStatusChange = async () => {
     if (!selectedStudent) return;
 
-    const newStatus = selectedStudent.tracked_Status === "Active" ? "Deactivated" : "Active";
+    const newStatus = selectedStudent.tracked_Status === "Active" ? "Deactivate" : "Active";
     
     try {
       const response = await fetch("https://tracked.6minds.site/Admin/StudentAccountsDB/update_student_status.php", {
@@ -324,7 +324,7 @@ export default function UserManagementStudentAccounts() {
 
                 {open && (
                   <div className="absolute top-full mt-1 bg-white rounded-md w-28 sm:w-36 lg:w-40 shadow-lg border border-gray-200 z-10">
-                    {["All", "Active", "Deactivated"].map((f) => (
+                    {["All", "Active", "Deactivate"].map((f) => (
                       <button
                         key={f}
                         className="block px-3 sm:px-4 py-2 w-full text-left hover:bg-gray-100 text-xs sm:text-sm lg:text-base transition-colors duration-200 cursor-pointer"

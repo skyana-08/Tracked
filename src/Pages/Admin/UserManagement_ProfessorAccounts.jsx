@@ -171,7 +171,7 @@ export default function UserManagementProfessorAccounts() {
   const confirmStatusChange = async () => {
     if (!selectedProfessor) return;
 
-    const newStatus = selectedProfessor.tracked_Status === "Active" ? "Deactivated" : "Active";
+    const newStatus = selectedProfessor.tracked_Status === "Active" ? "Deactivate" : "Active";
     
     try {
       const response = await fetch("https://tracked.6minds.site/Admin/ProfessorAccountsDB/update_professor_status.php", {
@@ -308,7 +308,7 @@ export default function UserManagementProfessorAccounts() {
 
                 {open && (
                   <div className="absolute top-full mt-1 bg-white rounded-md w-28 sm:w-36 lg:w-40 shadow-lg border border-gray-200 z-10">
-                    {["All", "Active", "Deactivated"].map((f) => (
+                    {["All", "Active", "Deactivate"].map((f) => (
                       <button
                         key={f}
                         className="block px-3 sm:px-4 py-2 w-full text-left hover:bg-gray-100 text-xs sm:text-sm lg:text-base transition-colors duration-200 cursor-pointer"

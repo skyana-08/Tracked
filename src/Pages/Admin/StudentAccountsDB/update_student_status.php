@@ -35,8 +35,8 @@ if (empty($studentId) || empty($newStatus)) {
 }
 
 // Validate status
-if (!in_array($newStatus, ['Active', 'Deactivated'])) {
-    echo json_encode(["success" => false, "message" => "Invalid status. Must be 'Active' or 'Deactivated'"]);
+if (!in_array($newStatus, ['Active', 'Deactivate'])) {
+    echo json_encode(["success" => false, "message" => "Invalid status. Must be 'Active' or 'Deactivate'"]);
     exit();
 }
 
