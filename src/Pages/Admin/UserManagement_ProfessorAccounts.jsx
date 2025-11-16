@@ -13,6 +13,8 @@ import ArchiveRow from "../../assets/ArchiveRow(Light).svg";
 import Details from "../../assets/Details(Light).svg";
 import ArchiveWarningIcon from "../../assets/Warning(Yellow).svg";
 import Restore from "../../assets/Unarchive.svg";
+import SuccessIcon from "../../assets/Success(Green).svg";
+import ErrorIcon from "../../assets/Error(Red).svg";
 
 export default function UserManagementProfessorAccounts() {
   const [isOpen, setIsOpen] = useState(false);
@@ -25,16 +27,126 @@ export default function UserManagementProfessorAccounts() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
+  // New state for backup/restore modals
+  const [showBackupModal, setShowBackupModal] = useState(false);
+  const [showRestoreModal, setShowRestoreModal] = useState(false);
+  const [backupModalContent, setBackupModalContent] = useState(null);
+  const [restoreModalContent, setRestoreModalContent] = useState(null);
+
   // Fetch professors from backend
   useEffect(() => {
     fetchProfessors();
   }, []);
 
   const fetchProfessors = () => {
-    fetch("http://localhost/TrackEd/src/Pages/Admin/ProfessorAccountsDB/get_professors.php")
+    fetch("https://tracked.6minds.site/Admin/ProfessorAccountsDB/get_professors.php")
       .then((res) => res.json())
       .then((data) => setProfessors(data))
       .catch((err) => console.error(err));
+  };
+
+  // Backup function
+  const handleBackup = async () => {
+    try {
+      const response = await fetch("https://tracked.6minds.site/Admin/ProfessorAccountsDB/backup_professors.php", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        setBackupModalContent({
+          type: 'success',
+          title: 'Backup Successful',
+          message: `Backup created successfully!`,
+          filename: data.filename,
+          filepath: data.filepath
+        });
+      } else {
+        setBackupModalContent({
+          type: 'error',
+          title: 'Backup Failed',
+          message: data.message
+        });
+      }
+    } catch (error) {
+      console.error("Error creating backup:", error);
+      setBackupModalContent({
+        type: 'error',
+        title: 'Network Error',
+        message: 'Network error during backup. Please check if the server is running.'
+      });
+    } finally {
+      setShowBackupModal(true);
+    }
+  };
+
+  // Restore function
+  const handleRestore = async () => {
+    setRestoreModalContent({
+      type: 'confirmation',
+      title: 'Confirm Restore',
+      message: 'Are you sure you want to restore professor accounts from the latest backup? This will overwrite existing data.',
+      confirmText: 'Restore',
+      cancelText: 'Cancel'
+    });
+    setShowRestoreModal(true);
+  };
+
+  const confirmRestore = async () => {
+    setShowRestoreModal(false);
+    
+    try {
+      const response = await fetch("https://tracked.6minds.site/Admin/ProfessorAccountsDB/restore_professors.php", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        setRestoreModalContent({
+          type: 'success',
+          title: 'Restore Successful',
+          message: `Professors restored successfully!`,
+          filename: data.filename
+        });
+        // Refresh the professor list
+        fetchProfessors();
+      } else {
+        setRestoreModalContent({
+          type: 'error',
+          title: 'Restore Failed',
+          message: data.message
+        });
+      }
+    } catch (error) {
+      console.error("Error restoring backup:", error);
+      setRestoreModalContent({
+        type: 'error',
+        title: 'Network Error',
+        message: 'Network error during restore. Please check if the server is running.'
+      });
+    } finally {
+      setShowRestoreModal(true);
+    }
+  };
+
+  // Close backup modal
+  const closeBackupModal = () => {
+    setShowBackupModal(false);
+    setBackupModalContent(null);
+  };
+
+  // Close restore modal
+  const closeRestoreModal = () => {
+    setShowRestoreModal(false);
+    setRestoreModalContent(null);
   };
 
   // Filter professors based on selected filter
@@ -59,10 +171,10 @@ export default function UserManagementProfessorAccounts() {
   const confirmStatusChange = async () => {
     if (!selectedProfessor) return;
 
-    const newStatus = selectedProfessor.tracked_Status === "Active" ? "Deactivated" : "Active";
+    const newStatus = selectedProfessor.tracked_Status === "Active" ? "Deactivate" : "Active";
     
     try {
-      const response = await fetch("http://localhost/TrackEd/src/Pages/Admin/ProfessorAccountsDB/update_professor_status.php", {
+      const response = await fetch("https://tracked.6minds.site/Admin/ProfessorAccountsDB/update_professor_status.php", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -106,7 +218,7 @@ export default function UserManagementProfessorAccounts() {
     if (!selectedProfessor) return null;
     
     const isDeactivating = selectedProfessor.tracked_Status === "Active";
-    const action = isDeactivating ? "Deactivated" : "Restore";
+    const action = isDeactivating ? "Deactivate" : "Activate";
     
     return {
       title: `${action} Account?`,
@@ -117,6 +229,27 @@ export default function UserManagementProfessorAccounts() {
   };
 
   const modalContent = getModalContent();
+
+  // Toggle button component
+  const StatusToggleButton = ({ status, onClick }) => {
+    const isActive = status === "Active";
+    
+    return (
+      <button
+        onClick={onClick}
+        className={`cursor-pointer relative inline-flex items-center h-6 rounded-full w-11 transition-colors duration-200 ease-in-out focus:outline-none ${
+          isActive ? 'bg-[#00A15D]' : 'bg-[#FF6666]'
+        }`}
+        // title={isActive ? "Deactivate" : "Activate"}
+      >
+        <span
+          className={`cursor-pointer inline-block w-4 h-4 transform bg-white rounded-full transition-transform duration-200 ease-in-out ${
+            isActive ? 'translate-x-6' : 'translate-x-1'
+          }`}
+        />
+      </button>
+    );
+  };
 
   return (
     <div>
@@ -175,7 +308,7 @@ export default function UserManagementProfessorAccounts() {
 
                 {open && (
                   <div className="absolute top-full mt-1 bg-white rounded-md w-28 sm:w-36 lg:w-40 shadow-lg border border-gray-200 z-10">
-                    {["All", "Active", "Deactivated"].map((f) => (
+                    {["All", "Active", "Deactivate"].map((f) => (
                       <button
                         key={f}
                         className="block px-3 sm:px-4 py-2 w-full text-left hover:bg-gray-100 text-xs sm:text-sm lg:text-base transition-colors duration-200 cursor-pointer"
@@ -192,13 +325,20 @@ export default function UserManagementProfessorAccounts() {
                 )}
               </div>
 
-              <button className="font-bold px-3 sm:px-4 py-2 bg-[#fff] rounded-md shadow-md border-2 border-transparent hover:border-[#00874E] text-xs sm:text-sm lg:text-base whitespace-nowrap transition-all duration-200 cursor-pointer">
-                Import Database
-              </button>
-
-              <button className="font-bold px-3 sm:px-4 py-2 bg-[#fff] rounded-md shadow-md border-2 border-transparent hover:border-[#00874E] text-xs sm:text-sm lg:text-base transition-all duration-200 cursor-pointer">
+              <button 
+                onClick={handleBackup}
+                className="font-bold px-3 sm:px-4 py-2 bg-[#fff] rounded-md shadow-md border-2 border-transparent hover:border-[#00874E] text-xs sm:text-sm lg:text-base transition-all duration-200 cursor-pointer"
+              >
                 Backup
               </button>
+
+              <button 
+                onClick={handleRestore}
+                className="font-bold px-3 sm:px-4 py-2 bg-[#fff] rounded-md shadow-md border-2 border-transparent hover:border-[#00874E] text-xs sm:text-sm lg:text-base transition-all duration-200 cursor-pointer"
+              >
+                Restore
+              </button>
+              
             </div>
 
             {/* Search and Archive Buttons */}
@@ -268,12 +408,9 @@ export default function UserManagementProfessorAccounts() {
                       </td>
                       <td className="py-3 px-2 sm:px-3 rounded-r-lg">
                         <div className="flex gap-2">
-                          <img
+                          <StatusToggleButton 
+                            status={prof.tracked_Status}
                             onClick={() => handleStatusChange(prof)}
-                            src={prof.tracked_Status === "Active" ? ArchiveRow : Restore}
-                            alt={prof.tracked_Status === "Active" ? "Deactivated" : "Restore"}
-                            className="h-5 w-5 sm:h-6 sm:w-6 cursor-pointer hover:opacity-70 transition-opacity duration-200"
-                            title={prof.tracked_Status === "Active" ? "Deactivated" : "Restore"}
                           />
                           {/* UPDATED: Use query parameter instead of URL parameter */}
                           <Link 
@@ -308,12 +445,9 @@ export default function UserManagementProfessorAccounts() {
                       <p className="font-semibold text-sm">{prof.tracked_ID}</p>
                     </div>
                     <div className="flex gap-2">
-                      <img
+                      <StatusToggleButton 
+                        status={prof.tracked_Status}
                         onClick={() => handleStatusChange(prof)}
-                        src={prof.tracked_Status === "Active" ? ArchiveRow : Restore}
-                        alt={prof.tracked_Status === "Active" ? "Deactivated" : "Restore"}
-                        className="h-5 w-5 cursor-pointer hover:opacity-70 transition-opacity duration-200"
-                        title={prof.tracked_Status === "Active" ? "Deactivated" : "Restore"}
                       />
                       {/* UPDATED: Use query parameter instead of URL parameter */}
                       <Link to={`/UserManagementProfessorAccountsDetails?id=${prof.tracked_ID}`}>
@@ -496,6 +630,148 @@ export default function UserManagementProfessorAccounts() {
                     to   { opacity: 1; transform: translateY(0)   scale(1);    }
                   }
                 `}</style>  
+              </div>
+            )}
+
+            {/* Backup Result Modal */}
+            {showBackupModal && backupModalContent && (
+              <div
+                className="fixed inset-0 bg-black/50 flex justify-center items-center z-50 overlay-fade p-4"
+                onClick={closeBackupModal}
+                role="dialog"
+                aria-modal="true"
+              >
+                <div 
+                  className="bg-white text-black rounded-lg shadow-2xl w-full max-w-sm sm:max-w-md p-6 sm:p-8 relative modal-pop"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="text-center">
+                    {/* Icon */}
+                    <div className={`mx-auto flex items-center justify-center h-16 w-16 rounded-full mb-4 ${
+                      backupModalContent.type === 'success' ? 'bg-green-100' : 'bg-red-100'
+                    }`}>
+                      <img 
+                        src={backupModalContent.type === 'success' ? SuccessIcon : ErrorIcon} 
+                        alt={backupModalContent.type === 'success' ? 'Success' : 'Error'} 
+                        className="h-8 w-8" 
+                      />
+                    </div>
+
+                    <h3 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">
+                      {backupModalContent.title}
+                    </h3>
+                    
+                    <div className="mt-4 mb-6">
+                      <p className="text-sm text-gray-600 mb-3">
+                        {backupModalContent.message}
+                      </p>
+                      {backupModalContent.filename && (
+                        <div className="bg-gray-50 rounded-lg p-4 text-left">
+                          <div className="space-y-2">
+                            <p className="text-sm text-gray-600 break-words">
+                              <span className="font-semibold">File:</span> {backupModalContent.filename}
+                            </p>
+                            {backupModalContent.filepath && (
+                              <p className="text-xs text-gray-500 break-words">
+                                <span className="font-semibold">Location:</span> {backupModalContent.filepath}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex justify-center">
+                      <button
+                        onClick={closeBackupModal}
+                        className="px-6 py-3 bg-[#00874E] hover:bg-[#00743E] text-white font-bold rounded-md transition-all duration-200 cursor-pointer"
+                      >
+                        OK
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Restore Modal */}
+            {showRestoreModal && restoreModalContent && (
+              <div
+                className="fixed inset-0 bg-black/50 flex justify-center items-center z-50 overlay-fade p-4"
+                onClick={closeRestoreModal}
+                role="dialog"
+                aria-modal="true"
+              >
+                <div 
+                  className="bg-white text-black rounded-lg shadow-2xl w-full max-w-sm sm:max-w-md p-6 sm:p-8 relative modal-pop"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="text-center">
+                    {/* Icon */}
+                    {restoreModalContent.type === 'confirmation' ? (
+                      <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-yellow-100 mb-4">
+                        <img 
+                          src={ArchiveWarningIcon} 
+                          alt="Warning" 
+                          className="h-8 w-8" 
+                        />
+                      </div>
+                    ) : (
+                      <div className={`mx-auto flex items-center justify-center h-16 w-16 rounded-full mb-4 ${
+                        restoreModalContent.type === 'success' ? 'bg-green-100' : 'bg-red-100'
+                      }`}>
+                        <img 
+                          src={restoreModalContent.type === 'success' ? SuccessIcon : ErrorIcon} 
+                          alt={restoreModalContent.type === 'success' ? 'Success' : 'Error'} 
+                          className="h-8 w-8" 
+                        />
+                      </div>
+                    )}
+
+                    <h3 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">
+                      {restoreModalContent.title}
+                    </h3>
+                    
+                    <div className="mt-4 mb-6">
+                      <p className="text-sm text-gray-600 mb-3">
+                        {restoreModalContent.message}
+                      </p>
+                      {restoreModalContent.filename && (
+                        <div className="bg-gray-50 rounded-lg p-4 text-left">
+                          <p className="text-sm text-gray-600">
+                            <strong>Restored from:</strong> {restoreModalContent.filename}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex flex-col sm:flex-row gap-3">
+                      {restoreModalContent.type === 'confirmation' ? (
+                        <>
+                          <button
+                            onClick={closeRestoreModal}
+                            className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-3 rounded-md transition-all duration-200 cursor-pointer"
+                          >
+                            {restoreModalContent.cancelText}
+                          </button>
+                          <button
+                            onClick={confirmRestore}
+                            className="flex-1 bg-[#00874E] hover:bg-[#00743E] text-white font-bold py-3 rounded-md transition-all duration-200 cursor-pointer"
+                          >
+                            {restoreModalContent.confirmText}
+                          </button>
+                        </>
+                      ) : (
+                        <button
+                          onClick={closeRestoreModal}
+                          className="flex-1 bg-[#00874E] hover:bg-[#00743E] text-white font-bold py-3 rounded-md transition-all duration-200 cursor-pointer"
+                        >
+                          OK
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
               </div>
             )}
           </div>

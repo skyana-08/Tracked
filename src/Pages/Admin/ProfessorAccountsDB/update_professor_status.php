@@ -10,7 +10,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
     exit();
 }
 
-$conn = new mysqli("localhost", "root", "", "tracked");
+$conn = new mysqli("localhost", "u713320770_trackedDB", "Tracked@2025", "u713320770_tracked");
 
 if ($conn->connect_error) {
     echo json_encode(["success" => false, "message" => "Database connection failed: " . $conn->connect_error]);
@@ -38,8 +38,8 @@ if (empty($professorId) || empty($newStatus)) {
 }
 
 // Validate status
-if (!in_array($newStatus, ['Active', 'Deactivated'])) {
-    echo json_encode(["success" => false, "message" => "Invalid status. Must be 'Active' or 'Deactivated'"]);
+if (!in_array($newStatus, ['Active', 'Deactivate'])) {
+    echo json_encode(["success" => false, "message" => "Invalid status. Must be 'Active' or 'Deactivate'"]);
     exit();
 }
 

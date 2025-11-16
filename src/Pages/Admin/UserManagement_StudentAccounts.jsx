@@ -13,6 +13,8 @@ import ArchiveRow from "../../assets/ArchiveRow(Light).svg";
 import Details from "../../assets/Details(Light).svg";
 import ArchiveWarningIcon from "../../assets/Warning(Yellow).svg";
 import Restore from "../../assets/Unarchive.svg";
+import SuccessIcon from "../../assets/Success(Green).svg";
+import ErrorIcon from "../../assets/Error(Red).svg";
 
 export default function UserManagementStudentAccounts() {
   const [isOpen, setIsOpen] = useState(false);
@@ -25,13 +27,19 @@ export default function UserManagementStudentAccounts() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
+  // New state for backup/restore modals
+  const [showBackupModal, setShowBackupModal] = useState(false);
+  const [showRestoreModal, setShowRestoreModal] = useState(false);
+  const [backupModalContent, setBackupModalContent] = useState(null);
+  const [restoreModalContent, setRestoreModalContent] = useState(null);
+
   // Fetch students from backend
   useEffect(() => {
     fetchStudents();
   }, []);
 
   const fetchStudents = () => {
-    fetch("http://localhost/TrackEd/src/Pages/Admin/StudentAccountsDB/get_students.php")
+    fetch("https://tracked.6minds.site/Admin/StudentAccountsDB/get_students.php")
       .then((res) => res.json())
       .then((data) => {
         // Handle different response formats
@@ -51,6 +59,110 @@ export default function UserManagementStudentAccounts() {
         console.error(err);
         setStudents([]); // Set empty array on error
       });
+  };
+
+  // Backup function
+  const handleBackup = async () => {
+    try {
+      const response = await fetch("https://tracked.6minds.site/Admin/StudentAccountsDB/backup_students.php", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        setBackupModalContent({
+          type: 'success',
+          title: 'Backup Successful',
+          message: `Backup created successfully!`,
+          filename: data.filename,
+          filepath: data.filepath
+        });
+      } else {
+        setBackupModalContent({
+          type: 'error',
+          title: 'Backup Failed',
+          message: data.message
+        });
+      }
+    } catch (error) {
+      console.error("Error creating backup:", error);
+      setBackupModalContent({
+        type: 'error',
+        title: 'Network Error',
+        message: 'Network error during backup. Please check if the server is running.'
+      });
+    } finally {
+      setShowBackupModal(true);
+    }
+  };
+
+  // Restore function
+  const handleRestore = async () => {
+    setRestoreModalContent({
+      type: 'confirmation',
+      title: 'Confirm Restore',
+      message: 'Are you sure you want to restore student accounts from the latest backup? This will overwrite existing data.',
+      confirmText: 'Restore',
+      cancelText: 'Cancel'
+    });
+    setShowRestoreModal(true);
+  };
+
+  const confirmRestore = async () => {
+    setShowRestoreModal(false);
+    
+    try {
+      const response = await fetch("https://tracked.6minds.site/Admin/StudentAccountsDB/restore_students.php", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        setRestoreModalContent({
+          type: 'success',
+          title: 'Restore Successful',
+          message: `Students restored successfully!`,
+          filename: data.filename
+        });
+        // Refresh the student list
+        fetchStudents();
+      } else {
+        setRestoreModalContent({
+          type: 'error',
+          title: 'Restore Failed',
+          message: data.message
+        });
+      }
+    } catch (error) {
+      console.error("Error restoring backup:", error);
+      setRestoreModalContent({
+        type: 'error',
+        title: 'Network Error',
+        message: 'Network error during restore. Please check if the server is running.'
+      });
+    } finally {
+      setShowRestoreModal(true);
+    }
+  };
+
+  // Close backup modal
+  const closeBackupModal = () => {
+    setShowBackupModal(false);
+    setBackupModalContent(null);
+  };
+
+  // Close restore modal
+  const closeRestoreModal = () => {
+    setShowRestoreModal(false);
+    setRestoreModalContent(null);
   };
 
   // Filter students based on selected filter
@@ -75,10 +187,10 @@ export default function UserManagementStudentAccounts() {
   const confirmStatusChange = async () => {
     if (!selectedStudent) return;
 
-    const newStatus = selectedStudent.tracked_Status === "Active" ? "Deactivated" : "Active";
+    const newStatus = selectedStudent.tracked_Status === "Active" ? "Deactivate" : "Active";
     
     try {
-      const response = await fetch("http://localhost/TrackEd/src/Pages/Admin/StudentAccountsDB/update_student_status.php", {
+      const response = await fetch("https://tracked.6minds.site/Admin/StudentAccountsDB/update_student_status.php", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -122,7 +234,7 @@ export default function UserManagementStudentAccounts() {
     if (!selectedStudent) return null;
     
     const isDeactivating = selectedStudent.tracked_Status === "Active";
-    const action = isDeactivating ? "Deactivated" : "Restore";
+    const action = isDeactivating ? "Deactivate" : "Activate";
     
     return {
       title: `${action} Account?`,
@@ -133,6 +245,27 @@ export default function UserManagementStudentAccounts() {
   };
 
   const modalContent = getModalContent();
+
+  // Toggle button component
+  const StatusToggleButton = ({ status, onClick }) => {
+    const isActive = status === "Active";
+    
+    return (
+      <button
+        onClick={onClick}
+        className={`cursor-pointer inline-flex items-center h-6 rounded-full w-11 transition-colors duration-200 ease-in-out focus:outline-none ${
+          isActive ? 'bg-[#00A15D]' : 'bg-[#FF6666]'
+        }`}
+        // title={isActive ? "Deactivate" : "Activate"}
+      >
+        <span
+          className={`inline-block w-4 h-4 transform bg-white rounded-full transition-transform duration-200 ease-in-out ${
+            isActive ? 'translate-x-6' : 'translate-x-1'
+          }`}
+        />
+      </button>
+    );
+  };
 
   return (
     <div>
@@ -191,7 +324,7 @@ export default function UserManagementStudentAccounts() {
 
                 {open && (
                   <div className="absolute top-full mt-1 bg-white rounded-md w-28 sm:w-36 lg:w-40 shadow-lg border border-gray-200 z-10">
-                    {["All", "Active", "Deactivated"].map((f) => (
+                    {["All", "Active", "Deactivate"].map((f) => (
                       <button
                         key={f}
                         className="block px-3 sm:px-4 py-2 w-full text-left hover:bg-gray-100 text-xs sm:text-sm lg:text-base transition-colors duration-200 cursor-pointer"
@@ -208,12 +341,18 @@ export default function UserManagementStudentAccounts() {
                 )}
               </div>
 
-              <button className="font-bold px-3 sm:px-4 py-2 bg-[#fff] rounded-md shadow-md border-2 border-transparent hover:border-[#00874E] text-xs sm:text-sm lg:text-base whitespace-nowrap transition-all duration-200 cursor-pointer">
-                Import Database
+              <button 
+                onClick={handleBackup}
+                className="font-bold px-3 sm:px-4 py-2 bg-[#fff] rounded-md shadow-md border-2 border-transparent hover:border-[#00874E] text-xs sm:text-sm lg:text-base transition-all duration-200 cursor-pointer"
+              >
+                Backup
               </button>
 
-              <button className="font-bold px-3 sm:px-4 py-2 bg-[#fff] rounded-md shadow-md border-2 border-transparent hover:border-[#00874E] text-xs sm:text-sm lg:text-base transition-all duration-200 cursor-pointer">
-                Backup
+              <button 
+                onClick={handleRestore}
+                className="font-bold px-3 sm:px-4 py-2 bg-[#fff] rounded-md shadow-md border-2 border-transparent hover:border-[#00874E] text-xs sm:text-sm lg:text-base transition-all duration-200 cursor-pointer"
+              >
+                Restore
               </button>
             </div>
 
@@ -288,12 +427,9 @@ export default function UserManagementStudentAccounts() {
                       </td>
                       <td className="py-3 px-2 sm:px-3 rounded-r-lg">
                         <div className="flex gap-2">
-                          <img
+                          <StatusToggleButton 
+                            status={stud.tracked_Status}
                             onClick={() => handleStatusChange(stud)}
-                            src={stud.tracked_Status === "Active" ? ArchiveRow : Restore}
-                            alt={stud.tracked_Status === "Active" ? "Deactivated" : "Restore"}
-                            className="h-5 w-5 sm:h-6 sm:w-6 cursor-pointer hover:opacity-70 transition-opacity duration-200"
-                            title={stud.tracked_Status === "Active" ? "Deactivated" : "Restore"}
                           />
                           {/* UPDATED: Use query parameter instead of URL parameter */}
                           <Link 
@@ -328,12 +464,9 @@ export default function UserManagementStudentAccounts() {
                       <p className="font-semibold text-sm">{stud.tracked_ID}</p>
                     </div>
                     <div className="flex gap-2">
-                      <img
+                      <StatusToggleButton 
+                        status={stud.tracked_Status}
                         onClick={() => handleStatusChange(stud)}
-                        src={stud.tracked_Status === "Active" ? ArchiveRow : Restore}
-                        alt={stud.tracked_Status === "Active" ? "Deactivated" : "Restore"}
-                        className="h-5 w-5 cursor-pointer hover:opacity-70 transition-opacity duration-200"
-                        title={stud.tracked_Status === "Active" ? "Deactivated" : "Restore"}
                       />
                       {/* UPDATED: Use query parameter instead of URL parameter */}
                       <Link 
@@ -526,6 +659,148 @@ export default function UserManagementStudentAccounts() {
                     to   { opacity: 1; transform: translateY(0)   scale(1);    }
                   }
                 `}</style>
+              </div>
+            )}
+
+            {/* Backup Result Modal */}
+            {showBackupModal && backupModalContent && (
+              <div
+                className="fixed inset-0 bg-black/50 flex justify-center items-center z-50 overlay-fade p-4"
+                onClick={closeBackupModal}
+                role="dialog"
+                aria-modal="true"
+              >
+                <div 
+                  className="bg-white text-black rounded-lg shadow-2xl w-full max-w-sm sm:max-w-md p-6 sm:p-8 relative modal-pop"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="text-center">
+                    {/* Icon */}
+                    <div className={`mx-auto flex items-center justify-center h-16 w-16 rounded-full mb-4 ${
+                      backupModalContent.type === 'success' ? 'bg-green-100' : 'bg-red-100'
+                    }`}>
+                      <img 
+                        src={backupModalContent.type === 'success' ? SuccessIcon : ErrorIcon} 
+                        alt={backupModalContent.type === 'success' ? 'Success' : 'Error'} 
+                        className="h-8 w-8" 
+                      />
+                    </div>
+
+                    <h3 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">
+                      {backupModalContent.title}
+                    </h3>
+                    
+                    <div className="mt-4 mb-6">
+                      <p className="text-sm text-gray-600 mb-3">
+                        {backupModalContent.message}
+                      </p>
+                      {backupModalContent.filename && (
+                        <div className="bg-gray-50 rounded-lg p-4 text-left">
+                          <div className="space-y-2">
+                            <p className="text-sm text-gray-600 break-words">
+                              <span className="font-semibold">File:</span> {backupModalContent.filename}
+                            </p>
+                            {backupModalContent.filepath && (
+                              <p className="text-xs text-gray-500 break-words">
+                                <span className="font-semibold">Location:</span> {backupModalContent.filepath}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex justify-center">
+                      <button
+                        onClick={closeBackupModal}
+                        className="px-6 py-3 bg-[#00874E] hover:bg-[#00743E] text-white font-bold rounded-md transition-all duration-200 cursor-pointer"
+                      >
+                        OK
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Restore Modal */}
+            {showRestoreModal && restoreModalContent && (
+              <div
+                className="fixed inset-0 bg-black/50 flex justify-center items-center z-50 overlay-fade p-4"
+                onClick={closeRestoreModal}
+                role="dialog"
+                aria-modal="true"
+              >
+                <div 
+                  className="bg-white text-black rounded-lg shadow-2xl w-full max-w-sm sm:max-w-md p-6 sm:p-8 relative modal-pop"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="text-center">
+                    {/* Icon */}
+                    {restoreModalContent.type === 'confirmation' ? (
+                      <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-yellow-100 mb-4">
+                        <img 
+                          src={ArchiveWarningIcon} 
+                          alt="Warning" 
+                          className="h-8 w-8" 
+                        />
+                      </div>
+                    ) : (
+                      <div className={`mx-auto flex items-center justify-center h-16 w-16 rounded-full mb-4 ${
+                        restoreModalContent.type === 'success' ? 'bg-green-100' : 'bg-red-100'
+                      }`}>
+                        <img 
+                          src={restoreModalContent.type === 'success' ? SuccessIcon : ErrorIcon} 
+                          alt={restoreModalContent.type === 'success' ? 'Success' : 'Error'} 
+                          className="h-8 w-8" 
+                        />
+                      </div>
+                    )}
+
+                    <h3 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">
+                      {restoreModalContent.title}
+                    </h3>
+                    
+                    <div className="mt-4 mb-6">
+                      <p className="text-sm text-gray-600 mb-3">
+                        {restoreModalContent.message}
+                      </p>
+                      {restoreModalContent.filename && (
+                        <div className="bg-gray-50 rounded-lg p-4 text-left">
+                          <p className="text-sm text-gray-600">
+                            <strong>Restored from:</strong> {restoreModalContent.filename}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex flex-col sm:flex-row gap-3">
+                      {restoreModalContent.type === 'confirmation' ? (
+                        <>
+                          <button
+                            onClick={closeRestoreModal}
+                            className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-3 rounded-md transition-all duration-200 cursor-pointer"
+                          >
+                            {restoreModalContent.cancelText}
+                          </button>
+                          <button
+                            onClick={confirmRestore}
+                            className="flex-1 bg-[#00874E] hover:bg-[#00743E] text-white font-bold py-3 rounded-md transition-all duration-200 cursor-pointer"
+                          >
+                            {restoreModalContent.confirmText}
+                          </button>
+                        </>
+                      ) : (
+                        <button
+                          onClick={closeRestoreModal}
+                          className="flex-1 bg-[#00874E] hover:bg-[#00743E] text-white font-bold py-3 rounded-md transition-all duration-200 cursor-pointer"
+                        >
+                          OK
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
               </div>
             )}
           </div>
