@@ -1,9 +1,29 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import ArrowDown from "../assets/ArrowDown(Light).svg"; 
+import Edit from "../assets/Edit(Light).svg";
+import SuccessIcon from "../assets/Success(Green).svg";
+import ErrorIcon from "../assets/Error(Red).svg";
 import jsPDF from "jspdf";
 
-function AttendanceCard({ date, students }) {
+function AttendanceCard({ date, students, rawDate, subjectCode }) {
   const [open, setOpen] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [attendanceData, setAttendanceData] = useState({});
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [showErrorModal, setShowErrorModal] = useState(false);
+  const [modalMessage, setModalMessage] = useState("");
+
+  // Initialize attendance data when students prop changes
+  useEffect(() => {
+    if (students) {
+      const initialData = {};
+      students.forEach(student => {
+        const studentId = getStudentNumber(student);
+        initialData[studentId] = student.status || 'absent';
+      });
+      setAttendanceData(initialData);
+    }
+  }, [students]);
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -42,10 +62,87 @@ function AttendanceCard({ date, students }) {
     return student.user_Name || student.name || 'Unknown';
   };
 
+  // Handle attendance status change
+  const handleAttendanceChange = (studentId, status) => {
+    setAttendanceData(prev => ({
+      ...prev,
+      [studentId]: status
+    }));
+  };
+
+  // Save attendance changes
+  const handleSaveAttendance = async () => {
+    try {
+      const professorId = getProfessorId();
+      
+      const attendanceDataToSave = {
+        subject_code: subjectCode,
+        professor_ID: professorId,
+        attendance_date: rawDate,
+        attendance_records: Object.entries(attendanceData).map(([student_ID, status]) => ({
+          student_ID,
+          status,
+        })),
+      };
+
+      const response = await fetch(
+        "https://tracked.6minds.site/Professor/AttendanceDB/update_attendance.php",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(attendanceDataToSave),
+        }
+      );
+
+      const result = await response.json();
+      if (result.success) {
+        setIsEditing(false);
+        setModalMessage("Attendance updated successfully!");
+        setShowSuccessModal(true);
+        // Refresh the page to show updated data
+        setTimeout(() => {
+          window.location.reload();
+        }, 1500);
+      } else {
+        setModalMessage(result.message || "Error updating attendance");
+        setShowErrorModal(true);
+      }
+    } catch (error) {
+      console.error("Error updating attendance:", error);
+      setModalMessage("Error updating attendance");
+      setShowErrorModal(true);
+    }
+  };
+
+  // Get professor ID from localStorage
+  const getProfessorId = () => {
+    try {
+      const userDataString = localStorage.getItem('user');
+      if (userDataString) {
+        const userData = JSON.parse(userDataString);
+        return userData.id;
+      }
+    } catch (error) {
+      console.error('Error parsing user data:', error);
+    }
+    return null;
+  };
+
   // Calculate attendance statistics
-  const presentCount = students ? students.filter(s => s.status === 'present').length : 0;
-  const lateCount = students ? students.filter(s => s.status === 'late').length : 0;
-  const absentCount = students ? students.filter(s => s.status === 'absent').length : 0;
+  const presentCount = students ? students.filter(s => {
+    const studentId = getStudentNumber(s);
+    return (isEditing ? attendanceData[studentId] : s.status) === 'present';
+  }).length : 0;
+  
+  const lateCount = students ? students.filter(s => {
+    const studentId = getStudentNumber(s);
+    return (isEditing ? attendanceData[studentId] : s.status) === 'late';
+  }).length : 0;
+  
+  const absentCount = students ? students.filter(s => {
+    const studentId = getStudentNumber(s);
+    return (isEditing ? attendanceData[studentId] : s.status) === 'absent';
+  }).length : 0;
 
   // Function to download as PDF
   const downloadAttendancePDF = () => {
@@ -184,9 +281,28 @@ function AttendanceCard({ date, students }) {
     downloadAttendancePDF();
   };
 
+  // Handle edit button click
+  const handleEditClick = (e) => {
+    e.stopPropagation();
+    setIsEditing(true);
+  };
+
+  // Handle cancel edit
+  const handleCancelEdit = (e) => {
+    e.stopPropagation();
+    setIsEditing(false);
+    // Reset to original data
+    const originalData = {};
+    students.forEach(student => {
+      const studentId = getStudentNumber(student);
+      originalData[studentId] = student.status || 'absent';
+    });
+    setAttendanceData(originalData);
+  };
+
   return (
     <div className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200">
-      {/* Card Header - RESPONSIVE: stacks on mobile, row on desktop */}
+      {/* Card Header */}
       <div 
         className="p-4 sm:p-5 cursor-pointer"
         onClick={() => setOpen(!open)}
@@ -195,7 +311,6 @@ function AttendanceCard({ date, students }) {
         <div className="sm:hidden">
           <div className="flex items-start justify-between gap-3 mb-3">
             <div className="flex-1">
-              {/* Title with responsive text size */}
               <span className="text-sm text-[#465746]">
                 Class Attendance for <span className="font-bold">{date}</span>
               </span>
@@ -204,7 +319,7 @@ function AttendanceCard({ date, students }) {
               </div>
             </div>
             
-            {/* Arrow on upper right for mobile */}
+            {/* Arrow button for mobile */}
             <img
               src={ArrowDown}
               alt="Expand"
@@ -214,7 +329,7 @@ function AttendanceCard({ date, students }) {
             />
           </div>
 
-          {/* Summary badges - RESPONSIVE: only visible on mobile when collapsed */}
+          {/* Summary badges */}
           {!open && (
             <div className="flex flex-wrap gap-2 mb-3">
               <span className="px-2 py-1 bg-[#00A15D]/10 text-[#00A15D] text-xs rounded-full font-medium">
@@ -241,7 +356,6 @@ function AttendanceCard({ date, students }) {
         {/* Desktop Layout */}
         <div className="hidden sm:flex sm:items-center justify-between gap-3">
           <div className="flex-1">
-            {/* Title with responsive text size */}
             <div className="flex flex-row items-center gap-2">
               <span className="text-base lg:text-lg text-[#465746]">
                 Class Attendance for <span className="font-bold">{date}</span>
@@ -271,28 +385,60 @@ function AttendanceCard({ date, students }) {
         </div>
       </div>
 
-      {/* Expanded Content - RESPONSIVE: Different layouts for mobile and desktop */}
+      {/* Expanded Content */}
       {open && (
         <div className="border-t border-gray-200">
-          {/* Summary section - RESPONSIVE: only visible on desktop */}
-          <div className="hidden sm:flex items-center gap-4 px-5 py-3 bg-gray-50">
-            <span className="px-3 py-1 bg-[#00A15D]/10 text-[#00A15D] text-sm rounded-full font-medium">
-              Present: {presentCount}
-            </span>
-            <span className="px-3 py-1 bg-[#767EE0]/10 text-[#767EE0] text-sm rounded-full font-medium">
-              Late: {lateCount}
-            </span>
-            <span className="px-3 py-1 bg-[#EF4444]/10 text-[#EF4444] text-sm rounded-full font-medium">
-              Absent: {absentCount}
-            </span>
+          {/* Edit Button and Action Buttons - Inside the expanded card */}
+          <div className="flex flex-col sm:flex-row-reverse justify-end items-start sm:items-center gap-3 px-5 py-3 bg-gray-50 border-b border-gray-200">
+            <div className="flex items-center gap-3">
+              {!isEditing && (
+                <button 
+                  onClick={handleEditClick}
+                  className="flex items-center gap-2 px-4 py-2 bg-[#00A15D] text-white font-semibold text-sm rounded-lg hover:bg-[#00874E] transition-all duration-200 shadow-md hover:shadow-lg whitespace-nowrap cursor-pointer"
+                >
+                  Edit Attendance
+                </button>
+              )}
+              {/* Save/Cancel buttons when editing */}
+              {isEditing && (
+                <div className="flex items-center gap-2">
+                  <button 
+                    onClick={handleCancelEdit}
+                    className="px-4 py-2 bg-gray-500 text-white font-semibold text-sm rounded-lg hover:bg-gray-600 transition-all duration-200 shadow-md whitespace-nowrap cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button 
+                    onClick={handleSaveAttendance}
+                    className="px-4 py-2 bg-[#00A15D] text-white font-semibold text-sm rounded-lg hover:bg-[#00874E] transition-all duration-200 shadow-md whitespace-nowrap cursor-pointer"
+                  >
+                    Save Changes
+                  </button>
+                </div>
+              )}
+            </div>
+            
+            {/* Summary section */}
+            <div className="flex items-center gap-4 mr-auto">
+              <span className="px-3 py-1 bg-[#00A15D]/10 text-[#00A15D] text-sm rounded-full font-medium">
+                Present: {presentCount}
+              </span>
+              <span className="px-3 py-1 bg-[#767EE0]/10 text-[#767EE0] text-sm rounded-full font-medium">
+                Late: {lateCount}
+              </span>
+              <span className="px-3 py-1 bg-[#EF4444]/10 text-[#EF4444] text-sm rounded-full font-medium">
+                Absent: {absentCount}
+              </span>
+            </div>
           </div>
 
-          {/* MOBILE CARD VIEW - RESPONSIVE: Only visible on small screens */}
+          {/* MOBILE CARD VIEW */}
           <div className="block sm:hidden p-4 space-y-3">
             {students && students.length > 0 ? (
               students.map((student, index) => {
                 const studentNumber = getStudentNumber(student);
                 const studentName = getStudentName(student);
+                const currentStatus = isEditing ? attendanceData[studentNumber] : student.status;
                 
                 return (
                   <div 
@@ -308,9 +454,39 @@ function AttendanceCard({ date, students }) {
                           Student No: {studentNumber}
                         </p>
                       </div>
-                      <span className={`px-2 py-1 rounded-full text-xs font-bold whitespace-nowrap ml-2 ${getStatusBgColor(student.status)} ${getStatusColor(student.status)}`}>
-                        {getStatusText(student.status)}
-                      </span>
+                      {!isEditing ? (
+                        <span className={`px-2 py-1 rounded-full text-xs font-bold whitespace-nowrap ml-2 ${getStatusBgColor(currentStatus)} ${getStatusColor(currentStatus)}`}>
+                          {getStatusText(currentStatus)}
+                        </span>
+                      ) : (
+                        <div className="flex flex-col gap-1 ml-2">
+                          {/* Attendance radio buttons for mobile editing with labels */}
+                          {[
+                            { status: 'absent', label: 'Absent', color: '#EF4444' },
+                            { status: 'late', label: 'Late', color: '#767EE0' },
+                            { status: 'present', label: 'Present', color: '#00A15D' }
+                          ].map(({ status, label, color }) => (
+                            <label key={status} className="flex items-center gap-1 cursor-pointer">
+                              <input
+                                type="radio"
+                                name={`attendance-${studentNumber}-${index}`}
+                                checked={currentStatus === status}
+                                onChange={(e) => {
+                                  e.stopPropagation();
+                                  handleAttendanceChange(studentNumber, status);
+                                }}
+                                onClick={(e) => e.stopPropagation()}
+                                className="appearance-none w-4 h-4 border-2 rounded-md checked:bg-current cursor-pointer"
+                                style={{
+                                  borderColor: color,
+                                  backgroundColor: currentStatus === status ? color : 'white'
+                                }}
+                              />
+                              <span className="text-xs font-medium" style={{ color }}>{label}</span>
+                            </label>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
                 );
@@ -322,16 +498,23 @@ function AttendanceCard({ date, students }) {
             )}
           </div>
 
-          {/* DESKTOP TABLE VIEW - RESPONSIVE: Only visible on larger screens */}
+          {/* DESKTOP TABLE VIEW */}
           <div className="hidden sm:block p-5 overflow-x-auto">
-            <table className="w-full bg-white border-collapse text-left">
+            <table className="w-full bg-white border-collapse text-left min-w-[700px]">
               <thead>
-                <tr className="border-b-2 border-gray-200">
-                  {/* RESPONSIVE: Column text sizes adjust per screen size */}
-                  <th className="px-3 py-3 text-xs md:text-sm lg:text-base font-semibold text-[#465746] w-16">No.</th>
-                  <th className="px-3 py-3 text-xs md:text-sm lg:text-base font-semibold text-[#465746]">Student No.</th>
-                  <th className="px-3 py-3 text-xs md:text-sm lg:text-base font-semibold text-[#465746]">Full Name</th>
-                  <th className="px-3 py-3 text-xs md:text-sm lg:text-base font-semibold text-[#465746] text-right">Status</th>
+                <tr className="text-xs sm:text-sm lg:text-base font-semibold">
+                  <th className="px-2 sm:px-3 md:px-4 py-2">No.</th>
+                  <th className="px-2 sm:px-3 md:px-4 py-2">Student No.</th>
+                  <th className="px-2 sm:px-3 md:px-4 py-2">Full Name</th>
+                  {!isEditing ? (
+                    <th className="px-2 sm:px-3 md:px-4 py-2 text-right">Status</th>
+                  ) : (
+                    <>
+                      <th className="px-2 py-2 text-[#EF4444] text-center w-20">Absent</th>
+                      <th className="px-2 py-2 text-[#767EE0] text-center w-20">Late</th>
+                      <th className="px-2 py-2 text-[#00A15D] text-center w-20">Present</th>
+                    </>
+                  )}
                 </tr>
               </thead>
               <tbody>
@@ -339,33 +522,122 @@ function AttendanceCard({ date, students }) {
                   students.map((student, index) => {
                     const studentNumber = getStudentNumber(student);
                     const studentName = getStudentName(student);
+                    const currentStatus = isEditing ? attendanceData[studentNumber] : student.status;
                     
                     return (
                       <tr 
                         key={studentNumber + index} 
-                        className="border-b border-gray-100 hover:bg-gray-50 transition-colors duration-150"
+                        className="hover:bg-gray-50 text-xs sm:text-sm lg:text-base"
                       >
-                        {/* RESPONSIVE: Text sizes scale with screen size */}
-                        <td className="px-3 py-3 text-xs md:text-sm lg:text-base text-gray-700">{index + 1}</td>
-                        <td className="px-3 py-3 text-xs md:text-sm lg:text-base text-gray-700">{studentNumber}</td>
-                        <td className="px-3 py-3 text-xs md:text-sm lg:text-base text-gray-700">{studentName}</td>
-                        <td className={`px-3 py-3 text-right`}>
-                          <span className={`inline-block px-3 py-1 rounded-full text-xs md:text-sm font-bold ${getStatusBgColor(student.status)} ${getStatusColor(student.status)}`}>
-                            {getStatusText(student.status)}
-                          </span>
-                        </td>
+                        <td className="px-2 sm:px-3 md:px-4 py-2">{index + 1}</td>
+                        <td className="px-2 sm:px-3 md:px-4 py-2">{studentNumber}</td>
+                        <td className="px-2 sm:px-3 md:px-4 py-2">{studentName}</td>
+                        
+                        {!isEditing ? (
+                          <td className="px-2 sm:px-3 md:px-4 py-2 text-right">
+                            <span className={`inline-block px-3 py-1 rounded-full text-xs md:text-sm font-bold ${getStatusBgColor(currentStatus)} ${getStatusColor(currentStatus)}`}>
+                              {getStatusText(currentStatus)}
+                            </span>
+                          </td>
+                        ) : (
+                          <>
+                            {/* Absent Column */}
+                            <td className="px-2 py-2 w-20">
+                              <div className="flex justify-center items-center">
+                                <input
+                                  type="radio"
+                                  name={`attendance-${studentNumber}`}
+                                  checked={currentStatus === "absent"}
+                                  onChange={() => handleAttendanceChange(studentNumber, "absent")}
+                                  className="appearance-none w-5 h-5 sm:w-6 sm:h-6 border-2 border-[#EF4444] rounded-md checked:bg-[#EF4444] cursor-pointer"
+                                />
+                              </div>
+                            </td>
+                            
+                            {/* Late Column */}
+                            <td className="px-2 py-2 w-20">
+                              <div className="flex justify-center items-center">
+                                <input
+                                  type="radio"
+                                  name={`attendance-${studentNumber}`}
+                                  checked={currentStatus === "late"}
+                                  onChange={() => handleAttendanceChange(studentNumber, "late")}
+                                  className="appearance-none w-5 h-5 sm:w-6 sm:h-6 border-2 border-[#767EE0] rounded-md checked:bg-[#767EE0] cursor-pointer"
+                                />
+                              </div>
+                            </td>
+                            
+                            {/* Present Column */}
+                            <td className="px-2 py-2 w-20">
+                              <div className="flex justify-center items-center">
+                                <input
+                                  type="radio"
+                                  name={`attendance-${studentNumber}`}
+                                  checked={currentStatus === "present"}
+                                  onChange={() => handleAttendanceChange(studentNumber, "present")}
+                                  className="appearance-none w-5 h-5 sm:w-6 sm:h-6 border-2 border-[#00A15D] rounded-md checked:bg-[#00A15D] cursor-pointer"
+                                />
+                              </div>
+                            </td>
+                          </>
+                        )}
                       </tr>
                     );
                   })
                 ) : (
                   <tr>
-                    <td colSpan="4" className="px-3 py-8 text-center text-gray-500 text-sm">
+                    <td 
+                      colSpan={isEditing ? "6" : "4"} 
+                      className="px-4 py-8 text-center text-gray-500 text-sm"
+                    >
                       No student data available
                     </td>
                   </tr>
                 )}
               </tbody>
             </table>
+          </div>
+        </div>
+      )}
+
+      {/* Success Modal */}
+      {showSuccessModal && (
+        <div className="fixed inset-0 bg-black/50 flex justify-center items-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-2xl w-full max-w-md p-6 sm:p-8 text-center">
+            <img
+              src={SuccessIcon}
+              alt="Success"
+              className="h-16 w-16 mx-auto mb-4"
+            />
+            <h3 className="text-xl font-bold text-gray-800 mb-2">Success!</h3>
+            <p className="text-gray-600 mb-6">{modalMessage}</p>
+            <button
+              onClick={() => setShowSuccessModal(false)}
+              className="w-full bg-[#00A15D] hover:bg-[#00874E] text-white font-bold py-3 rounded-md transition-colors cursor-pointer"
+            >
+              OK
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Error Modal */}
+      {showErrorModal && (
+        <div className="fixed inset-0 bg-black/50 flex justify-center items-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-2xl w-full max-w-md p-6 sm:p-8 text-center">
+            <img
+              src={ErrorIcon}
+              alt="Error"
+              className="h-16 w-16 mx-auto mb-4"
+            />
+            <h3 className="text-xl font-bold text-gray-800 mb-2">Error</h3>
+            <p className="text-gray-600 mb-6">{modalMessage}</p>
+            <button
+              onClick={() => setShowErrorModal(false)}
+              className="w-full bg-[#EF4444] hover:bg-[#DC2626] text-white font-bold py-3 rounded-md transition-colors cursor-pointer"
+            >
+              OK
+            </button>
           </div>
         </div>
       )}

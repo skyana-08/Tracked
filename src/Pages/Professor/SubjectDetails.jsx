@@ -13,6 +13,7 @@ import Archive from "../../assets/Archive(Light).svg";
 import ArrowDown from "../../assets/ArrowDown(Light).svg";
 import SuccessIcon from '../../assets/Success(Green).svg';
 import ArchiveWarningIcon from '../../assets/Warning(Yellow).svg';
+import Search from "../../assets/Search.svg";
 
 export default function SubjectDetails() {
   const location = useLocation();
@@ -54,6 +55,11 @@ export default function SubjectDetails() {
   const [editActivityTypeDropdownOpen, setEditActivityTypeDropdownOpen] = useState(false);
   
   const activityTypes = ["Assignment","Quiz", "Activity", "Project", "Laboratory", "Announcement"];
+
+  // NEW: Search and Filter states
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterOption, setFilterOption] = useState("All");
+  const [filterDropdownOpen, setFilterDropdownOpen] = useState(false);
 
   // Get professor ID from localStorage
   const getProfessorId = () => {
@@ -123,6 +129,37 @@ export default function SubjectDetails() {
       setLoading(false);
     }
   };
+
+  // NEW: Filter activities based on search and filter
+  const filteredActivities = activities.filter(activity => {
+    // Filter by search query (title)
+    const matchesSearch = activity.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         activity.task_number?.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    // Filter by activity type
+    let matchesFilter = true;
+    if (filterOption !== "All") {
+      matchesFilter = activity.activity_type === filterOption;
+    }
+    
+    return matchesSearch && matchesFilter;
+  });
+
+  // NEW: Close dropdowns when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      // Close filter dropdown
+      if (filterDropdownOpen && !event.target.closest('.filter-dropdown')) {
+        setFilterDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener('click', handleClickOutside);
+
+    return () => {
+      document.removeEventListener('click', handleClickOutside);
+    };
+  }, [filterDropdownOpen]);
 
 const handleCreateActivity = async () => {
   // Validate required fields
@@ -526,7 +563,10 @@ const handleSaveSchoolWork = async () => {
         />
       </div>
       <p className="text-gray-500 text-sm sm:text-base lg:text-lg mb-2">
-        No activities created yet.
+        {searchQuery || filterOption !== "All" 
+          ? "No activities match your search criteria" 
+          : "No activities created yet."
+        }
       </p>
       <p className="text-gray-400 text-xs sm:text-sm lg:text-base">
         Click the + button to create your first activity.
@@ -629,12 +669,70 @@ const handleSaveSchoolWork = async () => {
             </div>
           </div>
 
+          {/* NEW: Filter and Search Section - Responsive Layout */}
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mt-4 sm:mt-5">
+            {/* Filter dropdown - Left side */}
+            <div className="relative sm:flex-initial filter-dropdown">
+              <button
+                onClick={() => setFilterDropdownOpen(!filterDropdownOpen)}
+                className="flex items-center justify-between w-full sm:w-auto font-bold px-4 py-2.5 bg-white rounded-md shadow-md border-2 border-transparent hover:border-[#00874E] active:border-[#00874E] transition-all duration-200 text-sm sm:text-base sm:min-w-[160px] cursor-pointer touch-manipulation"
+              >
+                <span>{filterOption}</span>
+                <img
+                  src={ArrowDown}
+                  alt=""
+                  className={`ml-3 h-4 w-4 sm:h-5 sm:w-5 transition-transform duration-200 ${filterDropdownOpen ? 'rotate-180' : ''}`}
+                />
+              </button>
+
+              {/* Dropdown options */}
+              {filterDropdownOpen && (
+                <div className="absolute top-full mt-2 bg-white rounded-md w-full sm:min-w-[200px] shadow-xl border border-gray-200 z-20 overflow-hidden">
+                  {["All", ...activityTypes].map((option) => (
+                    <button
+                      key={option}
+                      className={`block px-4 py-2.5 w-full text-left hover:bg-gray-100 active:bg-gray-200 text-sm sm:text-base transition-colors duration-150 cursor-pointer touch-manipulation ${
+                        filterOption === option ? 'bg-gray-50 font-semibold' : ''
+                      }`}
+                      onClick={() => {
+                        setFilterOption(option);
+                        setFilterDropdownOpen(false);
+                      }}
+                    >
+                      {option}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Search bar - Right side */}
+            <div className="flex-1">
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="Search activities..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full h-11 sm:h-12 rounded-md px-4 py-2.5 pr-12 shadow-md outline-none bg-white text-sm sm:text-base border-2 border-transparent focus:border-[#00874E] transition-colors"
+                />
+                <button className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500">
+                  <img
+                    src={Search}
+                    alt="Search"
+                    className="h-5 w-5 sm:h-6 sm:w-6"
+                  />
+                </button>
+              </div>
+            </div>
+          </div>
+
           {/* ACTIVITY CARDS */}
           <div className="space-y-4 mt-4 sm:mt-5">
-            {activities.length === 0 ? (
+            {filteredActivities.length === 0 ? (
               renderEmptyState()
             ) : (
-              activities.map((activity) => (
+              filteredActivities.map((activity) => (
                 <ActivityCard
                   key={activity.id}
                   activity={activity}

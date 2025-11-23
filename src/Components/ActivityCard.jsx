@@ -50,6 +50,24 @@ export default function ActivityCard({
 
   const statusCounts = getStatusCounts();
 
+  // NEW: Check if activity is past deadline
+  const isActivityPastDeadline = () => {
+    if (!activity.deadline) return false;
+    const now = new Date();
+    const deadline = new Date(activity.deadline);
+    return now > deadline;
+  };
+
+  // NEW: Check if any student has "Missed" status
+  const hasMissedStudents = () => {
+    return statusCounts.missed > 0;
+  };
+
+  // NEW: Check if Mark All Submitted should be disabled
+  const isMarkAllSubmittedDisabled = () => {
+    return isActivityPastDeadline() || hasMissedStudents();
+  };
+
   // FIX: Check if there are students for this activity
   const hasStudents = activity.students && activity.students.length > 0;
 
@@ -60,7 +78,7 @@ export default function ActivityCard({
   };
 
   const handleMarkAllSubmitted = () => {
-    if (onMarkAllSubmitted) {
+    if (onMarkAllSubmitted && !isMarkAllSubmittedDisabled()) {
       onMarkAllSubmitted();
     }
   };
@@ -501,7 +519,7 @@ export default function ActivityCard({
                   disabled={!hasStudents}
                   className={`w-full sm:w-auto px-4 py-2 text-sm sm:text-base font-semibold rounded-md transition-all duration-200 cursor-pointer ${
                     hasStudents 
-                      ? 'bg-[#979797] text-[#fff] border-transparent border-2 hover:border-[#007846]' 
+                      ? 'bg-[#00A15D] text-[#fff] hover:border-[#007846] border-transparent border-2' 
                       : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                   }`} 
                 >
@@ -509,14 +527,19 @@ export default function ActivityCard({
                 </button>
                 <button 
                   onClick={handleEditSchoolWork}
-                  className="w-full sm:w-auto px-4 py-2 bg-[#979797] text-[#fff] text-sm sm:text-base font-semibold rounded-md border-transparent border-2 hover:border-[#007846] transition-all duration-200 cursor-pointer"
+                  className="w-full sm:w-auto px-4 py-2 bg-[#00A15D] text-[#fff] text-sm sm:text-base font-semibold rounded-md border-transparent border-2 hover:border-[#007846] transition-all duration-200 cursor-pointer"
                 >
                   Edit School Works
                 </button>
                 {(statusCounts.pending > 0 || statusCounts.missed > 0) && hasStudents && (
                   <button 
                     onClick={handleMarkAllSubmitted}
-                    className="w-full sm:w-auto px-4 py-2 bg-[#00A15D] text-[#fff] text-sm sm:text-base font-semibold rounded-md border-transparent border-2 hover:border-[#007846] transition-all duration-200 cursor-pointer"
+                    disabled={isMarkAllSubmittedDisabled()}
+                    className={`w-full sm:w-auto px-4 py-2 text-sm sm:text-base font-semibold rounded-md border-transparent border-2 transition-all duration-200 cursor-pointer ${
+                      isMarkAllSubmittedDisabled()
+                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                        : 'bg-[#00A15D] text-[#fff] hover:border-[#007846]'
+                    }`}
                   >
                     Mark All Submitted
                   </button>

@@ -193,6 +193,8 @@ export default function AttendanceHistory() {
                   key={index} 
                   date={record.date} 
                   students={record.students}
+                  rawDate={record.raw_date}
+                  subjectCode={subjectCode}
                 />
               ))
             ) : (

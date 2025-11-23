@@ -120,19 +120,19 @@ function getAnnouncements($pdo, $studentId) {
     
     $notifications = [];
     foreach ($announcements as $announcement) {
-        $timeAgo = getTimeAgo($announcement['created_at']);
         $notifications[] = [
             'id' => 'announcement_' . $announcement['id'],
             'type' => 'announcement',
             'title' => 'New Announcement',
-            'description' => "{$announcement['professor_name']} posted: '{$announcement['title']}' in {$announcement['subject']} ({$announcement['section']}). {$timeAgo}",
+            'description' => "{$announcement['professor_name']} posted: '{$announcement['title']}' in {$announcement['subject']} ({$announcement['section']}).",
             'subject' => $announcement['subject'],
             'section' => $announcement['section'],
             'subject_code' => $announcement['subject_code'],
             'announcement_id' => $announcement['id'],
             'professor_name' => $announcement['professor_name'],
             'priority' => 1, // Normal priority
-            'created_at' => $announcement['created_at'],
+            'event_created_at' => $announcement['created_at'],
+            'created_at' => date('Y-m-d H:i:s'), // When the notification was generated (NOW)
             'isRead' => false
         ];
     }
@@ -169,12 +169,11 @@ function getNewAssignments($pdo, $studentId) {
     
     $notifications = [];
     foreach ($assignments as $assignment) {
-        $timeAgo = getTimeAgo($assignment['created_at']);
         $notifications[] = [
             'id' => 'assignment_' . $assignment['activity_id'],
             'type' => 'new_assignment',
             'title' => 'New Assignment Posted',
-            'description' => "{$assignment['professor_name']} posted a new {$assignment['activity_type']}: '{$assignment['title']}' in {$assignment['subject']} ({$assignment['section']}). {$timeAgo}",
+            'description' => "{$assignment['professor_name']} posted a new {$assignment['activity_type']}: '{$assignment['title']}' in {$assignment['subject']} ({$assignment['section']}).",
             'subject' => $assignment['subject'],
             'section' => $assignment['section'],
             'subject_code' => $assignment['subject_code'],
@@ -182,7 +181,8 @@ function getNewAssignments($pdo, $studentId) {
             'activity_type' => $assignment['activity_type'],
             'professor_name' => $assignment['professor_name'],
             'priority' => 2, // Medium priority
-            'created_at' => $assignment['created_at'],
+            'event_created_at' => $assignment['created_at'],
+            'created_at' => date('Y-m-d H:i:s'), // When the notification was generated (NOW)
             'isRead' => false
         ];
     }
@@ -233,7 +233,8 @@ function getUpcomingDeadlines($pdo, $studentId) {
             'activity_id' => $deadline['activity_id'],
             'due_date' => $deadline['deadline'],
             'priority' => 3, // High priority
-            'created_at' => date('Y-m-d H:i:s'),
+            'event_created_at' => $deadline['deadline'],
+            'created_at' => date('Y-m-d H:i:s'), // When the notification was generated (NOW)
             'isRead' => false
         ];
     }
@@ -251,7 +252,8 @@ function getAttendanceRisk($pdo, $studentId) {
                 WHEN a.status = 'absent' THEN 1 
                 WHEN a.status = 'late' THEN 0.33 
                 ELSE 0 
-            END) as absence_count
+            END) as absence_count,
+            MAX(a.attendance_date) as latest_attendance_date
         FROM classes c
         JOIN student_classes sc ON c.subject_code = sc.subject_code
         LEFT JOIN attendance a ON c.subject_code = a.subject_code AND a.student_ID = ?
@@ -275,7 +277,8 @@ function getAttendanceRisk($pdo, $studentId) {
             'subject_code' => $subject['subject_code'],
             'absence_count' => $subject['absence_count'],
             'priority' => 3, // High priority
-            'created_at' => date('Y-m-d H:i:s'),
+            'event_created_at' => $subject['latest_attendance_date'] ?: date('Y-m-d H:i:s'),
+            'created_at' => date('Y-m-d H:i:s'), // When the notification was generated (NOW)
             'isRead' => false
         ];
     }
@@ -289,7 +292,8 @@ function getLateArrivals($pdo, $studentId) {
             c.subject,
             c.section,
             c.subject_code,
-            COUNT(*) as late_count
+            COUNT(*) as late_count,
+            MAX(a.attendance_date) as latest_late_date
         FROM attendance a
         JOIN classes c ON a.subject_code = c.subject_code
         WHERE a.student_ID = ? 
@@ -312,7 +316,8 @@ function getLateArrivals($pdo, $studentId) {
             'subject_code' => $subject['subject_code'],
             'late_count' => $subject['late_count'],
             'priority' => 2, // Medium priority
-            'created_at' => date('Y-m-d H:i:s'),
+            'event_created_at' => $subject['latest_late_date'] ?: date('Y-m-d H:i:s'),
+            'created_at' => date('Y-m-d H:i:s'), // When the notification was generated (NOW)
             'isRead' => false
         ];
     }
@@ -369,7 +374,8 @@ function getLateActivities($pdo, $studentId) {
             'subject_code' => $activity['subject_code'],
             'activity_id' => $activity['activity_id'],
             'priority' => 2, // Medium priority
-            'created_at' => date('Y-m-d H:i:s'),
+            'event_created_at' => $activity['submitted_at'] ?: $activity['deadline'],
+            'created_at' => date('Y-m-d H:i:s'), // When the notification was generated (NOW)
             'isRead' => false
         ];
     }
@@ -385,7 +391,8 @@ function getFailingSubjects($pdo, $studentId) {
             c.subject_code,
             CONCAT(t.tracked_firstname, ' ', t.tracked_lastname) as professor_name,
             COUNT(CASE WHEN (ag.submitted = 0 OR ag.submitted IS NULL) AND a.deadline < NOW() THEN 1 END) as missed_count,
-            COUNT(CASE WHEN ag.late = 1 THEN 1 END) as late_count
+            COUNT(CASE WHEN ag.late = 1 THEN 1 END) as late_count,
+            MAX(a.deadline) as latest_deadline
         FROM classes c
         JOIN student_classes sc ON c.subject_code = sc.subject_code
         JOIN tracked_users t ON c.professor_ID = t.tracked_ID
@@ -426,28 +433,11 @@ function getFailingSubjects($pdo, $studentId) {
             'missed_count' => $subject['missed_count'],
             'late_count' => $subject['late_count'],
             'priority' => 3, // High priority
-            'created_at' => date('Y-m-d H:i:s'),
+            'event_created_at' => $subject['latest_deadline'] ?: date('Y-m-d H:i:s'),
+            'created_at' => date('Y-m-d H:i:s'), // When the notification was generated (NOW)
             'isRead' => false
         ];
     }
     return $notifications;
-}
-
-function getTimeAgo($datetime) {
-    $time = strtotime($datetime);
-    $timeDiff = time() - $time;
-    
-    if ($timeDiff < 60) {
-        return 'just now';
-    } elseif ($timeDiff < 3600) {
-        $minutes = floor($timeDiff / 60);
-        return $minutes . ' minute' . ($minutes > 1 ? 's' : '') . ' ago';
-    } elseif ($timeDiff < 86400) {
-        $hours = floor($timeDiff / 3600);
-        return $hours . ' hour' . ($hours > 1 ? 's' : '') . ' ago';
-    } else {
-        $days = floor($timeDiff / 86400);
-        return $days . ' day' . ($days > 1 ? 's' : '') . ' ago';
-    }
 }
 ?>

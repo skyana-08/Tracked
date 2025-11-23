@@ -115,6 +115,16 @@ export default function NotificationStudent() {
 
   // Filter notifications based on filter option and search query
   const filteredNotifications = notifications.filter(notification => {
+    // Filter by time period
+    const notificationDate = new Date(notification.created_at);
+    const now = new Date();
+    const diffInDays = Math.floor((now - notificationDate) / (1000 * 60 * 60 * 24));
+    
+    if (filterOption === "Today" && diffInDays > 0) return false;
+    if (filterOption === "This Week" && diffInDays > 7) return false;
+    if (filterOption === "This Month" && diffInDays > 30) return false;
+    if (filterOption === "This Year" && diffInDays > 365) return false;
+    
     // Filter by read status
     if (filterOption === "Unread" && notification.isRead) return false;
     if (filterOption === "Read" && !notification.isRead) return false;
@@ -133,10 +143,55 @@ export default function NotificationStudent() {
     return true;
   });
 
-  // Sort by newest first (latest to oldest) - FIXED
+  // Sort by newest first (latest to oldest)
   const sortedNotifications = [...filteredNotifications].sort((a, b) => 
     new Date(b.created_at) - new Date(a.created_at)
   );
+
+  // Group notifications by time period
+  const groupNotificationsByTime = () => {
+    const now = new Date();
+    const groups = {
+      today: [],
+      thisWeek: [],
+      thisMonth: [],
+      thisYear: [],
+      older: []
+    };
+
+    sortedNotifications.forEach(notification => {
+      try {
+        const notificationDate = new Date(notification.created_at);
+        
+        // Check if date is valid
+        if (isNaN(notificationDate.getTime())) {
+          console.error('Invalid notification date:', notification.created_at, notification);
+          return; // Skip invalid dates
+        }
+        
+        const diffInMs = now - notificationDate;
+        const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
+
+        if (diffInDays === 0) {
+          groups.today.push(notification);
+        } else if (diffInDays <= 7) {
+          groups.thisWeek.push(notification);
+        } else if (diffInDays <= 30) {
+          groups.thisMonth.push(notification);
+        } else if (diffInDays <= 365) {
+          groups.thisYear.push(notification);
+        } else {
+          groups.older.push(notification);
+        }
+      } catch (error) {
+        console.error('Error processing notification date:', error, notification);
+      }
+    });
+
+    return groups;
+  };
+
+  const notificationGroups = groupNotificationsByTime();
 
   if (loading) {
     return (
@@ -212,7 +267,7 @@ export default function NotificationStudent() {
               {/* Filter Dropdown SELECTIONS */}
               {open && (
                 <div className="absolute top-full mt-2 bg-white rounded-md w-full sm:min-w-[200px] shadow-xl border border-gray-200 z-20 overflow-hidden">
-                  {["All", "Unread", "Read", "Newest"].map((filter) => (
+                  {["All", "Today", "This Week", "This Month", "This Year", "Unread", "Read"].map((filter) => (
                     <button
                       key={filter}
                       className={`block px-4 py-2.5 w-full text-left hover:bg-gray-100 active:bg-gray-200 text-sm sm:text-base transition-colors duration-150 cursor-pointer touch-manipulation ${
@@ -249,28 +304,119 @@ export default function NotificationStudent() {
             </div>
           </div>
 
-          {/* Notification Cards */}
-          <div className="space-y-4 sm:space-y-5">
+          {/* Notification Cards with Time Group Headers */}
+          <div className="space-y-6">
             {sortedNotifications.length === 0 ? (
               <div className="text-center py-8 text-gray-500">
                 No notifications found.
               </div>
             ) : (
-              sortedNotifications.map((notification) => (
-                <NotificationCard
-                  key={notification.id}
-                  title={notification.title}
-                  description={notification.description}
-                  date={new Date(notification.created_at).toLocaleDateString('en-US', { 
-                    year: 'numeric', 
-                    month: 'long', 
-                    day: 'numeric' 
-                  })}
-                  isRead={notification.isRead}
-                  onMarkAsRead={() => handleMarkAsRead(notification.id)}
-                  onMarkAsUnread={() => handleMarkAsUnread(notification.id)}
-                />
-              ))
+              <>
+                {/* Today */}
+                {notificationGroups.today.length > 0 && (
+                  <div>
+                    <h3 className="text-lg font-bold text-[#465746] mb-3">Today</h3>
+                    <div className="space-y-4 sm:space-y-5">
+                      {notificationGroups.today.map((notification) => (
+                        <NotificationCard
+                          key={notification.id}
+                          title={notification.title}
+                          description={notification.description}
+                          date={notification.created_at}
+                          isRead={notification.isRead}
+                          type={notification.type}
+                          onMarkAsRead={() => handleMarkAsRead(notification.id)}
+                          onMarkAsUnread={() => handleMarkAsUnread(notification.id)}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* This Week */}
+                {notificationGroups.thisWeek.length > 0 && (
+                  <div>
+                    <h3 className="text-lg font-bold text-[#465746] mb-3">This Week</h3>
+                    <div className="space-y-4 sm:space-y-5">
+                      {notificationGroups.thisWeek.map((notification) => (
+                        <NotificationCard
+                          key={notification.id}
+                          title={notification.title}
+                          description={notification.description}
+                          date={notification.created_at}
+                          isRead={notification.isRead}
+                          type={notification.type}
+                          onMarkAsRead={() => handleMarkAsRead(notification.id)}
+                          onMarkAsUnread={() => handleMarkAsUnread(notification.id)}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* This Month */}
+                {notificationGroups.thisMonth.length > 0 && (
+                  <div>
+                    <h3 className="text-lg font-bold text-[#465746] mb-3">This Month</h3>
+                    <div className="space-y-4 sm:space-y-5">
+                      {notificationGroups.thisMonth.map((notification) => (
+                        <NotificationCard
+                          key={notification.id}
+                          title={notification.title}
+                          description={notification.description}
+                          date={notification.created_at}
+                          isRead={notification.isRead}
+                          type={notification.type}
+                          onMarkAsRead={() => handleMarkAsRead(notification.id)}
+                          onMarkAsUnread={() => handleMarkAsUnread(notification.id)}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* This Year */}
+                {notificationGroups.thisYear.length > 0 && (
+                  <div>
+                    <h3 className="text-lg font-bold text-[#465746] mb-3">This Year</h3>
+                    <div className="space-y-4 sm:space-y-5">
+                      {notificationGroups.thisYear.map((notification) => (
+                        <NotificationCard
+                          key={notification.id}
+                          title={notification.title}
+                          description={notification.description}
+                          date={notification.created_at}
+                          isRead={notification.isRead}
+                          type={notification.type}
+                          onMarkAsRead={() => handleMarkAsRead(notification.id)}
+                          onMarkAsUnread={() => handleMarkAsUnread(notification.id)}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Older */}
+                {notificationGroups.older.length > 0 && (
+                  <div>
+                    <h3 className="text-lg font-bold text-[#465746] mb-3">Older</h3>
+                    <div className="space-y-4 sm:space-y-5">
+                      {notificationGroups.older.map((notification) => (
+                        <NotificationCard
+                          key={notification.id}
+                          title={notification.title}
+                          description={notification.description}
+                          date={notification.created_at}
+                          isRead={notification.isRead}
+                          type={notification.type}
+                          onMarkAsRead={() => handleMarkAsRead(notification.id)}
+                          onMarkAsUnread={() => handleMarkAsUnread(notification.id)}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>
             )}
           </div>
         </div>

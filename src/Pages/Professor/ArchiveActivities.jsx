@@ -254,7 +254,6 @@ export default function ArchiveActivities() {
             <button
               onClick={(e) => handleDelete(activity, e)}
               className="bg-white rounded-md w-9 h-9 sm:w-10 sm:h-10 lg:w-11 lg:h-11 shadow-md flex items-center justify-center border-2 border-transparent hover:border-red-500 hover:scale-105 transition-all duration-200 cursor-pointer"
-              title="Delete permanently"
             >
               <img 
                 src={DeleteIcon} 
@@ -266,7 +265,6 @@ export default function ArchiveActivities() {
             <button
               onClick={(e) => handleUnarchive(activity, e)}
               className="bg-white rounded-md w-9 h-9 sm:w-10 sm:h-10 lg:w-11 lg:h-11 shadow-md flex items-center justify-center border-2 border-transparent hover:border-[#00874E] hover:scale-105 transition-all duration-200 cursor-pointer"
-              title="Restore activity"
             >
               <img 
                 src={UnarchiveIcon} 

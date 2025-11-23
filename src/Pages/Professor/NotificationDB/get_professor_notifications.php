@@ -59,7 +59,7 @@ try {
     // Sort notifications by priority and date
     usort($notifications, function($a, $b) {
         if ($a['priority'] == $b['priority']) {
-            return strtotime($b['created_at']) - strtotime($a['created_at']);
+            return strtotime($b['notification_created_at']) - strtotime($a['notification_created_at']);
         }
         return $b['priority'] - $a['priority'];
     });
@@ -120,7 +120,8 @@ function getUngradedActivities($pdo, $professorId) {
             'subject_code' => $activity['subject_code'],
             'activity_id' => $activity['activity_id'],
             'priority' => 3, // High priority
-            'created_at' => date('Y-m-d H:i:s'),
+            'event_created_at' => $activity['deadline'], // When the event occurred
+            'created_at' => date('Y-m-d H:i:s'), // When the notification was generated (NOW)
             'isRead' => false
         ];
     }
@@ -139,7 +140,8 @@ function getAtRiskStudents($pdo, $professorId) {
                 WHEN a.status = 'absent' THEN 1 
                 WHEN a.status = 'late' THEN 0.33 
                 ELSE 0 
-            END) as absence_count
+            END) as absence_count,
+            MAX(a.attendance_date) as latest_attendance_date
         FROM classes c
         JOIN student_classes sc ON c.subject_code = sc.subject_code
         JOIN tracked_users tu ON sc.student_ID = tu.tracked_ID
@@ -166,7 +168,8 @@ function getAtRiskStudents($pdo, $professorId) {
             'student_name' => $student['student_name'],
             'absence_count' => $student['absence_count'],
             'priority' => 2, // Medium priority
-            'created_at' => date('Y-m-d H:i:s'),
+            'event_created_at' => $student['latest_attendance_date'] ?: date('Y-m-d H:i:s'),
+            'created_at' => date('Y-m-d H:i:s'), // When the notification was generated (NOW)
             'isRead' => false
         ];
     }
@@ -181,7 +184,8 @@ function getFailingStudents($pdo, $professorId) {
             c.subject_code,
             tu.tracked_ID as student_id,
             CONCAT(tu.tracked_firstname, ' ', tu.tracked_lastname) as student_name,
-            AVG(ag.grade) as average_grade
+            AVG(ag.grade) as average_grade,
+            MAX(ag.submitted_at) as latest_submission_date
         FROM classes c
         JOIN student_classes sc ON c.subject_code = sc.subject_code
         JOIN tracked_users tu ON sc.student_ID = tu.tracked_ID
@@ -201,8 +205,8 @@ function getFailingStudents($pdo, $professorId) {
         $notifications[] = [
             'id' => 'failing_' . $student['student_id'] . '_' . $student['subject_code'],
             'type' => 'failing_student',
-            'title' => 'Student Failing Subject',
-            'description' => "Important: You have a student in {$student['subject']} ({$student['subject_code']}) that is failing. Please contact them.",
+            'title' => 'Important: Student Failing Subject',
+            'description' => "You have a student in {$student['subject']} ({$student['subject_code']}) that is failing. Please contact {$student['student_name']}.",
             'subject' => $student['subject'],
             'section' => $student['section'],
             'subject_code' => $student['subject_code'],
@@ -210,7 +214,8 @@ function getFailingStudents($pdo, $professorId) {
             'student_name' => $student['student_name'],
             'average_grade' => $student['average_grade'],
             'priority' => 2, // Medium priority
-            'created_at' => date('Y-m-d H:i:s'),
+            'event_created_at' => $student['latest_submission_date'] ?: date('Y-m-d H:i:s'),
+            'created_at' => date('Y-m-d H:i:s'), // When the notification was generated (NOW)
             'isRead' => false
         ];
     }
@@ -255,7 +260,8 @@ function getDueDateReminders($pdo, $professorId) {
             'activity_id' => $activity['activity_id'],
             'due_date' => $activity['deadline'],
             'priority' => 1, // Normal priority
-            'created_at' => date('Y-m-d H:i:s'),
+            'event_created_at' => $activity['deadline'],
+            'created_at' => date('Y-m-d H:i:s'), // When the notification was generated (NOW)
             'isRead' => false
         ];
     }
@@ -294,7 +300,8 @@ function getDueDateReminders($pdo, $professorId) {
             'announcement_id' => $announcement['announcement_ID'],
             'due_date' => $announcement['deadline'],
             'priority' => 1, // Normal priority
-            'created_at' => date('Y-m-d H:i:s'),
+            'event_created_at' => $announcement['deadline'],
+            'created_at' => date('Y-m-d H:i:s'), // When the notification was generated (NOW)
             'isRead' => false
         ];
     }
@@ -325,12 +332,11 @@ function getNewStudentEnrollments($pdo, $professorId) {
     
     $notifications = [];
     foreach ($newStudents as $student) {
-        $timeAgo = getTimeAgo($student['enrolled_at']);
         $notifications[] = [
             'id' => 'new_student_' . $student['student_ID'] . '_' . $student['subject_code'],
             'type' => 'new_student',
             'title' => 'New Student Joined Class',
-            'description' => "{$student['student_name']} joined {$student['subject']} ({$student['section']}) {$timeAgo}.",
+            'description' => "{$student['student_name']} joined {$student['subject']} ({$student['section']}).",
             'subject' => $student['subject'],
             'section' => $student['section'],
             'subject_code' => $student['subject_code'],
@@ -338,28 +344,11 @@ function getNewStudentEnrollments($pdo, $professorId) {
             'student_name' => $student['student_name'],
             'enrolled_at' => $student['enrolled_at'],
             'priority' => 0, // Low priority
-            'created_at' => date('Y-m-d H:i:s'),
+            'event_created_at' => $student['enrolled_at'],
+            'created_at' => date('Y-m-d H:i:s'), // When the notification was generated (NOW)
             'isRead' => false
         ];
     }
     return $notifications;
-}
-
-function getTimeAgo($datetime) {
-    $time = strtotime($datetime);
-    $timeDiff = time() - $time;
-    
-    if ($timeDiff < 60) {
-        return 'just now';
-    } elseif ($timeDiff < 3600) {
-        $minutes = floor($timeDiff / 60);
-        return $minutes . ' minute' . ($minutes > 1 ? 's' : '') . ' ago';
-    } elseif ($timeDiff < 86400) {
-        $hours = floor($timeDiff / 3600);
-        return $hours . ' hour' . ($hours > 1 ? 's' : '') . ' ago';
-    } else {
-        $days = floor($timeDiff / 86400);
-        return $days . ' day' . ($days > 1 ? 's' : '') . ' ago';
-    }
 }
 ?>

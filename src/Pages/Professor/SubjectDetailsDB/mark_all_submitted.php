@@ -36,13 +36,39 @@ if (empty($input['activity_ID']) || empty($input['students']) || !is_array($inpu
 try {
     $pdo->beginTransaction();
 
-    // Get the activity details including points
-    $activityStmt = $pdo->prepare("SELECT points, title FROM activities WHERE id = ?");
+    // Get the activity details including points and deadline
+    $activityStmt = $pdo->prepare("SELECT points, title, deadline FROM activities WHERE id = ?");
     $activityStmt->execute([$input['activity_ID']]);
     $activity = $activityStmt->fetch(PDO::FETCH_ASSOC);
 
     if (!$activity) {
         throw new Exception("Activity not found");
+    }
+
+    // NEW: Check if activity deadline has passed
+    $currentDateTime = new DateTime();
+    $deadline = new DateTime($activity['deadline']);
+    
+    if ($currentDateTime > $deadline) {
+        throw new Exception("Cannot mark all as submitted: The activity deadline has passed.");
+    }
+
+    // NEW: Check if any students already have "Missed" status
+    $checkMissedStmt = $pdo->prepare("
+        SELECT COUNT(*) as missed_count 
+        FROM activity_grades 
+        WHERE activity_ID = ? 
+        AND submitted = 0 
+        AND late = 0
+        AND student_ID IN (" . implode(',', array_fill(0, count($input['students']), '?')) . ")
+    ");
+    
+    $studentIds = array_column($input['students'], 'user_ID');
+    $checkMissedStmt->execute(array_merge([$input['activity_ID']], $studentIds));
+    $missedResult = $checkMissedStmt->fetch(PDO::FETCH_ASSOC);
+    
+    if ($missedResult['missed_count'] > 0) {
+        throw new Exception("Cannot mark all as submitted: Some students have 'Missed' status.");
     }
 
     // Determine the points to assign
