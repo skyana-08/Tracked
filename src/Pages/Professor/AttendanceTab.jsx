@@ -67,7 +67,6 @@ export default function Attendance() {
   const fetchClassAndStudents = async () => {
     setLoading(true);
     try {
-      const professorId = getProfessorId();
       const response = await fetch(
         `https://tracked.6minds.site/Professor/SubjectDetailsDB/get_students_by_section.php?subject_code=${subjectCode}`
       );
@@ -275,6 +274,7 @@ export default function Attendance() {
                     src={BackButton} 
                     alt="Back" 
                     className="h-6 w-6 cursor-pointer hover:opacity-70 transition-opacity" 
+                    title="Back to Class Managemen"
                   />
                 </Link>
               </div>
@@ -289,7 +289,7 @@ export default function Attendance() {
             <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
               {/* Announcement Button - Full width on mobile, auto on larger */}
               <Link to={`/Class?code=${subjectCode}`} className="flex-1 min-w-0">
-                <button className="flex items-center justify-center gap-2 px-4 sm:px-5 py-2 bg-white font-semibold text-sm sm:text-base rounded-md shadow-md border-2 border-transparent hover:border-[#00874E] transition-all duration-200 cursor-pointer w-full sm:w-auto">
+                <button className="flex items-center justify-center gap-2 px-4 sm:px-5 py-2 bg-white font-semibold text-sm sm:text-base rounded-md shadow-md border-2 border-transparent hover:border-[#00874E] transition-all duration-200 cursor-pointer w-full sm:w-auto" title="Announcement">
                   <img 
                     src={Announcement} 
                     alt="" 
@@ -302,7 +302,7 @@ export default function Attendance() {
               {/* Classwork and Attendance - Side by side on all screens */}
               <div className="flex gap-3 w-full sm:w-auto">
                 <Link to={`/ClassworkTab?code=${subjectCode}`} className="flex-1 min-w-0">
-                  <button className="flex items-center justify-center gap-2 px-3 sm:px-5 py-2 bg-white font-semibold text-sm sm:text-base rounded-md shadow-md border-2 border-transparent hover:border-[#00874E] transition-all duration-200 cursor-pointer w-full">
+                  <button className="flex items-center justify-center gap-2 px-3 sm:px-5 py-2 bg-white font-semibold text-sm sm:text-base rounded-md shadow-md border-2 border-transparent hover:border-[#00874E] transition-all duration-200 cursor-pointer w-full" title="Class Work">
                     <img 
                       src={Classwork} 
                       alt="" 
@@ -313,7 +313,7 @@ export default function Attendance() {
                 </Link>
 
                 <Link to={`/Attendance?code=${subjectCode}`} className="flex-1 sm:flex-initial">
-                  <button className="flex items-center justify-center gap-2 px-5 sm:px-5 py-2 bg-white font-semibold text-sm sm:text-base rounded-md shadow-md border-2 border-transparent hover:border-[#00874E] transition-all duration-200 cursor-pointer">
+                  <button className="flex items-center justify-center gap-2 px-5 sm:px-5 py-2 bg-white font-semibold text-sm sm:text-base rounded-md shadow-md border-2 border-transparent hover:border-[#00874E] transition-all duration-200 cursor-pointer" title="Attendance">
                     <img 
                       src={AttendanceIcon}
                       alt="" 
@@ -328,7 +328,7 @@ export default function Attendance() {
             {/* Action buttons - Right aligned on mobile */}
             <div className="flex items-center justify-end gap-2 w-full sm:w-auto">
               <Link to={`/StudentList?code=${subjectCode}`}>
-                <button className="p-2 bg-[#fff] rounded-md shadow-md border-2 border-transparent hover:border-[#00874E] transition-all duration-200 flex-shrink-0 cursor-pointer">
+                <button className="p-2 bg-[#fff] rounded-md shadow-md border-2 border-transparent hover:border-[#00874E] transition-all duration-200 flex-shrink-0 cursor-pointer" title="Student List">
                   <img 
                     src={ClassManagementIcon} 
                     alt="ClassManagement" 
@@ -338,7 +338,7 @@ export default function Attendance() {
               </Link>
               
               <Link to={`/AttendanceHistory?code=${subjectCode}`}>
-                <button className="p-2 bg-[#fff] rounded-md shadow-md border-2 border-transparent hover:border-[#00874E] transition-all duration-200 flex-shrink-0 cursor-pointer">
+                <button className="p-2 bg-[#fff] rounded-md shadow-md border-2 border-transparent hover:border-[#00874E] transition-all duration-200 flex-shrink-0 cursor-pointer" title="Attendance History">
                   <img 
                     src={HistoryIcon} 
                     alt="History" 
@@ -359,7 +359,7 @@ export default function Attendance() {
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full h-11 sm:h-12 rounded-md px-4 py-2.5 pr-12 shadow-md outline-none bg-white text-sm sm:text-base border-2 border-transparent focus:border-[#00874E] transition-colors"
               />
-              <button className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500">
+              <button className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500" title="Search">
                 <img
                   src={Search}
                   alt="Search"
@@ -394,9 +394,6 @@ export default function Attendance() {
                       <th className="px-2 py-2 text-[#00A15D] text-center w-14 sm:w-16 md:w-20">
                         Present
                       </th>
-                      <th className="px-2 py-2 text-center w-14 sm:w-16 md:w-20">
-                        Action
-                      </th>
                     </tr>
                   </thead>
                   <tbody>
@@ -427,6 +424,7 @@ export default function Attendance() {
                             <div className="flex justify-center items-center">
                               <input
                                 type="radio"
+                                title="Absent"
                                 name={`attendance-${student.tracked_ID}`}
                                 checked={
                                   attendance[student.tracked_ID] === "absent"
@@ -446,6 +444,7 @@ export default function Attendance() {
                             <div className="flex justify-center items-center">
                               <input
                                 type="radio"
+                                title="Late"
                                 name={`attendance-${student.tracked_ID}`}
                                 checked={
                                   attendance[student.tracked_ID] === "late"
@@ -465,6 +464,7 @@ export default function Attendance() {
                             <div className="flex justify-center items-center">
                               <input
                                 type="radio"
+                                title="Present"
                                 name={`attendance-${student.tracked_ID}`}
                                 checked={
                                   attendance[student.tracked_ID] === "present"
@@ -484,17 +484,14 @@ export default function Attendance() {
                             <div className="flex justify-center items-center">
                               <button
                                 onClick={(e) => handleRemoveStudent(student, e)}
-                                className="p-2 hover:bg-gray-100 rounded-full transition-colors group relative"
+                                className="bg-white rounded-md w-9 h-9 sm:w-10 sm:h-10 lg:w-11 lg:h-11 shadow-md flex items-center justify-center border-2 border-transparent hover:border-red-500 hover:scale-105 transition-all duration-200 cursor-pointer"
                                 title="Remove student"
                               >
                                 <img
                                   src={RemoveIcon}
                                   alt="Remove student"
-                                  className="h-5 w-5"
+                                  className="h-5 w-5 sm:h-5 sm:w-5 lg:h-6 lg:w-6"
                                 />
-                                <span className="absolute opacity-0 group-hover:opacity-100 bg-gray-800 text-white text-xs rounded py-1 px-2 -mt-8 -ml-4 transition-opacity">
-                                  Remove
-                                </span>
                               </button>
                             </div>
                           </td>

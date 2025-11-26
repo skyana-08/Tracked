@@ -3,6 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 
 import Sidebar from "../../Components/Sidebar";
 import Header from "../../Components/Header";
+
 import ClassWorkCreate from "../../Components/ClassWorkCreate";
 import ClassWorkEdit from "../../Components/ClassWorkEdit";
 import ClassWorkArchive from "../../Components/ClassWorkArchive";
@@ -35,7 +36,7 @@ const SmallActivityCard = ({ activity, onEdit, onArchive, onOpenSubmissions }) =
         hour: '2-digit',
         minute: '2-digit'
       });
-    } catch (error) {
+    } catch {
       return dateString;
     }
   };
@@ -51,7 +52,7 @@ const SmallActivityCard = ({ activity, onEdit, onArchive, onOpenSubmissions }) =
       if (diffHours < 1) return "Just now";
       if (diffHours < 24) return `${diffHours}h ago`;
       return `${Math.floor(diffHours / 24)}d ago`;
-    } catch (error) {
+    } catch {
       return "Recently";
     }
   };
@@ -67,7 +68,7 @@ const SmallActivityCard = ({ activity, onEdit, onArchive, onOpenSubmissions }) =
       const hoursDiff = timeDiff / (1000 * 60 * 60);
       
       return hoursDiff <= 24; // Urgent if within 24 hours
-    } catch (error) {
+    } catch {
       return false;
     }
   };
@@ -80,7 +81,7 @@ const SmallActivityCard = ({ activity, onEdit, onArchive, onOpenSubmissions }) =
       const deadlineDate = new Date(deadline);
       const now = new Date();
       return deadlineDate < now;
-    } catch (error) {
+    } catch {
       return false;
     }
   };
@@ -223,6 +224,8 @@ export default function ClassworkTab() {
   const [activityToArchive, setActivityToArchive] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [showDuplicateModal, setShowDuplicateModal] = useState(false); // Add duplicate modal state
+  const [duplicateMessage, setDuplicateMessage] = useState(""); // Add duplicate message state
   const [selectedActivity, setSelectedActivity] = useState(null);
   const [showSubmissionsModal, setShowSubmissionsModal] = useState(false);
   
@@ -327,11 +330,36 @@ export default function ClassworkTab() {
     }
   };
 
+  // Check if activity already exists (duplicate detection)
+  const isActivityDuplicate = (activityType, taskNumber) => {
+    return activities.some(activity => 
+      activity.activity_type === activityType && 
+      activity.task_number === taskNumber
+    );
+  };
+
+  // Get existing task numbers for a specific activity type
+  const getExistingTaskNumbers = (activityType) => {
+    return activities
+      .filter(activity => activity.activity_type === activityType)
+      .map(activity => activity.task_number)
+      .sort((a, b) => a - b);
+  };
+
   // Handle create activity from modal
   const handleCreateActivity = async (activityData) => {
     // Validate required fields
     if (!activityData.activityType || !activityData.taskNumber || !activityData.title) {
       alert("Please fill in all required fields (Activity Type, Task Number, and Title)");
+      return;
+    }
+
+    // Check for duplicate activity
+    if (isActivityDuplicate(activityData.activityType, activityData.taskNumber)) {
+      const existingTaskNumbers = getExistingTaskNumbers(activityData.activityType);
+      const message = `"${activityData.activityType} ${activityData.taskNumber}" has already been created.\n\nExisting ${activityData.activityType}s: ${existingTaskNumbers.join(', ')}`;
+      setDuplicateMessage(message);
+      setShowDuplicateModal(true);
       return;
     }
 
@@ -855,6 +883,7 @@ export default function ClassworkTab() {
         onCreateActivity={handleCreateActivity}
         activityTypes={activityTypes}
         getCurrentDateTime={getCurrentDateTime}
+        subjectCode={subjectCode}
       />
 
       <ClassWorkEdit
@@ -864,6 +893,7 @@ export default function ClassworkTab() {
         activity={editingActivity}
         activityTypes={activityTypes}
         getCurrentDateTime={getCurrentDateTime}
+        subjectCode={subjectCode}
       />
 
       <ClassWorkArchive
@@ -878,12 +908,23 @@ export default function ClassworkTab() {
         isOpen={showSubmissionsModal}
         onClose={() => setShowSubmissionsModal(false)}
         onSave={handleSaveSubmissions}
+        professorName={classInfo?.professor_name}
       />
 
+      {/* Success Modal */}
       <ClassWorkSuccess
         isOpen={showSuccessModal}
         onClose={() => setShowSuccessModal(false)}
         message="Operation completed successfully!"
+        type="success"
+      />
+
+      {/* Duplicate Activity Modal */}
+      <ClassWorkSuccess
+        isOpen={showDuplicateModal}
+        onClose={() => setShowDuplicateModal(false)}
+        message={duplicateMessage}
+        type="duplicate"
       />
     </div>
   );

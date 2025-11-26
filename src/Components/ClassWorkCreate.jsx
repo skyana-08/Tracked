@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import BackButton from '../assets/BackButton(Light).svg';
 import ArrowDown from "../assets/ArrowDown(Light).svg";
 
@@ -7,7 +7,8 @@ const ClassWorkCreate = ({
   onClose, 
   onCreateActivity,
   activityTypes = ["Assignment", "Quiz", "Activity", "Project", "Laboratory", "Announcement"],
-  getCurrentDateTime
+  getCurrentDateTime,
+  subjectCode
 }) => {
   const [activityType, setActivityType] = useState("");
   const [taskNumber, setTaskNumber] = useState("");
@@ -16,20 +17,93 @@ const ClassWorkCreate = ({
   const [link, setLink] = useState("");
   const [points, setPoints] = useState("");
   const [deadline, setDeadline] = useState("");
-  const [assignTo, setAssignTo] = useState("wholeClass"); // "wholeClass" or "individual"
+  const [assignTo, setAssignTo] = useState("wholeClass");
   const [selectedStudents, setSelectedStudents] = useState([]);
+  const [realStudents, setRealStudents] = useState([]);
+  const [loadingStudents, setLoadingStudents] = useState(false);
+  const [existingActivities, setExistingActivities] = useState([]);
+  const [setLoadingActivities] = useState(false);
   
   const [activityTypeDropdownOpen, setActivityTypeDropdownOpen] = useState(false);
   const [assignToDropdownOpen, setAssignToDropdownOpen] = useState(false);
 
-  // Dummy student data
-  const dummyStudents = [
-    { id: 1, name: "Alice Johnson", studentId: "20230001" },
-    { id: 2, name: "Brian Smith", studentId: "20230002" },
-    { id: 3, name: "Catherine Wong", studentId: "20230003" },
-    { id: 4, name: "David Brown", studentId: "20230004" },
-    { id: 5, name: "Emma Davis", studentId: "20230005" }
-  ];
+  // Fetch real students and existing activities when component opens
+  useEffect(() => {
+    if (isOpen && subjectCode) {
+      fetchClassStudents();
+      fetchExistingActivities();
+    }
+  }, [isOpen, subjectCode]);
+
+  const fetchClassStudents = async () => {
+    try {
+      setLoadingStudents(true);
+      const response = await fetch(`https://tracked.6minds.site/Professor/SubjectDetailsDB/get_students_by_section.php?subject_code=${subjectCode}`);
+      
+      if (response.ok) {
+        const result = await response.json();
+        console.log('Fetched students:', result);
+        if (result.success) {
+          setRealStudents(result.students || []);
+        } else {
+          console.error('Error fetching students:', result.message);
+          setRealStudents([]);
+        }
+      } else {
+        throw new Error('Failed to fetch students');
+      }
+    } catch (error) {
+      console.error('Error fetching students:', error);
+      setRealStudents([]);
+    } finally {
+      setLoadingStudents(false);
+    }
+  };
+
+  const fetchExistingActivities = async () => {
+    try {
+      setLoadingActivities(true);
+      const response = await fetch(`https://tracked.6minds.site/Professor/SubjectDetailsDB/get_activities.php?subject_code=${subjectCode}`);
+      
+      if (response.ok) {
+        const result = await response.json();
+        console.log('Fetched existing activities:', result);
+        if (result.success) {
+          setExistingActivities(result.activities || []);
+        } else {
+          console.error('Error fetching activities:', result.message);
+          setExistingActivities([]);
+        }
+      } else {
+        throw new Error('Failed to fetch activities');
+      }
+    } catch (error) {
+      console.error('Error fetching activities:', error);
+      setExistingActivities([]);
+    } finally {
+      setLoadingActivities(false);
+    }
+  };
+
+  // Check if task number already exists for the same activity type
+  const isTaskNumberDuplicate = () => {
+    if (!activityType || !taskNumber) return false;
+    
+    return existingActivities.some(activity => 
+      activity.activity_type === activityType && 
+      activity.task_number === taskNumber
+    );
+  };
+
+  // Get existing task numbers for the selected activity type
+  const getExistingTaskNumbers = () => {
+    if (!activityType) return [];
+    
+    return existingActivities
+      .filter(activity => activity.activity_type === activityType)
+      .map(activity => activity.task_number)
+      .sort((a, b) => a - b);
+  };
 
   const resetForm = () => {
     setActivityType("");
@@ -57,10 +131,10 @@ const ClassWorkCreate = ({
   };
 
   const handleSelectAllStudents = () => {
-    if (selectedStudents.length === dummyStudents.length) {
+    if (selectedStudents.length === realStudents.length) {
       setSelectedStudents([]);
     } else {
-      setSelectedStudents(dummyStudents.map(student => student.id));
+      setSelectedStudents(realStudents.map(student => student.tracked_ID));
     }
   };
 
@@ -68,6 +142,17 @@ const ClassWorkCreate = ({
     // Validate required fields
     if (!activityType || !taskNumber || !title) {
       alert("Please fill in all required fields (Activity Type, Task Number, and Title)");
+      return;
+    }
+
+    // Check for duplicate task number
+    if (isTaskNumberDuplicate()) {
+      const existingTaskNumbers = getExistingTaskNumbers();
+      const message = `"${activityType} ${taskNumber}" has already been created.\n\nExisting ${activityType}s: ${existingTaskNumbers.join(', ')}`;
+      
+      // This will be handled by the parent component using ClassWorkSuccess with type="duplicate"
+      // For now, we'll use alert as fallback
+      alert(message);
       return;
     }
 
@@ -90,6 +175,9 @@ const ClassWorkCreate = ({
   };
 
   if (!isOpen) return null;
+
+  const isDuplicate = isTaskNumberDuplicate();
+  const existingTaskNumbers = getExistingTaskNumbers();
 
   return (
     <div
@@ -129,7 +217,7 @@ const ClassWorkCreate = ({
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5 lg:gap-6">
           {/* Left Column - Basic Information */}
           <div className="space-y-4 sm:space-y-5">
-            {/* Deadline Input - MOVED TO TOP */}
+            {/* Deadline Input */}
             <div>
               <label className="text-xs sm:text-sm font-semibold mb-2 block text-gray-700">Deadline</label>
               <input
@@ -190,9 +278,35 @@ const ClassWorkCreate = ({
                 type="text"
                 placeholder="Activity 1"
                 value={taskNumber}
-                onChange={(e) => setTaskNumber(e.target.value)}
-                className="w-full border-2 border-gray-300 rounded-md px-3 sm:px-4 py-2.5 sm:py-3 outline-none text-xs sm:text-sm focus:border-[#00874E] transition-colors"
+                onChange={(e) => {
+                  const value = e.target.value;
+                  // Only allow numbers and limit to 2 digits
+                  if (value === '' || /^\d{1,2}$/.test(value)) {
+                    setTaskNumber(value);
+                  }
+                }}
+                onKeyPress={(e) => {
+                  // Prevent non-numeric characters from being entered
+                  if (!/[0-9]/.test(e.key)) {
+                    e.preventDefault();
+                  }
+                }}
+                className={`w-full border-2 rounded-md px-3 sm:px-4 py-25 sm:py-3 outline-none text-xs sm:text-sm focus:border-[#00874E] transition-colors ${
+                  isDuplicate 
+                    ? 'border-red-500 bg-red-50' 
+                    : 'border-gray-300'
+                }`}
               />
+              {isDuplicate && (
+                <p className="text-red-500 text-xs mt-1">
+                  ⚠️ {activityType} {taskNumber} already exists!
+                </p>
+              )}
+              {activityType && existingTaskNumbers.length > 0 && (
+                <p className="text-gray-500 text-xs mt-1">
+                  Existing {activityType}s: {existingTaskNumbers.join(', ')}
+                </p>
+              )}
             </div>
 
             {/* Title Input */}
@@ -256,7 +370,7 @@ const ClassWorkCreate = ({
               )}
             </div>
 
-            {/* Points Input - Now standalone since deadline was moved */}
+            {/* Points Input */}
             <div>
               <label className="text-xs sm:text-sm font-semibold mb-2 block text-gray-700">Points</label>
               <input
@@ -297,34 +411,49 @@ const ClassWorkCreate = ({
                   <label className="text-xs sm:text-sm font-semibold text-gray-700">
                     Select Students
                   </label>
-                  <button
-                    onClick={handleSelectAllStudents}
-                    className="text-xs text-[#00874E] hover:text-[#006B3D] font-medium cursor-pointer"
-                  >
-                    {selectedStudents.length === dummyStudents.length ? "Deselect All" : "Select All"}
-                  </button>
+                  {!loadingStudents && realStudents.length > 0 && (
+                    <button
+                      onClick={handleSelectAllStudents}
+                      className="text-xs text-[#00874E] hover:text-[#006B3D] font-medium cursor-pointer"
+                    >
+                      {selectedStudents.length === realStudents.length ? "Deselect All" : "Select All"}
+                    </button>
+                  )}
                 </div>
                 
-                <div className="space-y-2 max-h-32 sm:max-h-40 overflow-y-auto pr-2">
-                  {dummyStudents.map((student) => (
-                    <div key={student.id} className="flex items-center gap-2 sm:gap-3 p-2 hover:bg-white rounded-md transition-colors">
-                      <input
-                        type="checkbox"
-                        id={`student-${student.id}`}
-                        checked={selectedStudents.includes(student.id)}
-                        onChange={() => handleStudentSelection(student.id)}
-                        className="h-3 w-3 sm:h-4 sm:w-4 text-[#00874E] border-gray-300 rounded focus:ring-[#00874E] cursor-pointer flex-shrink-0"
-                      />
-                      <label 
-                        htmlFor={`student-${student.id}`}
-                        className="flex-1 text-xs sm:text-sm text-gray-700 cursor-pointer min-w-0"
-                      >
-                        <div className="font-medium truncate">{student.name}</div>
-                        <div className="text-xs text-gray-500">ID: {student.studentId}</div>
-                      </label>
-                    </div>
-                  ))}
-                </div>
+                {loadingStudents ? (
+                  <div className="text-center py-4">
+                    <div className="inline-block h-6 w-6 animate-spin rounded-full border-2 border-solid border-[#00874E] border-r-transparent"></div>
+                    <p className="text-xs text-gray-500 mt-2">Loading students...</p>
+                  </div>
+                ) : realStudents.length === 0 ? (
+                  <div className="text-center py-4 text-xs text-gray-500">
+                    No students found in this class.
+                  </div>
+                ) : (
+                  <div className="space-y-2 max-h-32 sm:max-h-40 overflow-y-auto pr-2">
+                    {realStudents.map((student) => (
+                      <div key={student.tracked_ID} className="flex items-center gap-2 sm:gap-3 p-2 hover:bg-white rounded-md transition-colors">
+                        <input
+                          type="checkbox"
+                          id={`student-${student.tracked_ID}`}
+                          checked={selectedStudents.includes(student.tracked_ID)}
+                          onChange={() => handleStudentSelection(student.tracked_ID)}
+                          className="h-3 w-3 sm:h-4 sm:w-4 text-[#00874E] border-gray-300 rounded focus:ring-[#00874E] cursor-pointer flex-shrink-0"
+                        />
+                        <label 
+                          htmlFor={`student-${student.tracked_ID}`}
+                          className="flex-1 text-xs sm:text-sm text-gray-700 cursor-pointer min-w-0"
+                        >
+                          <div className="font-medium truncate">
+                            {student.tracked_firstname} {student.tracked_lastname}
+                          </div>
+                          <div className="text-xs text-gray-500">ID: {student.tracked_ID}</div>
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+                )}
 
                 {selectedStudents.length > 0 && (
                   <div className="mt-3 text-xs text-gray-600">
@@ -334,7 +463,7 @@ const ClassWorkCreate = ({
               </div>
             )}
 
-            {/* Instruction Textarea - Dynamic height based on content and screen size */}
+            {/* Instruction Textarea */}
             <div className={assignTo === "individual" ? "min-h-[150px] sm:min-h-[200px]" : "min-h-[200px] sm:min-h-[300px]"}>
               <label className="text-xs sm:text-sm font-semibold mb-2 block text-gray-700">Instruction</label>
               <textarea
@@ -348,13 +477,17 @@ const ClassWorkCreate = ({
           </div>
         </div>
 
-        {/* Create Button - Full width below the columns */}
+        {/* Create Button */}
         <div className="mt-4 sm:mt-5 lg:mt-6">
           <button
             onClick={handleCreate}
-            className="w-full bg-[#00A15D] hover:bg-[#00874E] active:bg-[#006B3D] text-white font-bold py-2.5 sm:py-3 rounded-md transition-all duration-200 text-sm sm:text-base cursor-pointer touch-manipulation active:scale-98"
+            className={`w-full font-bold py-2.5 sm:py-3 rounded-md transition-all duration-200 text-sm sm:text-base cursor-pointer touch-manipulation active:scale-98 ${
+              isDuplicate
+                ? 'bg-red-500 hover:bg-red-600 active:bg-red-700 text-white'
+                : 'bg-[#00A15D] hover:bg-[#00874E] active:bg-[#006B3D] text-white'
+            }`}
           >
-            Create Activity
+            {isDuplicate ? '⚠️ Task Number Exists - Click to See Details' : 'Create Activity'}
           </button>
         </div>
       </div>
@@ -370,13 +503,6 @@ const ClassWorkCreate = ({
         @keyframes popIn {
           from { opacity: 0; transform: translateY(-8px) scale(.98); }
           to   { opacity: 1; transform: translateY(0)   scale(1);    }
-        }
-
-        /* Custom breakpoint for extra small screens */
-        @media (min-width: 475px) {
-          .xs\\:grid-cols-2 {
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-          }
         }
       `}</style>
     </div>

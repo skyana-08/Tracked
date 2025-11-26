@@ -122,6 +122,8 @@ export default function AnnouncementTab() {
         const result = await response.json();
         if (result.success) {
           setClassInfo(result.class_data);
+          // Set the selected subject for announcements to the current class
+          setSelectedSubject(subjectCode);
         } else {
           console.error('Error fetching class details:', result.message);
           // Set default class info if API fails
@@ -186,24 +188,24 @@ export default function AnnouncementTab() {
     }
   };
 
-  // Fetch announcements from database
+  // Fetch announcements from database - UPDATED to filter by current class
   const fetchAnnouncements = async () => {
     try {
       setLoadingAnnouncements(true);
       const professorId = getProfessorId();
       
-      if (!professorId) {
-        console.error('No professor ID found');
+      if (!professorId || !subjectCode) {
+        console.error('No professor ID or subject code found');
         setLoadingAnnouncements(false);
         return;
       }
       
-      // Fetch all announcements for the professor
-      const response = await fetch(`https://tracked.6minds.site/Professor/AnnouncementDB/get_announcements.php?professor_ID=${professorId}`);
+      // Fetch announcements only for the current classroom/section
+      const response = await fetch(`https://tracked.6minds.site/Professor/AnnouncementDB/get_announcements.php?professor_ID=${professorId}&classroom_ID=${subjectCode}`);
       
       if (response.ok) {
         const result = await response.json();
-        console.log('Fetched announcements:', result);
+        console.log('Fetched announcements for class:', subjectCode, result);
         if (result.success) {
           // Add read status to announcements (default to unread)
           const announcementsWithReadStatus = result.announcements.map(announcement => ({
@@ -411,7 +413,8 @@ export default function AnnouncementTab() {
 
   // Reset form function
   const resetForm = () => {
-    setSelectedSubject("");
+    // Reset to current class subject code instead of empty string
+    setSelectedSubject(subjectCode || "");
     setTitle("");
     setDescription("");
     setLink("");
@@ -453,12 +456,8 @@ export default function AnnouncementTab() {
   const handleEdit = (announcement) => {
     setEditingAnnouncement(announcement);
     
-    // Find the subject code that matches the announcement subject name
-    const subjectCode = classes.find(classItem => 
-      classItem.subject === announcement.subject
-    )?.subject_code || "";
-    
-    setSelectedSubject(subjectCode);
+    // Use the announcement's subject code directly
+    setSelectedSubject(announcement.subject_code || subjectCode);
     setTitle(announcement.title);
     setDescription(announcement.instructions);
     setLink(announcement.link === "#" ? "" : announcement.link);
@@ -750,7 +749,7 @@ export default function AnnouncementTab() {
                 <p className="text-gray-500 text-sm sm:text-base">
                   {searchQuery || filterOption !== "All" 
                     ? "No announcements match your search criteria" 
-                    : "No announcements found"
+                    : "No announcements found for this class"
                   }
                 </p>
               </div>
@@ -778,6 +777,7 @@ export default function AnnouncementTab() {
         getUniqueSubjects={getUniqueSubjects}
         loadingClasses={loadingClasses}
         getCurrentDateTime={getCurrentDateTime}
+        currentClassInfo={classInfo} // Pass current class info to restrict subject selection
       />
     </div>
   );

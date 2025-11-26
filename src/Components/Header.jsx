@@ -135,12 +135,6 @@ function Header({ setIsOpen }) {
     setIsDropdownOpen(!isDropdownOpen);
   };
 
-  const handleNotificationClick = () => {
-    if (paths.notification !== "/#") {
-      navigate(paths.notification);
-    }
-  };
-
   return (
     <div>
       {/* HEADER */}
@@ -164,26 +158,6 @@ function Header({ setIsOpen }) {
 
         {/* Right: Notifications + Profile */}
         <div className="flex items-center gap-2 sm:gap-4 mt-0 sm:mt-0 mr-1">
-          {/* Notification for Students and Professors only */}
-          {(userRole === "Student" || userRole === "Professor") && (
-            <div 
-              className="flex items-center gap-2 sm:gap-3 relative cursor-pointer hover:opacity-80 transition-opacity"
-              onClick={handleNotificationClick}
-            >
-              <div className="relative">
-                <img 
-                  src={Notification}
-                  alt="Notification"
-                  className="h-5 w-5 sm:h-6 sm:w-6 flex-shrink-0" 
-                />
-                {/* Notification badge */}
-                <div className="absolute -top-1 -right-1 bg-[#00874E] text-white text-xs font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1">
-                  x
-                </div>
-              </div>
-              <p className="text-[#465746] font-medium text-sm sm:text-base">New</p>
-            </div>
-          )}
 
           {/* Dropdown start */}
           <div className="relative" ref={dropdownRef}>

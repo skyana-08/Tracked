@@ -44,7 +44,8 @@ try {
     // Get students who are actually ENROLLED in this class from tracked_users table
     $studentsStmt = $pdo->prepare("
         SELECT t.tracked_ID as user_ID, 
-            CONCAT(t.tracked_firstname, ' ', t.tracked_lastname) as user_Name
+            CONCAT(t.tracked_firstname, ' ', t.tracked_lastname) as user_Name,
+            t.tracked_Email as user_Email
         FROM tracked_users t
         INNER JOIN student_classes sc ON t.tracked_ID = sc.student_ID
         WHERE sc.subject_code = ? AND sc.archived = 0
@@ -98,10 +99,11 @@ try {
                 $activityStudents[] = [
                     'user_ID' => $student['user_ID'],
                     'user_Name' => $student['user_Name'],
+                    'user_Email' => $student['user_Email'],
                     'grade' => $gradeData['grade'],
                     'submitted' => (bool)$gradeData['submitted'],
                     'late' => (bool)$gradeData['late'],
-                    'submitted_at' => $gradeData['submitted_at'] // Include submitted_at in response
+                    'submitted_at' => $gradeData['submitted_at']
                 ];
             } else {
                 // Create default entry if doesn't exist
@@ -115,10 +117,11 @@ try {
                     $activityStudents[] = [
                         'user_ID' => $student['user_ID'],
                         'user_Name' => $student['user_Name'],
+                        'user_Email' => $student['user_Email'],
                         'grade' => null,
                         'submitted' => false,
                         'late' => false,
-                        'submitted_at' => null // Include submitted_at in response
+                        'submitted_at' => null
                     ];
                 } catch (Exception $insertError) {
                     error_log("Error inserting grade for student {$student['user_ID']}: " . $insertError->getMessage());

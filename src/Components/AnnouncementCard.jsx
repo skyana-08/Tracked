@@ -73,7 +73,7 @@ export default function AnnouncementCard({
             <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 flex-1 min-w-0 text-sm sm:text-base">
               <span className="font-bold">{subject}:</span>
               <span className="break-words">{title}</span>
-              {section && section !== "All" && (
+              {section && (
                 <span className="text-xs sm:text-sm text-gray-600">({section})</span>
               )}
               {!readStatus && (
@@ -128,7 +128,7 @@ export default function AnnouncementCard({
               <div className="mb-3 sm:mb-0">
                 <p className="font-semibold text-base sm:text-lg">{title}</p>
                 <p className="text-xs sm:text-sm text-gray-600">Posted By: {postedBy}</p>
-                {section && section !== "All" && (
+                {section && (
                   <p className="text-xs sm:text-sm text-gray-600">Section: {section}</p>
                 )}
               </div>
@@ -206,7 +206,7 @@ export default function AnnouncementCard({
                   <p className="text-sm text-gray-600 mt-1">
                     Subject: {subject}
                   </p>
-                  {section && section !== "All" && (
+                  {section && (
                     <p className="text-sm text-gray-600">
                       Section: {section}
                     </p>

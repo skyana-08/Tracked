@@ -21,43 +21,44 @@ try {
     exit;
 }
 
-$subject_code = $_GET['subject_code'] ?? '';
+$professor_ID = $_GET['professor_ID'] ?? '';
 
-if (empty($subject_code)) {
-    echo json_encode(["success" => false, "message" => "Subject code is required"]);
+if (empty($professor_ID)) {
+    echo json_encode(["success" => false, "message" => "Professor ID is required"]);
     exit;
 }
 
 try {
-    // Get class details with professor name
+    // Get professor details from tracked_users table
     $stmt = $pdo->prepare("
         SELECT 
-            c.subject_code,
-            c.subject,
-            c.section,
-            c.professor_ID,
-            CONCAT(p.tracked_firstname, ' ', p.tracked_lastname) as professor_name,
-            p.tracked_lastname as professor_surname
-        FROM classes c
-        LEFT JOIN tracked_users p ON c.professor_ID = p.tracked_ID
-        WHERE c.subject_code = ?
+            tracked_ID,
+            tracked_firstname,
+            tracked_middlename,
+            tracked_lastname,
+            tracked_email,
+            tracked_gender,
+            tracked_program,
+            tracked_Status
+        FROM tracked_users 
+        WHERE tracked_ID = ? AND tracked_Role = 'Professor'
     ");
-    $stmt->execute([$subject_code]);
-    $class_data = $stmt->fetch(PDO::FETCH_ASSOC);
+    $stmt->execute([$professor_ID]);
+    $professor = $stmt->fetch(PDO::FETCH_ASSOC);
 
-    if ($class_data) {
+    if ($professor) {
         echo json_encode([
             "success" => true,
-            "class_data" => $class_data
+            "professor" => $professor
         ]);
     } else {
         echo json_encode([
             "success" => false,
-            "message" => "Class not found"
+            "message" => "Professor not found"
         ]);
     }
 
 } catch (Exception $e) {
-    echo json_encode(["success" => false, "message" => "Error fetching class details: " . $e->getMessage()]);
+    echo json_encode(["success" => false, "message" => "Error fetching professor details: " . $e->getMessage()]);
 }
 ?>

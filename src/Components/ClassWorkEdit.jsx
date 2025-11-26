@@ -8,7 +8,8 @@ const ClassWorkEdit = ({
   onSave,
   activity,
   activityTypes = ["Assignment", "Quiz", "Activity", "Project", "Laboratory", "Announcement"],
-  getCurrentDateTime
+  getCurrentDateTime,
+  subjectCode
 }) => {
   const [activityType, setActivityType] = useState("");
   const [taskNumber, setTaskNumber] = useState("");
@@ -19,18 +20,18 @@ const ClassWorkEdit = ({
   const [deadline, setDeadline] = useState("");
   const [assignTo, setAssignTo] = useState("wholeClass");
   const [selectedStudents, setSelectedStudents] = useState([]);
+  const [realStudents, setRealStudents] = useState([]);
+  const [loadingStudents, setLoadingStudents] = useState(false);
   
   const [activityTypeDropdownOpen, setActivityTypeDropdownOpen] = useState(false);
   const [assignToDropdownOpen, setAssignToDropdownOpen] = useState(false);
 
-  // Dummy student data
-  const dummyStudents = [
-    { id: 1, name: "Alice Johnson", studentId: "20230001" },
-    { id: 2, name: "Brian Smith", studentId: "20230002" },
-    { id: 3, name: "Catherine Wong", studentId: "20230003" },
-    { id: 4, name: "David Brown", studentId: "20230004" },
-    { id: 5, name: "Emma Davis", studentId: "20230005" }
-  ];
+  // Fetch real students when component opens and subjectCode is available
+  useEffect(() => {
+    if (isOpen && subjectCode) {
+      fetchClassStudents();
+    }
+  }, [isOpen, subjectCode]);
 
   // Initialize form with activity data
   useEffect(() => {
@@ -60,6 +61,31 @@ const ClassWorkEdit = ({
     }
   }, [activity]);
 
+  const fetchClassStudents = async () => {
+    try {
+      setLoadingStudents(true);
+      const response = await fetch(`https://tracked.6minds.site/Professor/SubjectDetailsDB/get_students_by_section.php?subject_code=${subjectCode}`);
+      
+      if (response.ok) {
+        const result = await response.json();
+        console.log('Fetched students for edit:', result);
+        if (result.success) {
+          setRealStudents(result.students || []);
+        } else {
+          console.error('Error fetching students:', result.message);
+          setRealStudents([]);
+        }
+      } else {
+        throw new Error('Failed to fetch students');
+      }
+    } catch (error) {
+      console.error('Error fetching students:', error);
+      setRealStudents([]);
+    } finally {
+      setLoadingStudents(false);
+    }
+  };
+
   const resetForm = () => {
     setActivityType("");
     setTaskNumber("");
@@ -86,10 +112,10 @@ const ClassWorkEdit = ({
   };
 
   const handleSelectAllStudents = () => {
-    if (selectedStudents.length === dummyStudents.length) {
+    if (selectedStudents.length === realStudents.length) {
       setSelectedStudents([]);
     } else {
-      setSelectedStudents(dummyStudents.map(student => student.id));
+      setSelectedStudents(realStudents.map(student => student.tracked_ID));
     }
   };
 
@@ -343,34 +369,49 @@ const ClassWorkEdit = ({
                   <label className="text-sm font-semibold text-gray-700">
                     Select Students
                   </label>
-                  <button
-                    onClick={handleSelectAllStudents}
-                    className="text-xs text-[#00874E] hover:text-[#006B3D] font-medium cursor-pointer"
-                  >
-                    {selectedStudents.length === dummyStudents.length ? "Deselect All" : "Select All"}
-                  </button>
+                  {!loadingStudents && realStudents.length > 0 && (
+                    <button
+                      onClick={handleSelectAllStudents}
+                      className="text-xs text-[#00874E] hover:text-[#006B3D] font-medium cursor-pointer"
+                    >
+                      {selectedStudents.length === realStudents.length ? "Deselect All" : "Select All"}
+                    </button>
+                  )}
                 </div>
                 
-                <div className="space-y-2 max-h-40 overflow-y-auto pr-2">
-                  {dummyStudents.map((student) => (
-                    <div key={student.id} className="flex items-center gap-3 p-2 hover:bg-white rounded-md transition-colors">
-                      <input
-                        type="checkbox"
-                        id={`student-${student.id}`}
-                        checked={selectedStudents.includes(student.id)}
-                        onChange={() => handleStudentSelection(student.id)}
-                        className="h-4 w-4 text-[#00874E] border-gray-300 rounded focus:ring-[#00874E] cursor-pointer"
-                      />
-                      <label 
-                        htmlFor={`student-${student.id}`}
-                        className="flex-1 text-sm text-gray-700 cursor-pointer"
-                      >
-                        <div className="font-medium">{student.name}</div>
-                        <div className="text-xs text-gray-500">ID: {student.studentId}</div>
-                      </label>
-                    </div>
-                  ))}
-                </div>
+                {loadingStudents ? (
+                  <div className="text-center py-4">
+                    <div className="inline-block h-6 w-6 animate-spin rounded-full border-2 border-solid border-[#00874E] border-r-transparent"></div>
+                    <p className="text-xs text-gray-500 mt-2">Loading students...</p>
+                  </div>
+                ) : realStudents.length === 0 ? (
+                  <div className="text-center py-4 text-xs text-gray-500">
+                    No students found in this class.
+                  </div>
+                ) : (
+                  <div className="space-y-2 max-h-40 overflow-y-auto pr-2">
+                    {realStudents.map((student) => (
+                      <div key={student.tracked_ID} className="flex items-center gap-3 p-2 hover:bg-white rounded-md transition-colors">
+                        <input
+                          type="checkbox"
+                          id={`student-${student.tracked_ID}`}
+                          checked={selectedStudents.includes(student.tracked_ID)}
+                          onChange={() => handleStudentSelection(student.tracked_ID)}
+                          className="h-4 w-4 text-[#00874E] border-gray-300 rounded focus:ring-[#00874E] cursor-pointer"
+                        />
+                        <label 
+                          htmlFor={`student-${student.tracked_ID}`}
+                          className="flex-1 text-sm text-gray-700 cursor-pointer"
+                        >
+                          <div className="font-medium">
+                            {student.tracked_firstname} {student.tracked_lastname}
+                          </div>
+                          <div className="text-xs text-gray-500">ID: {student.tracked_ID}</div>
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+                )}
 
                 {selectedStudents.length > 0 && (
                   <div className="mt-3 text-xs text-gray-600">

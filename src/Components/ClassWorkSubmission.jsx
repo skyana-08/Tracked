@@ -9,11 +9,12 @@ import Delete from "../assets/Delete.svg";
 import DetailsIcon from "../assets/Details(Light).svg";
 import StudentActivitiesDetails from './StudentActivitiesDetails';
 
-const ClassWorkSubmissions = ({ 
+const ClassWorkSubmission = ({ 
   activity, 
   isOpen, 
   onClose, 
-  onSave 
+  onSave,
+  professorName // Add this prop
 }) => {
   const [filter, setFilter] = useState("All");
   const [filterDropdownOpen, setFilterDropdownOpen] = useState(false);
@@ -23,6 +24,7 @@ const ClassWorkSubmissions = ({
   const [uploadedFiles, setUploadedFiles] = useState({});
   const [detailsModalOpen, setDetailsModalOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
 
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 1024);
@@ -53,27 +55,45 @@ const ClassWorkSubmissions = ({
     "Not Graded"
   ];
 
-  // Calculate status counts
+  // Helper function to calculate student status
+  const calculateStudentStatus = (student, activity) => {
+    const now = new Date();
+    const deadline = activity.deadline ? new Date(activity.deadline) : null;
+    
+    if (student.submitted) {
+      return student.late ? 'Late' : 'Submitted';
+    } else if (deadline && deadline < now) {
+      return 'Missed';
+    } else {
+      return 'Assigned';
+    }
+  };
+
+  // Calculate status counts using the helper function
   const statusCounts = {
-    assigned: localStudents.length,
-    submitted: localStudents.filter(student => student.submitted).length,
-    missed: localStudents.filter(student => 
-      !student.submitted && activity.deadline && new Date(activity.deadline) < new Date()
-    ).length
+    assigned: localStudents.filter(student => calculateStudentStatus(student, activity) === 'Assigned').length,
+    submitted: localStudents.filter(student => 
+      calculateStudentStatus(student, activity) === 'Submitted' || 
+      calculateStudentStatus(student, activity) === 'Late'
+    ).length,
+    missed: localStudents.filter(student => calculateStudentStatus(student, activity) === 'Missed').length
   };
 
   const filteredStudents = localStudents.filter(student => {
+    const status = calculateStudentStatus(student, activity);
+    
     switch (filter) {
       case "Assigned":
-        return true;
+        return status === 'Assigned';
       case "Submitted":
-        return student.submitted;
+        return status === 'Submitted' || status === 'Late';
       case "Missed":
-        return !student.submitted && activity.deadline && new Date(activity.deadline) < new Date();
+        return status === 'Missed';
       case "Graded":
         return student.grade != null && student.grade !== '';
       case "Not Graded":
-        return student.submitted && (student.grade == null || student.grade === '');
+        return (status === 'Submitted' || status === 'Late') && 
+               (student.grade == null || student.grade === '');
       default:
         return true;
     }
@@ -88,13 +108,98 @@ const ClassWorkSubmissions = ({
     ));
   };
 
-  const handleSave = () => {
-    onSave(localStudents);
+  const handleSave = async () => {
+    try {
+      console.log('Saving grades for activity:', activity.id, 'Students:', localStudents);
+      
+      const saveData = {
+        activity_ID: activity.id,
+        students: localStudents.map(student => {
+          const now = new Date();
+          const deadline = activity.deadline ? new Date(activity.deadline) : null;
+          
+          // Determine if student should be marked as submitted
+          // If they have a grade and weren't previously submitted, mark as submitted
+          const hasGrade = student.grade && student.grade !== '';
+          const shouldMarkAsSubmitted = hasGrade && !student.submitted;
+          
+          // Determine if submission is late
+          const isLate = shouldMarkAsSubmitted && deadline && deadline < now;
+          
+          return {
+            user_ID: student.user_ID,
+            grade: student.grade || null,
+            submitted: student.submitted || shouldMarkAsSubmitted, // Mark as submitted if graded
+            late: student.late || isLate // Mark as late if past deadline
+          };
+        })
+      };
+
+      console.log('Save data:', saveData);
+
+      const response = await fetch('https://tracked.6minds.site/Professor/SubjectDetailsDB/update_activity_grades.php', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(saveData)
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      console.log('Save result:', result);
+
+      if (result.success) {
+        // Update local students with new submission status
+        const updatedStudents = localStudents.map(student => {
+          const hasGrade = student.grade && student.grade !== '';
+          const shouldMarkAsSubmitted = hasGrade && !student.submitted;
+          const now = new Date();
+          const deadline = activity.deadline ? new Date(activity.deadline) : null;
+          const isLate = shouldMarkAsSubmitted && deadline && deadline < now;
+          
+          return {
+            ...student,
+            submitted: student.submitted || shouldMarkAsSubmitted,
+            late: student.late || isLate
+          };
+        });
+        
+        setLocalStudents(updatedStudents);
+        
+        // Update parent component
+        onSave(updatedStudents);
+        
+        setShowSuccessModal(true);
+        setTimeout(() => {
+          setShowSuccessModal(false);
+        }, 2000);
+      } else {
+        alert('Error saving grades: ' + result.message);
+      }
+    } catch (error) {
+      console.error('Error saving grades:', error);
+      alert('Error saving grades. Please try again. Error: ' + error.message);
+    }
   };
 
-  const handleEmailStudent = (studentEmail) => {
+  const handleEmailStudent = (studentEmail, studentName) => {
     if (studentEmail) {
-      window.open(`mailto:${studentEmail}?subject=Regarding ${activity.title}`, '_blank');
+      const subject = `Regarding ${activity.title}`;
+      // Extract professor surname from full name
+      const professorSurname = professorName ? professorName.split(' ').pop() : 'Professor';
+      const body = `Dear ${studentName},\n\nI would like to discuss your submission for "${activity.title}".\n\nBest regards,\nProf. ${professorSurname}`;
+      
+      // Gmail compose URL
+      const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(studentEmail)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+      
+      // Open Gmail in a new tab
+      window.open(gmailUrl, '_blank', 'noopener,noreferrer');
+    } else {
+      alert('No email address found for this student.');
     }
   };
 
@@ -163,7 +268,7 @@ const ClassWorkSubmissions = ({
     
     const totalPoints = activity.points || 100;
     const studentGrade = student.grade ? parseFloat(student.grade) : 0;
-    const remainingPoints = totalPoints - studentGrade;
+    const remainingPoints = Math.max(0, totalPoints - studentGrade);
     
     return {
       data: [
@@ -257,7 +362,7 @@ const ClassWorkSubmissions = ({
               <div className="p-3 sm:p-4 md:p-6 border-b border-gray-200">
                 <h3 className="text-sm sm:text-base md:text-lg font-semibold text-gray-900 mb-2">Instructions</h3>
                 <p className="text-xs sm:text-sm text-gray-600 line-clamp-2">
-                  {activity.instructions || 'No instructions provided for this activity.'}
+                  {activity.instruction || 'No instructions provided for this activity.'}
                 </p>
               </div>
 
@@ -368,6 +473,7 @@ const ClassWorkSubmissions = ({
                         const studentPhoto = getStudentPhoto(student.user_ID);
                         const hasPhoto = !!studentPhoto;
                         const isSelected = selectedStudent?.id === student.user_ID;
+                        const status = calculateStudentStatus(student, activity);
 
                         return (
                           <tr 
@@ -385,19 +491,16 @@ const ClassWorkSubmissions = ({
                             </td>
                             <td className="px-3 sm:px-4 md:px-6 py-2 sm:py-3 md:py-4 whitespace-nowrap">
                               <span className={`inline-flex px-1.5 sm:px-2 py-0.5 sm:py-1 text-xs font-semibold rounded-full ${
-                                student.submitted
-                                  ? student.late
-                                    ? 'bg-yellow-100 text-yellow-800'
-                                    : 'bg-green-100 text-green-800'
-                                  : activity.deadline && new Date(activity.deadline) < new Date()
-                                  ? 'bg-red-100 text-red-800'
-                                  : 'bg-gray-100 text-gray-800'
+                                (() => {
+                                  switch (status) {
+                                    case 'Submitted': return 'bg-green-100 text-green-800';
+                                    case 'Late': return 'bg-yellow-100 text-yellow-800';
+                                    case 'Missed': return 'bg-red-100 text-red-800';
+                                    default: return 'bg-gray-100 text-gray-800';
+                                  }
+                                })()
                               }`}>
-                                {student.submitted
-                                  ? student.late ? 'Late' : 'Submitted'
-                                  : activity.deadline && new Date(activity.deadline) < new Date()
-                                  ? 'Missed'
-                                  : 'Assigned'}
+                                {status}
                               </span>
                             </td>
                             <td className="px-3 sm:px-4 md:px-6 py-2 sm:py-3 md:py-4 whitespace-nowrap">
@@ -443,7 +546,7 @@ const ClassWorkSubmissions = ({
                                 {/* Email Icon with Tooltip */}
                                 <div className="relative group">
                                   <button
-                                    onClick={() => handleEmailStudent(student.user_Email)}
+                                    onClick={() => handleEmailStudent(student.user_Email, student.user_Name)}
                                     className="p-0.5 sm:p-1 text-gray-400 hover:text-gray-600 cursor-pointer"
                                   >
                                     <img src={EmailIcon} alt="Email" className="w-4 h-4 sm:w-5 sm:h-5" />
@@ -528,15 +631,10 @@ const ClassWorkSubmissions = ({
                     <h4 className="font-medium text-gray-900 mb-1 sm:mb-2 text-xs sm:text-sm md:text-base">Student Details</h4>
                     <div className="space-y-1 text-xs sm:text-sm text-gray-600">
                       <p className="truncate">Email: {localStudents.find(s => s.user_ID === selectedStudent.id)?.user_Email || 'N/A'}</p>
-                      <p>Status: {
-                        (() => {
-                          const student = localStudents.find(s => s.user_ID === selectedStudent.id);
-                          if (student.submitted) {
-                            return student.late ? 'Late Submission' : 'Submitted';
-                          }
-                          return activity.deadline && new Date(activity.deadline) < new Date() ? 'Missed' : 'Assigned';
-                        })()
-                      }</p>
+                      <p>Status: {calculateStudentStatus(
+                        localStudents.find(s => s.user_ID === selectedStudent.id), 
+                        activity
+                      )}</p>
                       <p>Current Grade: {localStudents.find(s => s.user_ID === selectedStudent.id)?.grade || 'Not graded'}</p>
                     </div>
                   </div>
@@ -622,9 +720,28 @@ const ClassWorkSubmissions = ({
         students={localStudents}
         isOpen={detailsModalOpen}
         onClose={() => setDetailsModalOpen(false)}
+        subjectCode={activity?.subject_code}
+        professorName={professorName} // Pass professor name
       />
+
+      {/* Success Modal */}
+      {showSuccessModal && (
+        <div className="fixed inset-0 bg-black/50 flex justify-center items-center z-[70]">
+          <div className="bg-white rounded-lg p-6 m-4 max-w-sm w-full">
+            <div className="text-center">
+              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-8 h-8 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">Success!</h3>
+              <p className="text-gray-600">Grades saved successfully.</p>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 };
 
-export default ClassWorkSubmissions;
+export default ClassWorkSubmission;

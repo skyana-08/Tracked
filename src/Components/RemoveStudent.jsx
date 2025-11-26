@@ -14,7 +14,7 @@ const RemoveStudent = ({ isOpen, onClose, onConfirm, student }) => {
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
           <h2 className="text-xl font-bold text-gray-900">
-            Remove Student
+            Remove Student from Class
           </h2>
           <button
             onClick={onClose}
@@ -27,10 +27,18 @@ const RemoveStudent = ({ isOpen, onClose, onConfirm, student }) => {
         {/* Content */}
         <div className="p-6">
           <p className="text-gray-600 mb-4">
-            Are you sure you want to remove <span className="font-semibold text-gray-900">{student.user_Name}</span> ({student.user_ID}) from the class?
+            Are you sure you want to remove <span className="font-semibold text-gray-900">{student.name}</span> from this class?
           </p>
-          <p className="text-sm text-gray-500 mb-6">
-            This action cannot be undone. The student will be removed from all attendance records and class activities.
+          <div className="bg-red-50 border border-red-200 rounded-md p-4 mb-4">
+            <p className="text-sm text-red-700 font-medium">This action will:</p>
+            <ul className="text-sm text-red-600 mt-2 list-disc list-inside space-y-1">
+              <li>Permanently remove the student from this class</li>
+              <li>Delete all their attendance records for this class</li>
+              <li>Delete all their activity grades for this class</li>
+            </ul>
+          </div>
+          <p className="text-sm text-gray-500">
+            This action cannot be undone. The student will need to re-join the class if they want to participate again.
           </p>
         </div>
 

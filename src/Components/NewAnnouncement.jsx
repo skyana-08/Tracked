@@ -18,10 +18,31 @@ const NewAnnouncement = ({
   deadline, 
   setDeadline, 
   getUniqueSubjects, 
-  loadingClasses, 
-  getCurrentDateTime 
+  getCurrentDateTime,
+  currentSubjectCode, // Add this prop
+  restrictToCurrentSubject = false // Add this prop with default value
 }) => {
   const [subjectDropdownOpen, setSubjectDropdownOpen] = useState(false);
+
+  // Get filtered subjects based on restriction
+  const getFilteredSubjects = () => {
+    const allSubjects = getUniqueSubjects();
+    
+    if (restrictToCurrentSubject && currentSubjectCode) {
+      // Only show the current subject
+      return allSubjects.filter(subject => subject.subject_code === currentSubjectCode);
+    }
+    
+    // Show all subjects (original behavior)
+    return allSubjects;
+  };
+
+  // Auto-select current subject when modal opens and no subject is selected
+  useEffect(() => {
+    if (showModal && !selectedSubject && currentSubjectCode) {
+      setSelectedSubject(currentSubjectCode);
+    }
+  }, [showModal, selectedSubject, currentSubjectCode, setSelectedSubject]);
 
   const handleKeyPress = (e) => {
     if (e.key === 'Enter' && e.target.tagName !== 'TEXTAREA') {
@@ -78,56 +99,24 @@ const NewAnnouncement = ({
 
         {/* Modal Body */}
         <div className="space-y-5">
-          {/* Subject Dropdown */}
-          <div className="relative subject-dropdown">
+          {/* Subject Display (Non-editable) */}
+          <div>
             <label className="text-sm font-semibold mb-2 block text-gray-700">
               Subject <span className="text-red-500">*</span>
             </label>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                setSubjectDropdownOpen(!subjectDropdownOpen);
-              }}
-              className="w-full bg-white border-2 border-gray-300 text-black rounded-md px-4 py-3 flex items-center justify-between hover:border-[#00874E] active:border-[#00874E] focus:border-[#00874E] focus:outline-none transition-colors cursor-pointer touch-manipulation"
-            >
-              <span className={`text-sm ${!selectedSubject ? 'text-gray-500' : ''}`}>
-                {selectedSubject 
-                  ? (() => {
-                      const selectedSubj = getUniqueSubjects().find(subj => subj.subject_code === selectedSubject);
-                      return selectedSubj ? `${selectedSubj.subject_name} (${selectedSubj.subject_code}) - ${selectedSubj.section}` : "Unknown Subject";
-                    })()
-                  : "Select Subject"
-                }
+            <div className="w-full bg-gray-50 border-2 border-gray-300 text-black rounded-md px-4 py-3 flex items-center justify-between">
+              <span className="text-sm">
+                {(() => {
+                  const currentSubj = getFilteredSubjects().find(subj => subj.subject_code === (selectedSubject || currentSubjectCode));
+                  return currentSubj ? `${currentSubj.subject_name} (${currentSubj.subject_code}) - ${currentSubj.section}` : "Loading subject...";
+                })()}
               </span>
-              <img 
-                src={ArrowDown} 
-                alt="" 
-                className={`h-4 w-4 transition-transform ${subjectDropdownOpen ? 'rotate-180' : ''}`} 
-              />
-            </button>
-            {subjectDropdownOpen && (
-              <div className="absolute top-full mt-1 w-full bg-white rounded-md shadow-xl border border-gray-200 z-10 overflow-hidden max-h-40 overflow-y-auto">
-                {loadingClasses ? (
-                  <div className="px-4 py-3 text-sm text-gray-500">Loading subjects...</div>
-                ) : getUniqueSubjects().length > 0 ? (
-                  getUniqueSubjects().map((subject) => (
-                    <button
-                      key={subject.subject_code}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSelectedSubject(subject.subject_code);
-                        setSubjectDropdownOpen(false);
-                      }}
-                      className="block w-full text-left px-4 py-3 text-sm hover:bg-gray-100 active:bg-gray-200 transition-colors cursor-pointer touch-manipulation"
-                    >
-                      {subject.subject_name} ({subject.subject_code}) - {subject.section}
-                    </button>
-                  ))
-                ) : (
-                  <div className="px-4 py-3 text-sm text-gray-500">No subjects found. Create a class first.</div>
-                )}
-              </div>
-            )}
+            </div>
+            <input
+              type="hidden"
+              value={selectedSubject || currentSubjectCode}
+              onChange={(e) => setSelectedSubject(e.target.value)}
+            />
           </div>
 
           {/* Deadline Input */}

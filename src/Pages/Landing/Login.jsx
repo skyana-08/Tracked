@@ -214,10 +214,10 @@ export default function Login() {
         </form>
       </div>
 
-      {/* Footer */}
+      {/* Footer
       <p className="mt-4 sm:mt-4 md:mt-6 text-gray-600 text-sm sm:text-sm cursor-pointer hover:text-gray-800 transition-colors duration-200">
         About Us
-      </p>
+      </p> */}
 
       {/* GUIDE Modal */}
       {isGuideOpen && (

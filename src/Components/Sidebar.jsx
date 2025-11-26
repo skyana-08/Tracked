@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { NavLink } from "react-router-dom";
+import { NavLink, useLocation } from "react-router-dom";
 
 import Dashboard from "../assets/Dashboard.svg";
 import Subjects from "../assets/Subjects.svg";
@@ -22,6 +22,7 @@ export default function Sidebar({ role = "student", isOpen: isOpenProp, setIsOpe
   const [teacherClasses, setTeacherClasses] = useState([]);
   const [loadingClasses, setLoadingClasses] = useState(false);
   const [classesDropdownOpen, setClassesDropdownOpen] = useState(false);
+  const location = useLocation();
 
   const isControlled = typeof isOpenProp !== "undefined" && typeof setIsOpenProp === "function";
   const isOpen = isControlled ? isOpenProp : localOpen;
@@ -100,6 +101,13 @@ export default function Sidebar({ role = "student", isOpen: isOpenProp, setIsOpe
     }
   }, [role]);
 
+  // Auto-open classes dropdown if current path is a class page and we have classes
+  useEffect(() => {
+    if (role === "teacher" && (location.pathname === '/Class' || location.pathname.includes('/Class'))) {
+      setClassesDropdownOpen(true);
+    }
+  }, [location.pathname, role, teacherClasses]);
+
   // Handle outside clicks on mobile only
   useEffect(() => {
     const handleOutsideClick = (event) => {
@@ -136,6 +144,18 @@ export default function Sidebar({ role = "student", isOpen: isOpenProp, setIsOpe
       document.body.style.overflow = "";
     };
   }, [isMobile, isOpen]);
+
+  // Get current class code from URL
+  const getCurrentClassCode = () => {
+    const searchParams = new URLSearchParams(location.search);
+    return searchParams.get('code');
+  };
+
+  // Check if a specific class is currently active
+  const isClassActive = (classItem) => {
+    const currentClassCode = getCurrentClassCode();
+    return currentClassCode === classItem.subject_code;
+  };
 
   // Role menus
   const menus = {
@@ -226,8 +246,14 @@ export default function Sidebar({ role = "student", isOpen: isOpenProp, setIsOpe
             <hr className="border-[#DBDBDB] rounded border-1 opacity-40 mt-4" />
           </div>
 
-          {/* Main navigation - scrollable */}
-          <nav className="flex-1 overflow-y-auto overflow-x-hidden px-4">
+          {/* Main navigation - conditionally scrollable */}
+          <nav 
+            className={`flex-1 px-4 ${
+              classesDropdownOpen && role === "teacher" 
+                ? "overflow-hidden" 
+                : "overflow-y-auto overflow-x-hidden"
+            }`}
+          >
             <div className="flex flex-col gap-1 py-2">
               {menus[role]?.main?.map((item, index) => (
                 <div key={`${item.label}-${index}`}>
@@ -255,31 +281,33 @@ export default function Sidebar({ role = "student", isOpen: isOpenProp, setIsOpe
                       
                       {/* Classes Dropdown */}
                       {classesDropdownOpen && (
-                        <div className="ml-4 mt-1 mb-2 border-l-2 border-white/20 pl-2">
+                        <div className="ml-4 mt-1 mb-2 border-transparent pl-2">
                           {loadingClasses ? (
                             <div className="px-4 py-2">
                               <div className="text-white text-xs opacity-70">Loading classes...</div>
                             </div>
                           ) : teacherClasses.length > 0 ? (
-                            teacherClasses.map((classItem) => (
-                              <NavLink
-                                key={classItem.subject_code}
-                                to={`/Class?code=${classItem.subject_code}`}
-                                onClick={handleClassClick}
-                                className={({ isActive }) =>
-                                  `flex items-center px-3 py-2 rounded-lg text-white text-xs sm:text-sm hover:bg-[#00A15D] transition-colors duration-150 mb-1 ${
-                                    isActive ? "bg-[#00A15D]" : ""
-                                  }`
-                                }
-                              >
-                                <div className="min-w-0 flex-1">
-                                  <div className="font-medium truncate">{classItem.subject}</div>
-                                  <div className="text-white/70 text-xs truncate">
-                                    {classItem.section} • {classItem.subject_code}
+                            teacherClasses.map((classItem) => {
+                              const isActive = isClassActive(classItem);
+                              
+                              return (
+                                <NavLink
+                                  key={classItem.subject_code}
+                                  to={`/Class?code=${classItem.subject_code}`}
+                                  onClick={handleClassClick}
+                                  className={`flex items-center px-3 py-2 rounded-lg text-white text-xs sm:text-sm hover:bg-[#00A15D] transition-colors duration-150 mb-1 ${
+                                    isActive ? "bg-[#00A15D] border-l-2 border-white font-semibold" : ""
+                                  }`}
+                                >
+                                  <div className="min-w-0 flex-1">
+                                    <div className="font-medium truncate">{classItem.subject}</div>
+                                    <div className="text-white/70 text-xs truncate">
+                                      {classItem.section} • {classItem.subject_code}
+                                    </div>
                                   </div>
-                                </div>
-                              </NavLink>
-                            ))
+                                </NavLink>
+                              );
+                            })
                           ) : (
                             <div className="px-3 py-2">
                               <div className="text-white text-xs opacity-70">No classes created</div>
@@ -297,7 +325,11 @@ export default function Sidebar({ role = "student", isOpen: isOpenProp, setIsOpe
                           <NavLink
                             to="/ClassManagement"
                             onClick={handleClassClick}
-                            className="flex items-center px-3 py-2 rounded-lg text-white text-xs sm:text-sm hover:bg-[#00A15D] transition-colors duration-150 mt-1 border-t border-white/20 pt-2"
+                            className={({ isActive }) =>
+                              `flex items-center px-3 py-2 rounded-lg text-white text-xs sm:text-sm hover:bg-[#00A15D] transition-colors duration-150 mt-1 border-t border-white/20 pt-2 ${
+                                isActive ? "bg-[#00A15D]" : ""
+                              }`
+                            }
                           >
                             <div className="font-medium">Manage All Classes</div>
                           </NavLink>
