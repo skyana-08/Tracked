@@ -14,6 +14,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
     exit(0);
 }
 
+// Set timezone to UTC
+date_default_timezone_set('UTC');
+
 $host = 'localhost';
 $dbname = 'u713320770_tracked';
 $username = 'u713320770_trackedDB';
@@ -39,11 +42,86 @@ if (empty($input['subject_code']) || empty($input['professor_ID']) || empty($inp
     exit;
 }
 
+// Function to ensure student exists in users table
+function ensureStudentExistsInUsersTable($pdo, $student) {
+    try {
+        // Check if student exists in users table
+        $checkStmt = $pdo->prepare("SELECT user_ID FROM users WHERE user_ID = ?");
+        $checkStmt->execute([$student['tracked_ID']]);
+        $existing = $checkStmt->fetch(PDO::FETCH_ASSOC);
+        
+        if (!$existing) {
+            // Get additional student details from tracked_users
+            $detailsStmt = $pdo->prepare("
+                SELECT tracked_middlename, tracked_program, tracked_yearandsec, tracked_semester, tracked_bday, tracked_gender, tracked_phone 
+                FROM tracked_users 
+                WHERE tracked_ID = ?
+            ");
+            $detailsStmt->execute([$student['tracked_ID']]);
+            $studentDetails = $detailsStmt->fetch(PDO::FETCH_ASSOC);
+            
+            // Insert into users table if doesn't exist
+            $insertStmt = $pdo->prepare("
+                INSERT INTO users (user_ID, user_firstname, user_middlename, user_lastname, user_Email, user_phonenumber, user_bday, user_Gender, user_Role, user_yearandsection, user_program, user_semester) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ");
+            
+            $insertStmt->execute([
+                $student['tracked_ID'],
+                $student['tracked_firstname'],
+                $studentDetails['tracked_middlename'] ?? '',
+                $student['tracked_lastname'], 
+                $student['tracked_email'],
+                $studentDetails['tracked_phone'] ?? 0,
+                $studentDetails['tracked_bday'] ?? '2000-01-01',
+                $studentDetails['tracked_gender'] ?? '',
+                'Student',
+                $studentDetails['tracked_yearandsec'] ?? '',
+                $studentDetails['tracked_program'] ?? '',  
+                $studentDetails['tracked_semester'] ?? ''
+            ]);
+            
+            error_log("Added student {$student['tracked_ID']} to users table");
+        }
+        return true;
+    } catch (Exception $e) {
+        error_log("Error ensuring student in users table: " . $e->getMessage());
+        throw $e;
+    }
+}
+
+// Function to get students by their IDs
+function getStudentsByIds($pdo, $studentIds, $subject_code) {
+    if (empty($studentIds)) {
+        return [];
+    }
+    
+    $placeholders = str_repeat('?,', count($studentIds) - 1) . '?';
+    
+    $stmt = $pdo->prepare("
+        SELECT 
+            tu.tracked_ID,
+            tu.tracked_email,
+            tu.tracked_firstname,
+            tu.tracked_lastname,
+            CONCAT(tu.tracked_firstname, ' ', tu.tracked_lastname) as user_Name
+        FROM tracked_users tu
+        INNER JOIN student_classes sc ON tu.tracked_ID = sc.student_ID
+        WHERE sc.subject_code = ? AND sc.archived = 0
+        AND tu.tracked_ID IN ($placeholders)
+        AND tu.tracked_Role = 'Student' AND tu.tracked_Status = 'Active'
+    ");
+    
+    $params = array_merge([$subject_code], $studentIds);
+    $stmt->execute($params);
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+
 try {
     $pdo->beginTransaction();
 
     // First, get the class section to find students
-    $classStmt = $pdo->prepare("SELECT section FROM classes WHERE subject_code = ?");
+    $classStmt = $pdo->prepare("SELECT subject, section FROM classes WHERE subject_code = ?");
     $classStmt->execute([$input['subject_code']]);
     $class = $classStmt->fetch(PDO::FETCH_ASSOC);
 
@@ -51,16 +129,17 @@ try {
         throw new Exception("Class not found");
     }
 
-    $section = $class['section'];
-
     // Format deadline for database storage (convert from datetime-local to MySQL datetime)
     $deadline = null;
     if (!empty($input['deadline'])) {
         $deadline = date('Y-m-d H:i:s', strtotime($input['deadline']));
     }
 
-    // Insert activity with explicit archived = 0
-    $stmt = $pdo->prepare("INSERT INTO activities (subject_code, professor_ID, activity_type, task_number, title, instruction, link, points, deadline, archived) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0)");
+    // Get current timestamp for created_at in UTC
+    $currentTimestamp = date('Y-m-d H:i:s');
+
+    // Insert activity with explicit created_at timestamp
+    $stmt = $pdo->prepare("INSERT INTO activities (subject_code, professor_ID, activity_type, task_number, title, instruction, link, points, deadline, archived, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?)");
     $stmt->execute([
         $input['subject_code'],
         $input['professor_ID'],
@@ -70,50 +149,96 @@ try {
         $input['instruction'] ?? '',
         $input['link'] ?? '',
         $input['points'] ?? 0,
-        $deadline
+        $deadline,
+        $currentTimestamp
     ]);
 
     $activity_ID = $pdo->lastInsertId();
 
-    // Get all students enrolled in this specific class from tracked_users
-    $studentsStmt = $pdo->prepare("
-        SELECT t.tracked_ID as user_ID, 
-            CONCAT(t.tracked_firstname, ' ', t.tracked_lastname) as user_Name
-        FROM tracked_users t
-        INNER JOIN student_classes sc ON t.tracked_ID = sc.student_ID
-        WHERE sc.subject_code = ? AND sc.archived = 0
-        AND t.tracked_Role = 'Student' AND t.tracked_Status = 'Active'
-    ");
-    $studentsStmt->execute([$input['subject_code']]);
-    $students = $studentsStmt->fetchAll(PDO::FETCH_ASSOC);
+    // Determine which students to assign based on "assignTo" option
+    $students = [];
+    $assignTo = $input['assignTo'] ?? 'wholeClass'; // Default to whole class
+    $selectedStudentIds = $input['selectedStudents'] ?? [];
+
+    if ($assignTo === 'wholeClass') {
+        // Get all students in the class
+        $studentsStmt = $pdo->prepare("
+            SELECT 
+                tu.tracked_ID,
+                tu.tracked_email,
+                tu.tracked_firstname,
+                tu.tracked_lastname,
+                CONCAT(tu.tracked_firstname, ' ', tu.tracked_lastname) as user_Name
+            FROM tracked_users tu
+            INNER JOIN student_classes sc ON tu.tracked_ID = sc.student_ID
+            WHERE sc.subject_code = ? AND sc.archived = 0
+            AND tu.tracked_Role = 'Student' AND tu.tracked_Status = 'Active'
+        ");
+        $studentsStmt->execute([$input['subject_code']]);
+        $students = $studentsStmt->fetchAll(PDO::FETCH_ASSOC);
+        
+    } elseif ($assignTo === 'individual' && !empty($selectedStudentIds)) {
+        // Get only the selected students
+        $students = getStudentsByIds($pdo, $selectedStudentIds, $input['subject_code']);
+    }
 
     // Insert grade entries for each student
     $gradeStmt = $pdo->prepare("INSERT INTO activity_grades (activity_ID, student_ID, grade, submitted, late) VALUES (?, ?, ?, ?, ?)");
     
     $studentsAdded = 0;
+    $gradeErrors = [];
+    
     foreach ($students as $student) {
         try {
+            // Ensure student exists in users table (for foreign key constraint)
+            ensureStudentExistsInUsersTable($pdo, $student);
+            
             $gradeStmt->execute([
                 $activity_ID,
-                $student['user_ID'], // Fixed: use user_ID instead of tracked_ID
-                null, // initial grade is null
-                false, // initial submitted status is false
-                false  // initial late status is false
+                $student['tracked_ID'],
+                null,
+                0, // Use 0 instead of false for MySQL
+                0  // Use 0 instead of false for MySQL
             ]);
             $studentsAdded++;
         } catch (Exception $e) {
-            error_log("Error adding student {$student['user_ID']} to activity: " . $e->getMessage());
-            // Continue with other students even if one fails
+            $gradeErrors[] = "Student {$student['tracked_ID']}: " . $e->getMessage();
+            error_log("Error adding student {$student['tracked_ID']} to activity: " . $e->getMessage());
             continue;
         }
     }
 
     $pdo->commit();
 
+    // ✅ NEW: Send email notifications to assigned students about new activity
+    if (count($students) > 0) {
+        require_once __DIR__ . '/../EmailNotificationDB/send_student_email.php';
+        
+        $assignmentType = $assignTo === 'individual' ? ' (Assigned to You)' : '';
+        $emailSubject = "New " . ($input['activity_type'] ?? 'Activity') . ": " . $input['title'] . $assignmentType;
+        $emailTitle = "New " . ($input['activity_type'] ?? 'Activity') . " in " . $class['subject'] . " (" . $class['section'] . ")" . $assignmentType;
+        
+        $emailMessage = "A new " . ($input['activity_type'] ?? 'activity') . " has been " . 
+                       ($assignTo === 'individual' ? "assigned to you:\n\n" : "posted:\n\n") .
+                       "Title: " . $input['title'] . "\n" .
+                       ($input['instruction'] ? "Instructions: " . $input['instruction'] . "\n" : "") .
+                       ($input['points'] ? "Points: " . $input['points'] . "\n" : "") .
+                       ($deadline ? "Deadline: " . date('M j, Y g:i A', strtotime($deadline)) : "");
+        
+        $emailResults = sendBatchStudentEmails($students, $emailSubject, $emailTitle, $emailMessage, 'deadline');
+    } else {
+        $emailResults = ['success' => 0, 'failed' => 0, 'details' => []];
+        
+        // If individual assignment but no students selected, show warning
+        if ($assignTo === 'individual' && empty($selectedStudentIds)) {
+            $response['warning'] = "No students were selected for individual assignment";
+        }
+    }
+
     // Prepare student data for response
     $studentsWithData = array_map(function($student) {
         return [
-            'user_ID' => $student['user_ID'],
+            'user_ID' => $student['tracked_ID'],
             'user_Name' => $student['user_Name'],
             'grade' => null,
             'submitted' => false,
@@ -121,7 +246,7 @@ try {
         ];
     }, $students);
 
-    echo json_encode([
+    $response = [
         "success" => true,
         "message" => "Activity created successfully",
         "activity_data" => [
@@ -135,20 +260,39 @@ try {
             "points" => $input['points'],
             "deadline" => $input['deadline'],
             "archived" => 0,
-            "students" => $studentsWithData
+            "created_at" => $currentTimestamp,
+            "students" => $studentsWithData,
+            "assign_to" => $assignTo,
+            "assigned_students_count" => count($students)
         ],
-        "debug" => [
-            "section" => $section,
-            "students_found" => count($students),
-            "students_added" => $studentsAdded,
-            "student_list" => $students,
-            "deadline_original" => $input['deadline'],
-            "deadline_formatted" => $deadline
-        ]
-    ]);
+        "email_notifications" => $emailResults,
+        "students_added" => $studentsAdded,
+        "total_students" => count($students)
+    ];
+
+    // Add grade errors to response if any
+    if (!empty($gradeErrors)) {
+        $response['grade_errors'] = $gradeErrors;
+        $response['warning'] = "Some students could not be added to the activity";
+    }
+
+    echo json_encode($response);
 
 } catch (Exception $e) {
     $pdo->rollBack();
-    echo json_encode(["success" => false, "message" => "Error creating activity: " . $e->getMessage()]);
+    error_log("Activity creation error: " . $e->getMessage());
+    echo json_encode([
+        "success" => false, 
+        "message" => "Error creating activity: " . $e->getMessage(),
+        "debug_info" => [
+            "subject_code" => $input['subject_code'] ?? 'none',
+            "professor_ID" => $input['professor_ID'] ?? 'none', 
+            "title" => $input['title'] ?? 'none',
+            "activity_type" => $input['activity_type'] ?? 'none',
+            "task_number" => $input['task_number'] ?? 'none',
+            "assign_to" => $input['assignTo'] ?? 'none',
+            "selected_students_count" => isset($input['selectedStudents']) ? count($input['selectedStudents']) : 0
+        ]
+    ]);
 }
 ?>

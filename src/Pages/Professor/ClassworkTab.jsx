@@ -45,14 +45,57 @@ const SmallActivityCard = ({ activity, onEdit, onArchive, onOpenSubmissions }) =
     if (!createdAt) return "Recently";
     
     try {
-      const created = new Date(createdAt);
+      // Parse the createdAt string as UTC to avoid timezone issues
+      const created = new Date(createdAt + 'Z'); // Add 'Z' to indicate UTC
       const now = new Date();
-      const diffHours = Math.floor((now - created) / (1000 * 60 * 60));
       
-      if (diffHours < 1) return "Just now";
-      if (diffHours < 24) return `${diffHours}h ago`;
-      return `${Math.floor(diffHours / 24)}d ago`;
-    } catch {
+      // If the date is invalid, return fallback
+      if (isNaN(created.getTime())) {
+        return "Recently";
+      }
+      
+      const diffMs = now - created;
+      
+      // Convert to seconds
+      const diffSecs = Math.floor(diffMs / 1000);
+      
+      if (diffSecs < 60) {
+        return diffSecs <= 1 ? "Just now" : `${diffSecs}s ago`;
+      }
+      
+      // Convert to minutes
+      const diffMins = Math.floor(diffSecs / 60);
+      if (diffMins < 60) {
+        return diffMins === 1 ? "1m ago" : `${diffMins}m ago`;
+      }
+      
+      // Convert to hours
+      const diffHours = Math.floor(diffMins / 60);
+      if (diffHours < 24) {
+        return diffHours === 1 ? "1h ago" : `${diffHours}h ago`;
+      }
+      
+      // Convert to days
+      const diffDays = Math.floor(diffHours / 24);
+      if (diffDays < 7) {
+        return diffDays === 1 ? "1d ago" : `${diffDays}d ago`;
+      }
+      
+      // Convert to weeks
+      const diffWeeks = Math.floor(diffDays / 7);
+      if (diffWeeks < 4) {
+        return diffWeeks === 1 ? "1w ago" : `${diffWeeks}w ago`;
+      }
+      
+      // For longer periods, show the actual date
+      return created.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric'
+      });
+      
+    } catch (error) {
+      console.error('Error parsing date:', error, 'Input:', createdAt);
       return "Recently";
     }
   };

@@ -15,6 +15,8 @@ import HistoryIcon from '../../assets/History(Light).svg';
 import ClassManagementIcon from "../../assets/ClassManagement(Light).svg"; 
 import Announcement from "../../assets/Announcement(Light).svg";
 import Classwork from "../../assets/Classwork(Light).svg";
+import EmailIcon from '../../assets/Email(Light).svg'; // Add this import
+import WarningIcon from '../../assets/Warning(Yellow).svg'; // Add this import
 
 
 export default function Attendance() {
@@ -36,6 +38,10 @@ export default function Attendance() {
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [studentToRemove, setStudentToRemove] = useState(null);
   const [modalMessage, setModalMessage] = useState("");
+
+  // ✅ NEW: Email notification states
+  const [sendingEmails, setSendingEmails] = useState(false);
+  const [emailResults, setEmailResults] = useState(null);
 
   const getProfessorId = () => {
     try {
@@ -134,7 +140,23 @@ export default function Attendance() {
       const result = await response.json();
       if (result.success) {
         setIsEditing(false);
-        setModalMessage("Attendance saved successfully!");
+        
+        // ✅ NEW: Show email notification results if any
+        if (result.email_notifications && 
+            (result.email_notifications.absent || result.email_notifications.late)) {
+          const absentCount = result.email_notifications.absent ? result.email_notifications.absent.length : 0;
+          const lateCount = result.email_notifications.late ? result.email_notifications.late.length : 0;
+          
+          if (absentCount > 0 || lateCount > 0) {
+            setEmailResults(result.email_notifications);
+            setModalMessage(`Attendance saved successfully! Notifications sent to ${absentCount} absent and ${lateCount} late students.`);
+          } else {
+            setModalMessage("Attendance saved successfully!");
+          }
+        } else {
+          setModalMessage("Attendance saved successfully!");
+        }
+        
         setShowSuccessModal(true);
       } else {
         setModalMessage(result.message || "Error saving attendance");
@@ -144,6 +166,75 @@ export default function Attendance() {
       console.error("Error saving attendance:", error);
       setModalMessage("Error saving attendance");
       setShowErrorModal(true);
+    }
+  };
+
+  // ✅ NEW: Send attendance warnings to at-risk students
+  const handleSendAttendanceWarnings = async () => {
+    setSendingEmails(true);
+    try {
+      const response = await fetch(
+        "https://tracked.6minds.site/Professor/AttendanceDB/send_attendance_warnings.php",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            subject_code: subjectCode
+          }),
+        }
+      );
+
+      const result = await response.json();
+      if (result.success) {
+        setEmailResults(result);
+        setModalMessage(`Attendance warnings sent to ${result.students_at_risk} at-risk students.`);
+        setShowSuccessModal(true);
+      } else {
+        setModalMessage(result.message || "Error sending attendance warnings");
+        setShowErrorModal(true);
+      }
+    } catch (error) {
+      console.error("Error sending attendance warnings:", error);
+      setModalMessage("Error sending attendance warnings");
+      setShowErrorModal(true);
+    } finally {
+      setSendingEmails(false);
+    }
+  };
+
+  // ✅ NEW: Send today's attendance reports
+  const handleSendDailyReports = async () => {
+    setSendingEmails(true);
+    try {
+      const today = new Date().toISOString().split("T")[0];
+      
+      const response = await fetch(
+        "https://tracked.6minds.site/Professor/AttendanceDB/send_daily_attendance_report.php",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            subject_code: subjectCode,
+            attendance_date: today
+          }),
+        }
+      );
+
+      const result = await response.json();
+      if (result.success) {
+        setEmailResults(result);
+        setModalMessage(`Daily attendance reports sent to ${result.notifications_sent} students.`);
+        setShowSuccessModal(true);
+      } else {
+        setModalMessage(result.message || "Error sending daily reports");
+        setShowErrorModal(true);
+      }
+    } catch (error) {
+      console.error("Error sending daily reports:", error);
+      setModalMessage("Error sending daily reports");
+      setShowErrorModal(true);
+    } finally {
+      setSendingEmails(false);
     }
   };
 
@@ -327,6 +418,33 @@ export default function Attendance() {
 
             {/* Action buttons - Right aligned on mobile */}
             <div className="flex items-center justify-end gap-2 w-full sm:w-auto">
+              {/* ✅ NEW: Email Notification Buttons */}
+              <button 
+                onClick={handleSendDailyReports}
+                disabled={sendingEmails}
+                className="p-2 bg-[#fff] rounded-md shadow-md border-2 border-transparent hover:border-[#00874E] transition-all duration-200 flex-shrink-0 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                title="Send Today's Attendance Reports"
+              >
+                <img 
+                  src={EmailIcon} 
+                  alt="Send Reports" 
+                  className="h-5 w-5 sm:h-6 sm:w-6" 
+                />
+              </button>
+              
+              <button 
+                onClick={handleSendAttendanceWarnings}
+                disabled={sendingEmails}
+                className="p-2 bg-[#fff] rounded-md shadow-md border-2 border-transparent hover:border-[#00874E] transition-all duration-200 flex-shrink-0 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                title="Send Attendance Warnings"
+              >
+                <img 
+                  src={WarningIcon} 
+                  alt="Send Warnings" 
+                  className="h-5 w-5 sm:h-6 sm:w-6" 
+                />
+              </button>
+
               <Link to={`/StudentList?code=${subjectCode}`}>
                 <button className="p-2 bg-[#fff] rounded-md shadow-md border-2 border-transparent hover:border-[#00874E] transition-all duration-200 flex-shrink-0 cursor-pointer" title="Student List">
                   <img 
@@ -368,6 +486,16 @@ export default function Attendance() {
               </button>
             </div>
           </div>
+
+          {/* Email Notification Status */}
+          {sendingEmails && (
+            <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-md">
+              <div className="flex items-center justify-center">
+                <div className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-solid border-blue-500 border-r-transparent mr-2"></div>
+                <span className="text-blue-700 text-sm">Sending email notifications...</span>
+              </div>
+            </div>
+          )}
 
           {/* Attendance Table */}
           <div className="mt-6 sm:mt-8 bg-white rounded-lg shadow-md border border-gray-200 overflow-hidden">
@@ -557,8 +685,35 @@ export default function Attendance() {
             />
             <h3 className="text-xl font-bold text-gray-800 mb-2">Success!</h3>
             <p className="text-gray-600 mb-6">{modalMessage}</p>
+            
+            {/* ✅ NEW: Show email results details */}
+            {emailResults && (
+              <div className="mb-4 p-3 bg-gray-50 rounded-md text-left">
+                <h4 className="font-semibold text-sm mb-2">Email Results:</h4>
+                {emailResults.students_at_risk && (
+                  <p className="text-sm">Students at risk notified: {emailResults.students_at_risk}</p>
+                )}
+                {emailResults.notifications_sent && (
+                  <p className="text-sm">Daily reports sent: {emailResults.notifications_sent}</p>
+                )}
+                {emailResults.email_notifications && (
+                  <div className="text-sm">
+                    {emailResults.email_notifications.absent && (
+                      <p>Absent notifications: {emailResults.email_notifications.absent.length}</p>
+                    )}
+                    {emailResults.email_notifications.late && (
+                      <p>Late notifications: {emailResults.email_notifications.late.length}</p>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+            
             <button
-              onClick={() => setShowSuccessModal(false)}
+              onClick={() => {
+                setShowSuccessModal(false);
+                setEmailResults(null);
+              }}
               className="w-full bg-[#00A15D] hover:bg-[#00874E] text-white font-bold py-3 rounded-md transition-colors cursor-pointer"
             >
               OK

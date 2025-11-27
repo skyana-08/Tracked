@@ -25,6 +25,7 @@ const ClassWorkSubmission = ({
   const [detailsModalOpen, setDetailsModalOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [instructionExpanded, setInstructionExpanded] = useState(false);
 
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 1024);
@@ -356,14 +357,27 @@ const ClassWorkSubmission = ({
 
           {/* Main Content */}
           <div className={`flex ${isMobile ? 'flex-col' : 'flex-row'} flex-1 overflow-hidden`}>
-            {/* Left Panel - Students List */}
-            <div className={`${isMobile ? 'w-full' : 'w-1/2'} ${isMobile ? 'flex-1' : ''} border-r border-gray-200 flex flex-col`}>
+            {/* Left Panel - Entire content scrolls together */}
+            <div className={`${isMobile ? 'w-full' : 'w-1/2'} ${isMobile ? 'flex-1' : ''} border-r border-gray-200 flex flex-col overflow-y-auto`}>
+              
               {/* Instructions */}
               <div className="p-3 sm:p-4 md:p-6 border-b border-gray-200">
                 <h3 className="text-sm sm:text-base md:text-lg font-semibold text-gray-900 mb-2">Instructions</h3>
-                <p className="text-xs sm:text-sm text-gray-600 line-clamp-2">
-                  {activity.instruction || 'No instructions provided for this activity.'}
-                </p>
+                <div className="relative">
+                  <p className={`text-xs sm:text-sm text-gray-600 whitespace-pre-wrap break-words ${
+                    instructionExpanded ? '' : 'max-h-20 overflow-hidden'
+                  }`}>
+                    {activity.instruction || 'No instructions provided for this activity.'}
+                  </p>
+                  {activity.instruction && activity.instruction.length > 150 && (
+                    <button
+                      onClick={() => setInstructionExpanded(!instructionExpanded)}
+                      className="text-xs text-blue-600 hover:text-blue-800 font-medium mt-1 cursor-pointer"
+                    >
+                      {instructionExpanded ? 'Show less' : 'Show more'}
+                    </button>
+                  )}
+                </div>
               </div>
 
               {/* Status Rectangles */}
@@ -448,8 +462,8 @@ const ClassWorkSubmission = ({
                 </div>
               </div>
 
-              {/* Students List */}
-              <div className="flex-1 overflow-y-auto">
+              {/* Students List - No individual scrolling */}
+              <div className="flex-1">
                 <div className="overflow-x-auto">
                   <table className="w-full min-w-[500px]">
                     <thead className="bg-gray-50 sticky top-0">

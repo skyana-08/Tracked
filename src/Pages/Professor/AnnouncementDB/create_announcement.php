@@ -80,6 +80,42 @@ try {
         $response['success'] = true;
         $response['message'] = "Announcement posted successfully";
         $response['announcement_ID'] = $insert_stmt->insert_id;
+        
+        // ✅ NEW: Send email notifications to students
+        require_once __DIR__ . '/../EmailNotificationDB/send_student_email.php';
+        
+        // Get all students in this class - USING CORRECT COLUMN NAMES
+        $students_query = "SELECT tu.tracked_ID, tu.tracked_email, tu.tracked_firstname, tu.tracked_lastname 
+                          FROM student_classes sc 
+                          JOIN tracked_users tu ON sc.student_ID = tu.tracked_ID 
+                          WHERE sc.subject_code = ? AND sc.archived = 0 AND tu.tracked_Status = 'Active'";
+        $students_stmt = $conn->prepare($students_query);
+        $students_stmt->bind_param("s", $classroom_ID);
+        $students_stmt->execute();
+        $students_result = $students_stmt->get_result();
+        $students = $students_result->fetch_all(MYSQLI_ASSOC);
+        
+        if (count($students) > 0) {
+            // Get class details for the email
+            $class_query = "SELECT subject, section FROM classes WHERE subject_code = ?";
+            $class_stmt = $conn->prepare($class_query);
+            $class_stmt->bind_param("s", $classroom_ID);
+            $class_stmt->execute();
+            $class_result = $class_stmt->get_result();
+            $class = $class_result->fetch_assoc();
+            
+            $emailSubject = "New Announcement: " . $title;
+            $emailTitle = "New Announcement in " . $class['subject'] . " (" . $class['section'] . ")";
+            $emailMessage = "Professor has posted a new announcement:\n\n" . 
+                           "Title: " . $title . "\n" .
+                           "Description: " . $description . "\n" .
+                           ($deadline ? "Deadline: " . date('M j, Y g:i A', strtotime($deadline)) : "");
+            
+            $emailResults = sendBatchStudentEmails($students, $emailSubject, $emailTitle, $emailMessage, 'general');
+            $response['email_notifications'] = $emailResults;
+        }
+        
+        $students_stmt->close();
     } else {
         $response['success'] = false;
         $response['message'] = "Error posting announcement: " . $insert_stmt->error;

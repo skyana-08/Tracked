@@ -44,6 +44,9 @@ try {
     $insertStmt = $pdo->prepare("INSERT INTO attendance (subject_code, professor_ID, attendance_date, student_ID, status) VALUES (?, ?, ?, ?, ?)");
     
     $recordsSaved = 0;
+    $absentStudents = [];
+    $lateStudents = [];
+    
     foreach ($input['attendance_records'] as $record) {
         $insertStmt->execute([
             $input['subject_code'],
@@ -53,18 +56,119 @@ try {
             $record['status']
         ]);
         $recordsSaved++;
+        
+        // Track absent and late students for notifications
+        if ($record['status'] === 'absent') {
+            $absentStudents[] = $record['student_ID'];
+        } elseif ($record['status'] === 'late') {
+            $lateStudents[] = $record['student_ID'];
+        }
     }
 
     $pdo->commit();
 
+    // ✅ NEW: Send email notifications for absent and late students
+    $emailResults = [];
+    if (!empty($absentStudents) || !empty($lateStudents)) {
+        require_once __DIR__ . '/../EmailNotificationDB/send_student_email.php';
+        
+        // Get class details
+        $classStmt = $pdo->prepare("SELECT subject, section FROM classes WHERE subject_code = ?");
+        $classStmt->execute([$input['subject_code']]);
+        $class = $classStmt->fetch(PDO::FETCH_ASSOC);
+        
+        // Get student details for absent students
+        if (!empty($absentStudents)) {
+            $absentStudentDetails = getStudentsByIds($pdo, $absentStudents);
+            foreach ($absentStudentDetails as $student) {
+                $emailSubject = "Absence Notification - " . $class['subject'];
+                $emailTitle = "Absence Recorded";
+                $emailMessage = "You were marked as absent in " . $class['subject'] . " (" . $class['section'] . ") on " . 
+                               date('M j, Y', strtotime($input['attendance_date'])) . ".\n\n" .
+                               "Please coordinate with your professor if you have any concerns.";
+                
+                $emailSent = sendStudentEmailNotification(
+                    $student['tracked_email'],
+                    $student['tracked_firstname'] . ' ' . $student['tracked_lastname'],
+                    $emailSubject,
+                    $emailTitle,
+                    $emailMessage,
+                    'attendance'
+                );
+                
+                $emailResults['absent'][] = [
+                    'student_id' => $student['tracked_ID'],
+                    'student_name' => $student['tracked_firstname'] . ' ' . $student['tracked_lastname'],
+                    'email_sent' => $emailSent
+                ];
+            }
+        }
+        
+        // Get student details for late students
+        if (!empty($lateStudents)) {
+            $lateStudentDetails = getStudentsByIds($pdo, $lateStudents);
+            foreach ($lateStudentDetails as $student) {
+                $emailSubject = "Late Arrival Notification - " . $class['subject'];
+                $emailTitle = "Late Arrival Recorded";
+                $emailMessage = "You were marked as late in " . $class['subject'] . " (" . $class['section'] . ") on " . 
+                               date('M j, Y', strtotime($input['attendance_date'])) . ".\n\n" .
+                               "Remember that 3 late marks count as 1 absence.";
+                
+                $emailSent = sendStudentEmailNotification(
+                    $student['tracked_email'],
+                    $student['tracked_firstname'] . ' ' . $student['tracked_lastname'],
+                    $emailSubject,
+                    $emailTitle,
+                    $emailMessage,
+                    'attendance'
+                );
+                
+                $emailResults['late'][] = [
+                    'student_id' => $student['tracked_ID'],
+                    'student_name' => $student['tracked_firstname'] . ' ' . $student['tracked_lastname'],
+                    'email_sent' => $emailSent
+                ];
+            }
+        }
+    }
+
     echo json_encode([
         "success" => true,
         "message" => "Attendance saved successfully",
-        "records_saved" => $recordsSaved
+        "records_saved" => $recordsSaved,
+        "email_notifications" => $emailResults,
+        "summary" => [
+            "absent_students" => count($absentStudents),
+            "late_students" => count($lateStudents),
+            "present_students" => $recordsSaved - count($absentStudents) - count($lateStudents)
+        ]
     ]);
 
 } catch (Exception $e) {
     $pdo->rollBack();
     echo json_encode(["success" => false, "message" => "Error saving attendance: " . $e->getMessage()]);
+}
+
+// Helper function to get student details by IDs
+function getStudentsByIds($pdo, $studentIds) {
+    if (empty($studentIds)) {
+        return [];
+    }
+    
+    $placeholders = str_repeat('?,', count($studentIds) - 1) . '?';
+    
+    $stmt = $pdo->prepare("
+        SELECT 
+            tracked_ID,
+            tracked_email,
+            tracked_firstname,
+            tracked_lastname
+        FROM tracked_users 
+        WHERE tracked_ID IN ($placeholders)
+        AND tracked_Status = 'Active'
+    ");
+    
+    $stmt->execute($studentIds);
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
 ?>
