@@ -13,7 +13,7 @@ import SuccessIcon from '../../assets/Success(Green).svg';
 import ErrorIcon from '../../assets/Error(Red).svg';
 
 export default function ArchivedClasses() {
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(true);
   const [userName] = useState("Student");
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showUnarchiveModal, setShowUnarchiveModal] = useState(false);

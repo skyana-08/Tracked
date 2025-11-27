@@ -20,7 +20,7 @@ import OverallDaysAbsent from '../../assets/OverallDaysAbsent.svg';
 import OverallMissed from '../../assets/OverallMissed.svg';
 
 export default function DashboardStudent() {
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(false); // Default to closed
   const [userName, setUserName] = useState("Student");
   const [userId, setUserId] = useState("");
   const [userEmail, setUserEmail] = useState("");
@@ -35,6 +35,28 @@ export default function DashboardStudent() {
   const [totalDaysPresent, setTotalDaysPresent] = useState(0);
   const [overallMissed, setOverallMissed] = useState(0);
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    // Check screen size and set sidebar state accordingly
+    const checkScreenSize = () => {
+      if (window.innerWidth >= 1024) { // lg breakpoint (1024px)
+        setIsOpen(true);
+      } else {
+        setIsOpen(false);
+      }
+    };
+
+    // Check on initial load
+    checkScreenSize();
+
+    // Add event listener for window resize
+    window.addEventListener('resize', checkScreenSize);
+
+    // Cleanup
+    return () => {
+      window.removeEventListener('resize', checkScreenSize);
+    };
+  }, []);
 
   useEffect(() => {
     // Get user data from localStorage and fetch from database

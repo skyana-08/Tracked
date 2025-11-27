@@ -7,7 +7,7 @@ import SuccessIcon from '../../assets/Success(Green).svg';
 import ErrorIcon from '../../assets/Error(Red).svg';
 
 export default function AccountSetting() {
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(false); // Default to closed
   const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(true);
   
@@ -26,6 +26,29 @@ export default function AccountSetting() {
   const [showErrorPopup, setShowErrorPopup] = useState(false);
   const [popupMessage, setPopupMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Sidebar behavior based on screen size
+  useEffect(() => {
+    // Check screen size and set sidebar state accordingly
+    const checkScreenSize = () => {
+      if (window.innerWidth >= 1024) { // lg breakpoint (1024px)
+        setIsOpen(true);
+      } else {
+        setIsOpen(false);
+      }
+    };
+
+    // Check on initial load
+    checkScreenSize();
+
+    // Add event listener for window resize
+    window.addEventListener('resize', checkScreenSize);
+
+    // Cleanup
+    return () => {
+      window.removeEventListener('resize', checkScreenSize);
+    };
+  }, []);
 
   useEffect(() => {
     fetchUserData();

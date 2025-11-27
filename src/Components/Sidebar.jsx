@@ -19,17 +19,17 @@ import ArrowDown from "../assets/ArrowDown(Dark).svg";
 export default function Sidebar({ role = "student", isOpen: isOpenProp, setIsOpen: setIsOpenProp }) {
   const [localOpen, setLocalOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
-  const [teacherClasses, setTeacherClasses] = useState([]);
-  const [loadingClasses, setLoadingClasses] = useState(false);
-  const [classesDropdownOpen, setClassesDropdownOpen] = useState(false);
+  const [studentSubjects, setStudentSubjects] = useState([]);
+  const [loadingSubjects, setLoadingSubjects] = useState(false);
+  const [subjectsDropdownOpen, setSubjectsDropdownOpen] = useState(false);
   const location = useLocation();
 
   const isControlled = typeof isOpenProp !== "undefined" && typeof setIsOpenProp === "function";
   const isOpen = isControlled ? isOpenProp : localOpen;
   const setIsOpen = isControlled ? setIsOpenProp : setLocalOpen;
 
-  // Get professor ID from localStorage
-  const getProfessorId = () => {
+  // Get student ID from localStorage
+  const getStudentId = () => {
     try {
       const userDataString = localStorage.getItem('user');
       if (userDataString) {
@@ -42,38 +42,40 @@ export default function Sidebar({ role = "student", isOpen: isOpenProp, setIsOpe
     return null;
   };
 
-  // Fetch teacher's classes
-  const fetchTeacherClasses = async () => {
-    if (role !== "teacher") return;
+  // Fetch student's enrolled subjects - USING THE SAME ENDPOINT AS SUBJECTS PAGE
+  const fetchStudentSubjects = async () => {
+    if (role !== "student") return;
     
     try {
-      setLoadingClasses(true);
-      const professorId = getProfessorId();
+      setLoadingSubjects(true);
+      const studentId = getStudentId();
       
-      if (!professorId) {
-        console.error('No professor ID found');
-        setLoadingClasses(false);
+      if (!studentId) {
+        console.error('No student ID found');
+        setLoadingSubjects(false);
         return;
       }
       
-      const response = await fetch(`https://tracked.6minds.site/Professor/ClassManagementDB/get_classes.php?professor_ID=${professorId}`);
+      // Using the same endpoint that works in the Subjects page
+      const response = await fetch(`https://tracked.6minds.site/Student/SubjectsDB/get_student_classes.php?student_id=${studentId}`);
       
       if (response.ok) {
         const result = await response.json();
+        console.log('Student subjects response:', result); // Debug log
         if (result.success) {
-          setTeacherClasses(result.classes || []);
+          setStudentSubjects(result.classes || []);
         } else {
-          console.error('Error fetching classes:', result.message);
-          setTeacherClasses([]);
+          console.error('Error fetching subjects:', result.message);
+          setStudentSubjects([]);
         }
       } else {
-        throw new Error('Failed to fetch classes');
+        throw new Error('Failed to fetch subjects');
       }
     } catch (error) {
-      console.error('Error fetching teacher classes:', error);
-      setTeacherClasses([]);
+      console.error('Error fetching student subjects:', error);
+      setStudentSubjects([]);
     } finally {
-      setLoadingClasses(false);
+      setLoadingSubjects(false);
     }
   };
 
@@ -94,19 +96,19 @@ export default function Sidebar({ role = "student", isOpen: isOpenProp, setIsOpe
     return () => window.removeEventListener("resize", checkScreenSize);
   }, [isControlled]);
 
-  // Fetch classes when component mounts and when role is teacher
+  // Fetch subjects when component mounts and when role is student
   useEffect(() => {
-    if (role === "teacher") {
-      fetchTeacherClasses();
+    if (role === "student") {
+      fetchStudentSubjects();
     }
   }, [role]);
 
-  // Auto-open classes dropdown if current path is a class page and we have classes
+  // Auto-open subjects dropdown if current path is a subject page and we have subjects
   useEffect(() => {
-    if (role === "teacher" && (location.pathname === '/Class' || location.pathname.includes('/Class'))) {
-      setClassesDropdownOpen(true);
+    if (role === "student" && (location.pathname === '/Subjects' || location.pathname.includes('/Subject'))) {
+      setSubjectsDropdownOpen(true);
     }
-  }, [location.pathname, role, teacherClasses]);
+  }, [location.pathname, role, studentSubjects]);
 
   // Handle outside clicks on mobile only
   useEffect(() => {
@@ -145,16 +147,16 @@ export default function Sidebar({ role = "student", isOpen: isOpenProp, setIsOpe
     };
   }, [isMobile, isOpen]);
 
-  // Get current class code from URL
-  const getCurrentClassCode = () => {
+  // Get current subject code from URL
+  const getCurrentSubjectCode = () => {
     const searchParams = new URLSearchParams(location.search);
     return searchParams.get('code');
   };
 
-  // Check if a specific class is currently active
-  const isClassActive = (classItem) => {
-    const currentClassCode = getCurrentClassCode();
-    return currentClassCode === classItem.subject_code;
+  // Check if a specific subject is currently active
+  const isSubjectActive = (subject) => {
+    const currentSubjectCode = getCurrentSubjectCode();
+    return currentSubjectCode === subject.subject_code;
   };
 
   // Role menus
@@ -162,8 +164,13 @@ export default function Sidebar({ role = "student", isOpen: isOpenProp, setIsOpe
     student: {
       main: [
         { label: "Dashboard", icon: Dashboard, path: "/DashboardStudent" },
-        { label: "Subjects", icon: Subjects, path: "/Subjects" },
-        { label: "Analytics", icon: Analytics, path: "/AnalyticsStudent" },
+        { 
+          label: "Subjects", 
+          icon: Subjects, 
+          path: "/Subjects",
+          hasDropdown: true
+        },
+        { label: "Report", icon: Analytics, path: "/AnalyticsStudent" },
       ],
       extras: [
         { label: "Notification", icon: Notification, path: "/NotificationStudent" },
@@ -181,7 +188,7 @@ export default function Sidebar({ role = "student", isOpen: isOpenProp, setIsOpe
           path: "/ClassManagement",
           hasDropdown: true
         },
-        { label: "Analytics", icon: Analytics, path: "/AnalyticsProf" },
+        { label: "Report", icon: Analytics, path: "/AnalyticsProf" },
       ],
       extras: [
         { label: "Notification", icon: Notification, path: "/NotificationProf" },
@@ -210,9 +217,9 @@ export default function Sidebar({ role = "student", isOpen: isOpenProp, setIsOpe
     if (isMobile) setIsOpen(false);
   };
 
-  const handleClassClick = () => {
+  const handleSubjectClick = () => {
     if (isMobile) setIsOpen(false);
-    setClassesDropdownOpen(false);
+    setSubjectsDropdownOpen(false);
   };
 
   const navItemBase =
@@ -249,7 +256,7 @@ export default function Sidebar({ role = "student", isOpen: isOpenProp, setIsOpe
           {/* Main navigation - conditionally scrollable */}
           <nav 
             className={`flex-1 px-4 ${
-              classesDropdownOpen && role === "teacher" 
+              subjectsDropdownOpen && role === "student" 
                 ? "overflow-hidden" 
                 : "overflow-y-auto overflow-x-hidden"
             }`}
@@ -257,13 +264,13 @@ export default function Sidebar({ role = "student", isOpen: isOpenProp, setIsOpe
             <div className="flex flex-col gap-1 py-2">
               {menus[role]?.main?.map((item, index) => (
                 <div key={`${item.label}-${index}`}>
-                  {item.hasDropdown && role === "teacher" ? (
-                    // Class Management with dropdown
+                  {item.hasDropdown && role === "student" ? (
+                    // Subjects with dropdown for students
                     <div className="mb-1">
                       <button
-                        onClick={() => setClassesDropdownOpen(!classesDropdownOpen)}
+                        onClick={() => setSubjectsDropdownOpen(!subjectsDropdownOpen)}
                         className={`${navItemBase} w-full justify-between ${
-                          classesDropdownOpen ? "bg-[#00A15D]" : ""
+                          subjectsDropdownOpen ? "bg-[#00A15D]" : ""
                         }`}
                       >
                         <div className="flex items-center">
@@ -274,35 +281,35 @@ export default function Sidebar({ role = "student", isOpen: isOpenProp, setIsOpe
                           src={ArrowDown} 
                           alt=""
                           className={`h-3 w-3 transition-transform duration-200 ${
-                            classesDropdownOpen ? "rotate-180" : ""
+                            subjectsDropdownOpen ? "rotate-180" : ""
                           }`}
                         />
                       </button>
                       
-                      {/* Classes Dropdown */}
-                      {classesDropdownOpen && (
+                      {/* Subjects Dropdown */}
+                      {subjectsDropdownOpen && (
                         <div className="ml-4 mt-1 mb-2 border-transparent pl-2">
-                          {loadingClasses ? (
+                          {loadingSubjects ? (
                             <div className="px-4 py-2">
-                              <div className="text-white text-xs opacity-70">Loading classes...</div>
+                              <div className="text-white text-xs opacity-70">Loading subjects...</div>
                             </div>
-                          ) : teacherClasses.length > 0 ? (
-                            teacherClasses.map((classItem) => {
-                              const isActive = isClassActive(classItem);
+                          ) : studentSubjects.length > 0 ? (
+                            studentSubjects.map((subject) => {
+                              const isActive = isSubjectActive(subject);
                               
                               return (
                                 <NavLink
-                                  key={classItem.subject_code}
-                                  to={`/Class?code=${classItem.subject_code}`}
-                                  onClick={handleClassClick}
+                                  key={subject.subject_code}
+                                  to={`/SubjectAnnouncementStudent?code=${subject.subject_code}`}
+                                  onClick={handleSubjectClick}
                                   className={`flex items-center px-3 py-2 rounded-lg text-white text-xs sm:text-sm hover:bg-[#00A15D] transition-colors duration-150 mb-1 ${
                                     isActive ? "bg-[#00A15D] border-l-2 border-white font-semibold" : ""
                                   }`}
                                 >
                                   <div className="min-w-0 flex-1">
-                                    <div className="font-medium truncate">{classItem.subject}</div>
+                                    <div className="font-medium truncate">{subject.subject}</div>
                                     <div className="text-white/70 text-xs truncate">
-                                      {classItem.section} • {classItem.subject_code}
+                                      {subject.section} • {subject.subject_code}
                                     </div>
                                   </div>
                                 </NavLink>
@@ -310,28 +317,24 @@ export default function Sidebar({ role = "student", isOpen: isOpenProp, setIsOpe
                             })
                           ) : (
                             <div className="px-3 py-2">
-                              <div className="text-white text-xs opacity-70">No classes created</div>
-                              <NavLink
-                                to="/ClassManagement"
-                                onClick={handleClassClick}
-                                className="text-white/80 text-xs hover:text-white underline transition-colors mt-1 inline-block"
-                              >
-                                Create your first class
-                              </NavLink>
+                              <div className="text-white text-xs opacity-70">No subjects enrolled</div>
+                              <div className="text-white/80 text-xs mt-1">
+                                Contact your professor to enroll
+                              </div>
                             </div>
                           )}
                           
-                          {/* Always show link to Class Management page */}
+                          {/* Always show link to Subjects page */}
                           <NavLink
-                            to="/ClassManagement"
-                            onClick={handleClassClick}
+                            to="/Subjects"
+                            onClick={handleSubjectClick}
                             className={({ isActive }) =>
                               `flex items-center px-3 py-2 rounded-lg text-white text-xs sm:text-sm hover:bg-[#00A15D] transition-colors duration-150 mt-1 border-t border-white/20 pt-2 ${
                                 isActive ? "bg-[#00A15D]" : ""
                               }`
                             }
                           >
-                            <div className="font-medium">Manage All Classes</div>
+                            <div className="font-medium">View All Subjects</div>
                           </NavLink>
                         </div>
                       )}

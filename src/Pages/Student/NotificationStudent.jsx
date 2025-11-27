@@ -10,13 +10,36 @@ import Notification from "../../assets/NotificationIcon.svg";
 import Search from "../../assets/Search.svg";
 
 export default function NotificationStudent() {
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(false); // Default to closed
   const [open, setOpen] = useState(false);
   const [filterOption, setFilterOption] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+  // Sidebar behavior based on screen size
+  useEffect(() => {
+    // Check screen size and set sidebar state accordingly
+    const checkScreenSize = () => {
+      if (window.innerWidth >= 1024) { // lg breakpoint (1024px)
+        setIsOpen(true);
+      } else {
+        setIsOpen(false);
+      }
+    };
+
+    // Check on initial load
+    checkScreenSize();
+
+    // Add event listener for window resize
+    window.addEventListener('resize', checkScreenSize);
+
+    // Cleanup
+    return () => {
+      window.removeEventListener('resize', checkScreenSize);
+    };
+  }, []);
 
   // Fetch notifications
   const fetchNotifications = async () => {

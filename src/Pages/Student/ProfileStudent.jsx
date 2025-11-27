@@ -9,10 +9,33 @@ import Profile from '../../assets/Profile(Dark).svg';
 import BackButton from '../../assets/BackButton(Light).svg';
 
 export default function ProfileStudent() {
-  const [isOpen, setIsOpen] = useState(false);  
+  const [isOpen, setIsOpen] = useState(false); // Default to closed
   const [popupType, setPopupType] = useState(null);
   const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(true);
+
+  // Sidebar behavior based on screen size
+  useEffect(() => {
+    // Check screen size and set sidebar state accordingly
+    const checkScreenSize = () => {
+      if (window.innerWidth >= 1024) { // lg breakpoint (1024px)
+        setIsOpen(true);
+      } else {
+        setIsOpen(false);
+      }
+    };
+
+    // Check on initial load
+    checkScreenSize();
+
+    // Add event listener for window resize
+    window.addEventListener('resize', checkScreenSize);
+
+    // Cleanup
+    return () => {
+      window.removeEventListener('resize', checkScreenSize);
+    };
+  }, []);
 
   useEffect(() => {
     // Fetch user data from database

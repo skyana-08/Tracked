@@ -7,17 +7,12 @@ import ActivityOverviewStudent from "../../Components/ActivityOverviewStudent";
 
 import Analytics from '../../assets/Analytics(Light).svg';
 import ArrowDown from '../../assets/ArrowDown(Light).svg';
-import Search from "../../assets/Search.svg";
 import Details from '../../assets/Details(Light).svg';
-import CheckSubmitted from '../../assets/CheckTable(Green).svg';
-import CheckPending from '../../assets/PendingTable(Yellow).svg';
-import CheckLate from '../../assets/LateTable(Blue).svg';
-import Cross from '../../assets/CrossTable(Red).svg';
 import ArrowLeft from '../../assets/ArrowLeft.svg';
 import ArrowRight from '../../assets/ArrowRight.svg';
 
 export default function AnalyticsStudent() {
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(false); // Default to closed
   const [openSubject, setOpenSubject] = useState(false);
   const [setOpenSection] = useState(false);
 
@@ -35,12 +30,31 @@ export default function AnalyticsStudent() {
   const [studentId, setStudentId] = useState("");
 
   // Pagination states
-  const [activityCurrentPage, setActivityCurrentPage] = useState(1);
   const [attendanceCurrentPage, setAttendanceCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
-  // Search state for Activity List
-  const [activitySearchTerm, setActivitySearchTerm] = useState("");
+  // Sidebar behavior based on screen size
+  useEffect(() => {
+    // Check screen size and set sidebar state accordingly
+    const checkScreenSize = () => {
+      if (window.innerWidth >= 1024) { // lg breakpoint (1024px)
+        setIsOpen(true);
+      } else {
+        setIsOpen(false);
+      }
+    };
+
+    // Check on initial load
+    checkScreenSize();
+
+    // Add event listener for window resize
+    window.addEventListener('resize', checkScreenSize);
+
+    // Cleanup
+    return () => {
+      window.removeEventListener('resize', checkScreenSize);
+    };
+  }, []);
 
   // Get student ID from localStorage
   useEffect(() => {
@@ -81,14 +95,8 @@ export default function AnalyticsStudent() {
 
   // Reset pagination when filters change
   useEffect(() => {
-    setActivityCurrentPage(1);
     setAttendanceCurrentPage(1);
   }, [selectedFilter, selectedSubject]);
-
-  // Reset search and pagination when search term changes
-  useEffect(() => {
-    setActivityCurrentPage(1);
-  }, [activitySearchTerm]);
 
   // Calculate attendance warnings
   const calculateAttendanceWarnings = useMemo(() => {
@@ -235,14 +243,14 @@ export default function AnalyticsStudent() {
 
             const isPastDeadline = activity.deadline && new Date(activity.deadline) < new Date();
             const isSubmitted = activity.submitted ? 1 : 0;
-            const isLate = activity.late ? 1 : 0; // ADD LATE STATUS
+            const isLate = activity.late ? 1 : 0;
             
             const activityItem = {
               id: activity.id,
               task: `${activity.activity_type} ${activity.task_number}`,
               title: activity.title,
               submitted: isSubmitted,
-              late: isLate, // ADD LATE FIELD
+              late: isLate,
               missing: (!isSubmitted && isPastDeadline) ? 1 : 0,
               deadline: formattedDeadline,
               total: 1
@@ -294,53 +302,7 @@ export default function AnalyticsStudent() {
     fetchActivitiesData();
   }, [selectedSubject, studentId]);
 
-  // Fixed: Combine all activities when "Overall" is selected
-  const displayedList = useMemo(() => {
-    if (selectedSubject && selectedFilter === 'Assignment') {
-      return activitiesData.assignments || [];
-    } else if (selectedSubject && selectedFilter === 'Activities') {
-      return activitiesData.activities || [];
-    } else if (selectedSubject && selectedFilter === 'Projects') {
-      return activitiesData.projects || [];
-    } else if (selectedSubject && selectedFilter === '') {
-      // Overall view - combine all activity types
-      return [
-        ...(activitiesData.quizzes || []),
-        ...(activitiesData.assignments || []),
-        ...(activitiesData.activities || []),
-        ...(activitiesData.projects || [])
-      ];
-    } else {
-      // Default to quizzes (for backward compatibility)
-      return activitiesData.quizzes || [];
-    }
-  }, [selectedFilter, activitiesData, selectedSubject]);
-
-  // Filter activities based on search term
-  const filteredActivities = useMemo(() => {
-    if (!activitySearchTerm.trim()) {
-      return displayedList;
-    }
-    
-    const searchTermLower = activitySearchTerm.toLowerCase().trim();
-    return displayedList.filter(activity => 
-      activity.task.toLowerCase().includes(searchTermLower) ||
-      activity.title.toLowerCase().includes(searchTermLower) ||
-      activity.deadline.toLowerCase().includes(searchTermLower)
-    );
-  }, [displayedList, activitySearchTerm]);
-
-  const displayedLabel = selectedFilter === '' 
-    ? 'All Activities' 
-    : selectedFilter || 'Quizzes';
-
-  // Pagination calculations for activities (using filteredActivities)
-  const activityTotalPages = Math.ceil(filteredActivities.length / itemsPerPage);
-  const activityStartIndex = (activityCurrentPage - 1) * itemsPerPage;
-  const activityEndIndex = activityStartIndex + itemsPerPage;
-  const currentActivities = filteredActivities.slice(activityStartIndex, activityEndIndex);
-
-  // Pagination calculations for attendance - FIXED
+  // Pagination calculations for attendance
   const filteredAttendance = useMemo(() => {
     if (!selectedSubject) return [];
     return calculateAttendanceWarnings.subjectWarnings.filter(subject => 
@@ -354,10 +316,6 @@ export default function AnalyticsStudent() {
   const currentAttendance = filteredAttendance.slice(attendanceStartIndex, attendanceEndIndex);
 
   // Pagination handlers
-  const handleActivityPageChange = (page) => {
-    setActivityCurrentPage(page);
-  };
-
   const handleAttendancePageChange = (page) => {
     setAttendanceCurrentPage(page);
   };
@@ -400,7 +358,7 @@ export default function AnalyticsStudent() {
     return (
       <div className="flex flex-col sm:flex-row items-center justify-between gap-3 mt-4 px-2">
         <div className="text-xs sm:text-sm text-gray-600">
-          Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, dataType === 'activities' ? filteredActivities.length : filteredAttendance.length)} of {dataType === 'activities' ? filteredActivities.length : filteredAttendance.length} entries
+          Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, filteredAttendance.length)} of {filteredAttendance.length} entries
         </div>
         
         <div className="flex items-center gap-1">
@@ -602,122 +560,9 @@ export default function AnalyticsStudent() {
               projectsList={activitiesData.projects}
               selectedFilter={selectedFilter}
               setSelectedFilter={setSelectedFilter}
+              currentSubject={subjects.find(sub => sub.subject_code === selectedSubject)}
+              subjectCode={selectedSubject}
             />
-          )}
-
-          {/* ACTIVITY LIST - Only show if subject is selected */}
-          {!loading && selectedSubject && (
-            <div className="bg-[#fff] p-4 sm:p-5 rounded-lg sm:rounded-xl shadow-md mt-4 sm:mt-5 text-[#465746]">
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
-                <p className="font-bold text-base sm:text-lg lg:text-xl">
-                  {displayedLabel} - {getCurrentSubjectName()}
-                </p>
-                
-                {/* Activity List Search */}
-                <div className="relative w-full sm:w-64 lg:w-80">
-                  <input
-                    type="text"
-                    placeholder="Search activities..."
-                    value={activitySearchTerm}
-                    onChange={(e) => setActivitySearchTerm(e.target.value)}
-                    className="w-full h-9 sm:h-10 rounded-md px-3 py-2 pr-10 shadow-md outline-none bg-white text-xs sm:text-sm text-[#465746] border border-gray-300 focus:border-[#465746]"
-                  />
-                  <button className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500">
-                    <img src={Search} alt="Search" className="h-4 w-4 sm:h-5 sm:w-5" />
-                  </button>
-                </div>
-              </div>
-
-              {currentActivities.length === 0 ? (
-                <div className="text-center py-8">
-                  <p className="text-[#465746]">
-                    {activitySearchTerm ? `No activities found for "${activitySearchTerm}"` : `No ${displayedLabel.toLowerCase()} found for ${getCurrentSubjectName()}.`}
-                  </p>
-                </div>
-              ) : (
-                <div className="overflow-x-auto -mx-4 sm:mx-0">
-                  <div className="inline-block min-w-full align-middle px-4 sm:px-0">
-                    <table className="min-w-full border-collapse text-xs sm:text-sm lg:text-base">
-                      <thead>
-                        <tr className="border-b border-gray-200">
-                          <th className="text-left p-2 sm:p-3 font-bold">Task</th>
-                          <th className="text-left p-2 sm:p-3 font-bold">Title</th>
-                          <th className="text-left p-2 sm:p-3 font-bold text-[#00A15D]">Submitted</th>
-                          <th className="text-left p-2 sm:p-3 font-bold text-[#2196F3]">Late</th> {/* ADD LATE COLUMN */}
-                          <th className="text-left p-2 sm:p-3 font-bold text-[#F59E0B]">Pending</th>
-                          <th className="text-left p-2 sm:p-3 font-bold text-[#FF6666]">Missing</th>
-                          <th className="text-left p-2 sm:p-3 font-bold">Deadline</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {currentActivities.map(item => {
-                          // Determine status for each item
-                          const isSubmitted = item.submitted === 1 || item.submitted === true;
-                          const isLate = item.late === 1 || item.late === true; // ADD LATE CHECK
-                          const isMissing = item.missing === 1 || item.missing === true;
-                          const isPending = !isSubmitted && !isMissing && !isLate;
-                          
-                          return (
-                            <tr key={item.id} className="border-b border-gray-100 hover:bg-gray-50">
-                              <td className="p-2 sm:p-3 whitespace-nowrap">{item.task}</td>
-                              <td className="p-2 sm:p-3">{item.title}</td>
-                              
-                              {/* Submitted Column */}
-                              <td className="p-2 sm:p-3 text-[#00A15D]">
-                                {isSubmitted ? (
-                                  <img src={CheckSubmitted} alt="Submitted" className="w-5 h-5 sm:w-6 sm:h-6" />
-                                ) : (
-                                  <span>-</span>
-                                )}
-                              </td>
-                              
-                              {/* Late Column - ADD THIS */}
-                              <td className="p-2 sm:p-3 text-[#2196F3]">
-                                {isLate ? (
-                                  <img src={CheckLate} alt="Late" className="w-4 h-4 sm:w-5 sm:h-5" />
-                                ) : (
-                                  <span>-</span>
-                                )}
-                              </td>
-
-                              {/* Pending Column */}
-                              <td className="p-2 sm:p-3 text-[#F59E0B]">
-                                {isPending ? (
-                                  <img src={CheckPending} alt="Pending" className="w-4 h-4 sm:w-5 sm:h-5" />
-                                ) : (
-                                  <span>-</span>
-                                )}
-                              </td>
-                              
-                              {/* Missing Column */}
-                              <td className="p-2 sm:p-3 text-[#FF6666]">
-                                {isMissing ? (
-                                  <img src={Cross} alt="Missing" className="w-4 h-4 sm:w-5 sm:h-5" />
-                                ) : (
-                                  <span>-</span>
-                                )}
-                              </td>
-                              
-                              <td className="p-2 sm:p-3 whitespace-nowrap">{item.deadline}</td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              )}
-
-              {/* Activity List Pagination */}
-              {currentActivities.length > 0 && (
-                <Pagination
-                  currentPage={activityCurrentPage}
-                  totalPages={activityTotalPages}
-                  onPageChange={handleActivityPageChange}
-                  dataType="activities"
-                />
-              )}
-            </div>
           )}
 
           {/* Student Attendance Tracking - Only show if subject is selected */}

@@ -18,7 +18,7 @@ import SuccessIcon from '../../assets/Success(Green).svg';
 import ErrorIcon from '../../assets/Error(Red).svg';
 
 export default function Subjects() {
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(false); // Default to closed
   const [userName] = useState("Student");
 
   // background colors (matching student theme)
@@ -46,6 +46,29 @@ export default function Subjects() {
   const [showSuccessPopup, setShowSuccessPopup] = useState(false);
   const [showErrorPopup, setShowErrorPopup] = useState(false);
   const [popupMessage, setPopupMessage] = useState('');
+
+  // Sidebar behavior based on screen size
+  useEffect(() => {
+    // Check screen size and set sidebar state accordingly
+    const checkScreenSize = () => {
+      if (window.innerWidth >= 1024) { // lg breakpoint (1024px)
+        setIsOpen(true);
+      } else {
+        setIsOpen(false);
+      }
+    };
+
+    // Check on initial load
+    checkScreenSize();
+
+    // Add event listener for window resize
+    window.addEventListener('resize', checkScreenSize);
+
+    // Cleanup
+    return () => {
+      window.removeEventListener('resize', checkScreenSize);
+    };
+  }, []);
 
   // Get student ID from localStorage
   const getStudentId = () => {
@@ -241,7 +264,7 @@ export default function Subjects() {
 
     return classes.map((classItem) => (
       <Link 
-        to={`/SubjectDetailsStudent?code=${classItem.subject_code}`} 
+        to={`/SubjectAnnouncementStudent?code=${classItem.subject_code}`} 
         key={classItem.subject_code}
         className="block"
       >

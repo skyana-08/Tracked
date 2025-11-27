@@ -43,7 +43,12 @@ import NotificationStudent from './Student/NotificationStudent.jsx';
 import ProfileStudent from './Student/ProfileStudent.jsx';
 import AccountSetting from './Student/AccountSetting.jsx';
 import AttendanceHistoryStudent from './Student/AttendanceHistoryStudent.jsx';
-import SubjectDetailsStudent from './Student/SubjectDetailsStudent.jsx';
+import SubjectAnnouncementStudent from './Student/SubjectAnnouncementStudent.jsx';
+import SubjectSchoolWorksStudent from './Student/SubjectSchoolWorksStudent.jsx';
+import SubjectAttendanceStudent from './Student/SubjectAttendanceStudent.jsx';
+import SubjectListStudent from './Student/SubjectListStudent.jsx';
+import SubjectAnalyticsStudent from './Student/SubjectAnalyticsStudent.jsx';
+
 
 // Super Admin Links
 import SuperAdminAccountList from './SuperAdmin/SuperAdminAccountList.jsx';
@@ -105,7 +110,11 @@ function Linking() {
         <Route path="/ProfileStudent" element={<ProfileStudent />} />
         <Route path="/AccountSetting" element={<AccountSetting />} />
         <Route path="/AttendanceHistoryStudent" element={<AttendanceHistoryStudent />} />
-        <Route path="/SubjectDetailsStudent" element={<SubjectDetailsStudent />} />
+        <Route path="/SubjectAnnouncementStudent" element={<SubjectAnnouncementStudent />} />
+        <Route path="/SubjectSchoolWorksStudent" element={<SubjectSchoolWorksStudent />} />
+        <Route path="/SubjectAttendanceStudent" element={<SubjectAttendanceStudent />} />
+        <Route path="/SubjectListStudent" element={<SubjectListStudent />} />
+        <Route path="/SubjectAnalyticsStudent" element={<SubjectAnalyticsStudent />} />
 
         {/* Navigations for Super Admin */}
         <Route path="/SuperAdminAccountList" element={<SuperAdminAccountList />} />
