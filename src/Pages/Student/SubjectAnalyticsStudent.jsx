@@ -3,14 +3,13 @@ import { Link, useLocation } from 'react-router-dom';
 
 import Sidebar from "../../Components/Sidebar";
 import Header from "../../Components/Header";
-import ActivityOverviewStudent from "../../Components/ActivityOverviewStudent";
+import PerformanceAnalyticsStudent from "../../Components/PerformanceAnalyticsStudent";
 
 import Analytics from '../../assets/Analytics(Light).svg';
 import StudentsIcon from "../../assets/ClassManagement(Light).svg";
 import Announcement from "../../assets/Announcement(Light).svg";
 import Classwork from "../../assets/Classwork(Light).svg";
 import Attendance from "../../assets/Attendance(Light).svg";
-import Archive from "../../assets/Archive(Light).svg";
 import BackButton from '../../assets/BackButton(Light).svg';
 
 export default function SubjectAnalyticsStudent() {
@@ -348,7 +347,7 @@ export default function SubjectAnalyticsStudent() {
                     alt="" 
                     className="h-4 w-4 sm:h-5 sm:w-5"
                   />
-                  <span className="sm:inline">CLASS ANNOUNCEMENTS</span>
+                  <span className="sm:inline">Announcements</span>
                 </button>
               </Link>
 
@@ -361,7 +360,7 @@ export default function SubjectAnalyticsStudent() {
                       alt="" 
                       className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0"
                     />
-                    <span className="whitespace-nowrap truncate">SCHOOL WORKS</span>
+                    <span className="whitespace-nowrap truncate">School Works</span>
                   </button>
                 </Link>
 
@@ -372,7 +371,7 @@ export default function SubjectAnalyticsStudent() {
                       alt="" 
                       className="h-4 w-4 sm:h-5 sm:w-5"
                     />
-                    <span className="sm:inline">ATTENDANCE</span>
+                    <span className="sm:inline">Attendance</span>
                   </button>
                 </Link>
 
@@ -383,7 +382,7 @@ export default function SubjectAnalyticsStudent() {
                       alt="" 
                       className="h-4 w-4 sm:h-5 sm:w-5"
                     />
-                    <span className="sm:inline">ANALYTICS</span>
+                    <span className="sm:inline">Analytics</span>
                   </button>
                 </Link>
               </div>
@@ -396,16 +395,6 @@ export default function SubjectAnalyticsStudent() {
                   <img 
                     src={StudentsIcon} 
                     alt="Student List" 
-                    className="h-5 w-5 sm:h-6 sm:w-6" 
-                  />
-                </button>
-              </Link>
-
-              <Link to={`/ArchiveClassStudent?code=${subjectCode}`}>
-                <button className="p-2 bg-[#fff] rounded-md shadow-md border-2 border-transparent hover:border-[#00874E] transition-all duration-200 flex-shrink-0 cursor-pointer w-10 h-10 sm:w-auto sm:h-auto">
-                  <img 
-                    src={Archive} 
-                    alt="Archive" 
                     className="h-5 w-5 sm:h-6 sm:w-6" 
                   />
                 </button>
@@ -448,7 +437,7 @@ export default function SubjectAnalyticsStudent() {
 
           {/* ActivityOverview component - Only show if subject is available */}
           {!loading && currentSubject && (
-            <ActivityOverviewStudent
+            <PerformanceAnalyticsStudent
               quizzesList={activitiesData.quizzes}
               assignmentsList={activitiesData.assignments}
               activitiesList={activitiesData.activities}

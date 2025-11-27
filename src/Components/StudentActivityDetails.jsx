@@ -5,6 +5,7 @@ import Add from "../assets/Add(Light).svg";
 const StudentActivityDetails = ({ activity, isOpen, onClose, onImageUpload, studentImages }) => {
   const [selectedImage, setSelectedImage] = useState(null);
   const [imageViewerOpen, setImageViewerOpen] = useState(false);
+  const [instructionExpanded, setInstructionExpanded] = useState(false);
 
   const formatDate = (dateString) => {
     if (!dateString || dateString === "No deadline") return "No deadline";
@@ -21,6 +22,45 @@ const StudentActivityDetails = ({ activity, isOpen, onClose, onImageUpload, stud
     } catch {
       return dateString;
     }
+  };
+
+  // Check if deadline is near (within 24 hours) or passed
+  const isDeadlineUrgent = (deadline) => {
+    if (!deadline || deadline === "No deadline") return false;
+    
+    try {
+      const deadlineDate = new Date(deadline);
+      const now = new Date();
+      const timeDiff = deadlineDate - now;
+      const hoursDiff = timeDiff / (1000 * 60 * 60);
+      
+      return hoursDiff <= 24 && hoursDiff > 0; // Within 24 hours but not passed
+    } catch {
+      return false;
+    }
+  };
+
+  // Check if deadline is passed
+  const isDeadlinePassed = (deadline) => {
+    if (!deadline || deadline === "No deadline") return false;
+    
+    try {
+      const deadlineDate = new Date(deadline);
+      const now = new Date();
+      return deadlineDate < now;
+    } catch {
+      return false;
+    }
+  };
+
+  // Get deadline text color class
+  const getDeadlineColorClass = (deadline) => {
+    if (isDeadlinePassed(deadline)) {
+      return 'text-red-600 font-bold';
+    } else if (isDeadlineUrgent(deadline)) {
+      return 'text-red-500 font-semibold';
+    }
+    return 'text-gray-600';
   };
 
   const handleFileUpload = () => {
@@ -46,8 +86,14 @@ const StudentActivityDetails = ({ activity, isOpen, onClose, onImageUpload, stud
     setSelectedImage(null);
   };
 
+  const handleSubmit = () => {
+    // TODO: Implement submission logic
+    console.log('Submitting activity:', activity.id);
+    alert('Submission functionality to be implemented');
+  };
+
   const currentStudentImage = studentImages[activity?.id];
-  const hasTeacherImage = activity?.teacher_image;
+  const hasTeacherImage = activity?.teacher_image; // This will need to come from backend
 
   if (!isOpen || !activity) return null;
 
@@ -90,10 +136,17 @@ const StudentActivityDetails = ({ activity, isOpen, onClose, onImageUpload, stud
                 <h3 className="text-lg font-semibold text-gray-900">Activity Details</h3>
                 
                 <div className="space-y-4">
-                  {/* Deadline */}
+                  {/* Deadline with color coding */}
                   <div>
                     <h4 className="font-medium text-gray-900 mb-1">Deadline</h4>
-                    <p className="text-gray-600 text-sm sm:text-base">{formatDate(activity.deadline)}</p>
+                    <p className={`text-sm sm:text-base ${getDeadlineColorClass(activity.deadline)}`}>
+                      {formatDate(activity.deadline)}
+                      {(isDeadlinePassed(activity.deadline) || isDeadlineUrgent(activity.deadline)) && (
+                        <span className="ml-2 text-xs bg-red-100 text-red-800 px-2 py-1 rounded-full">
+                          {isDeadlinePassed(activity.deadline) ? 'Deadline Passed' : 'Deadline Approaching'}
+                        </span>
+                      )}
+                    </p>
                   </div>
 
                   {/* Points */}
@@ -104,13 +157,25 @@ const StudentActivityDetails = ({ activity, isOpen, onClose, onImageUpload, stud
                     </div>
                   )}
 
-                  {/* Instructions */}
+                  {/* Instructions with Show More/Less */}
                   <div>
                     <h4 className="font-medium text-gray-900 mb-2">Instructions</h4>
-                    <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 sm:p-4 max-h-40 sm:max-h-48 overflow-y-auto">
-                      <p className="text-gray-600 whitespace-pre-wrap text-sm sm:text-base leading-relaxed">
+                    <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 sm:p-4">
+                      <div className={`text-gray-600 whitespace-pre-wrap break-words text-sm sm:text-base leading-relaxed ${
+                        !instructionExpanded && activity.instruction && activity.instruction.length > 200 
+                          ? 'max-h-24 overflow-hidden' 
+                          : ''
+                      }`}>
                         {activity.instruction || 'No instructions provided.'}
-                      </p>
+                      </div>
+                      {activity.instruction && activity.instruction.length > 200 && (
+                        <button
+                          onClick={() => setInstructionExpanded(!instructionExpanded)}
+                          className="text-blue-600 hover:text-blue-800 text-sm font-medium mt-2 cursor-pointer"
+                        >
+                          {instructionExpanded ? 'Show Less' : 'Show More'}
+                        </button>
+                      )}
                     </div>
                   </div>
 
@@ -131,31 +196,61 @@ const StudentActivityDetails = ({ activity, isOpen, onClose, onImageUpload, stud
                 </div>
               </div>
 
-              {/* Right Column - Image Section */}
+              {/* Right Column - Submission Section */}
               <div className="space-y-4 sm:space-y-6">
                 <h3 className="text-lg font-semibold text-gray-900">Submission</h3>
                 
                 <div className="space-y-4">
-                  {/* Teacher Uploaded Image */}
-                  {hasTeacherImage && (
-                    <div>
-                      <h4 className="font-medium text-gray-900 mb-2">Teacher's Reference</h4>
-                      <div className="bg-green-50 border border-green-200 rounded-lg p-3 sm:p-4">
-                        <p className="text-green-800 text-xs sm:text-sm">
-                          Your teacher has provided a reference image for this activity.
+                  {/* Professor's Submission Card */}
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                    <h4 className="font-medium text-green-900 mb-3 flex items-center gap-2">
+                      <span>Professor's Submission</span>
+                      {hasTeacherImage && (
+                        <span className="text-xs bg-green-200 text-green-800 px-2 py-1 rounded-full">
+                          Available
+                        </span>
+                      )}
+                    </h4>
+                    
+                    {hasTeacherImage ? (
+                      <div className="space-y-3">
+                        <div className="flex items-center gap-3 p-3 bg-white rounded-lg border border-green-300">
+                          <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                            <img src={Add} alt="File" className="w-5 h-5 text-green-600" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-gray-900 truncate">professor_reference.pdf</p>
+                            <p className="text-xs text-gray-500">Uploaded by Professor • 2.5 MB</p>
+                          </div>
+                          <button className="text-green-600 hover:text-green-800 text-sm font-medium cursor-pointer bg-green-100 hover:bg-green-200 px-3 py-1 rounded transition-colors">
+                            View
+                          </button>
+                        </div>
+                        <p className="text-xs text-green-700">
+                          Your professor has provided this reference material to help with your submission.
                         </p>
                       </div>
-                    </div>
-                  )}
+                    ) : (
+                      <div className="text-center py-4">
+                        <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-2">
+                          <img src={Add} alt="No file" className="w-6 h-6 text-green-400" />
+                        </div>
+                        <p className="text-green-700 text-sm font-medium">No professor submission yet</p>
+                        <p className="text-green-600 text-xs mt-1">
+                          Check back later for reference materials from your professor.
+                        </p>
+                      </div>
+                    )}
+                  </div>
 
-                  {/* Student Image Upload/View */}
-                  <div>
-                    <h4 className="font-medium text-gray-900 mb-2">Your Submission</h4>
+                  {/* Student's Submission Card */}
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <h4 className="font-medium text-blue-900 mb-3">Your Submission</h4>
                     
                     {currentStudentImage ? (
                       <div className="space-y-3">
                         <div 
-                          className="w-full h-40 sm:h-48 bg-gray-100 rounded-lg overflow-hidden cursor-pointer border-2 border-blue-500"
+                          className="w-full h-40 bg-gray-100 rounded-lg overflow-hidden cursor-pointer border-2 border-blue-500"
                           onClick={() => handleViewImage(currentStudentImage)}
                         >
                           <img 
@@ -164,24 +259,29 @@ const StudentActivityDetails = ({ activity, isOpen, onClose, onImageUpload, stud
                             className="w-full h-full object-contain"
                           />
                         </div>
-                        <div className="flex flex-col xs:flex-row xs:justify-between xs:items-center gap-2 xs:gap-0">
-                          <span className="text-xs sm:text-sm text-gray-600 break-words">{currentStudentImage.name}</span>
+                        <div className="flex flex-col xs:flex-row xs:justify-between xs:items-center gap-2">
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-gray-900 truncate">{currentStudentImage.name}</p>
+                            <p className="text-xs text-gray-500">
+                              Uploaded on {new Date(currentStudentImage.uploadDate).toLocaleDateString()}
+                            </p>
+                          </div>
                           <button
                             onClick={handleFileUpload}
-                            className="px-3 py-1 bg-blue-600 text-white text-xs sm:text-sm rounded hover:bg-blue-700 cursor-pointer w-fit"
+                            className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 cursor-pointer transition-colors w-fit"
                           >
-                            Change Image
+                            Change File
                           </button>
                         </div>
                       </div>
                     ) : (
                       <div 
-                        className="w-full h-40 sm:h-48 bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-blue-500 transition-colors p-4"
+                        className="w-full h-40 bg-white border-2 border-dashed border-blue-300 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-blue-500 transition-colors p-4"
                         onClick={handleFileUpload}
                       >
-                        <img src={Add} alt="Add" className="w-8 h-8 sm:w-10 sm:h-10 text-gray-400 mb-2" />
-                        <p className="text-gray-600 font-medium text-sm sm:text-base text-center">Click to upload your work</p>
-                        <p className="text-gray-500 text-xs sm:text-sm mt-1 text-center">Supported formats: JPG, PNG</p>
+                        <img src={Add} alt="Add" className="w-10 h-10 text-blue-400 mb-3" />
+                        <p className="text-blue-700 font-medium text-sm text-center">Click to upload your work</p>
+                        <p className="text-blue-600 text-xs mt-1 text-center">JPG, PNG, PDF files supported</p>
                       </div>
                     )}
                   </div>
@@ -190,13 +290,19 @@ const StudentActivityDetails = ({ activity, isOpen, onClose, onImageUpload, stud
             </div>
           </div>
 
-          {/* Footer */}
+          {/* Footer with Submit and Close buttons */}
           <div className="flex justify-end gap-3 p-4 sm:p-6 border-t border-gray-200 bg-gray-50 flex-shrink-0">
             <button
               onClick={onClose}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 cursor-pointer w-full xs:w-auto"
+              className="px-6 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md hover:bg-red-700 cursor-pointer transition-colors"
             >
               Close
+            </button>
+            <button
+              onClick={handleSubmit}
+              className="px-6 py-2 text-sm font-medium text-white bg-green-600 border border-transparent rounded-md hover:bg-green-700 cursor-pointer transition-colors"
+            >
+              Submit
             </button>
           </div>
         </div>

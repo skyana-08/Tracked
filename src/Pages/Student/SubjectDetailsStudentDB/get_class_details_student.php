@@ -29,15 +29,18 @@ if (empty($subject_code)) {
 }
 
 try {
-    // Get class details
+    // Get class details with professor name
     $stmt = $pdo->prepare("
         SELECT 
-            subject_code,
-            subject,
-            section,
-            professor_ID
-        FROM classes 
-        WHERE subject_code = ?
+            c.subject_code,
+            c.subject,
+            c.section,
+            c.professor_ID,
+            CONCAT(p.tracked_firstname, ' ', p.tracked_lastname) as professor_name,
+            p.tracked_email as professor_email
+        FROM classes c
+        LEFT JOIN tracked_users p ON c.professor_ID = p.tracked_ID
+        WHERE c.subject_code = ?
     ");
     $stmt->execute([$subject_code]);
     $class_data = $stmt->fetch(PDO::FETCH_ASSOC);

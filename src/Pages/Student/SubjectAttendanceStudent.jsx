@@ -12,7 +12,6 @@ import StudentsIcon from "../../assets/ClassManagement(Light).svg";
 import Announcement from "../../assets/Announcement(Light).svg";
 import Classwork from "../../assets/Classwork(Light).svg";
 import Attendance from "../../assets/Attendance(Light).svg";
-import Archive from "../../assets/Archive(Light).svg";
 import Analytics from "../../assets/Analytics(Light).svg";
 import UserIcon from "../../assets/UserIcon(Light).svg";
 import ArrowLeft from '../../assets/ArrowLeft.svg';
@@ -35,7 +34,7 @@ export default function SubjectAttendanceStudent() {
   const itemsPerPage = 10;
 
   // New states for attendance card functionality
-  const [subjects, setSubjects] = useState([]);
+  const [setSubjects] = useState([]);
   const [currentSubject, setCurrentSubject] = useState(null);
   const [attendanceSummaryData, setAttendanceSummaryData] = useState([]);
   const [attendanceCurrentPage, setAttendanceCurrentPage] = useState(1);
@@ -458,7 +457,7 @@ export default function SubjectAttendanceStudent() {
                     alt="" 
                     className="h-4 w-4 sm:h-5 sm:w-5"
                   />
-                  <span className="sm:inline">CLASS ANNOUNCEMENTS</span>
+                  <span className="sm:inline">Announcement</span>
                 </button>
               </Link>
 
@@ -471,7 +470,7 @@ export default function SubjectAttendanceStudent() {
                       alt="" 
                       className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0"
                     />
-                    <span className="whitespace-nowrap truncate">SCHOOL WORKS</span>
+                    <span className="whitespace-nowrap truncate">School Works</span>
                   </button>
                 </Link>
 
@@ -482,7 +481,7 @@ export default function SubjectAttendanceStudent() {
                       alt="" 
                       className="h-4 w-4 sm:h-5 sm:w-5"
                     />
-                    <span className="sm:inline">ATTENDANCE</span>
+                    <span className="sm:inline">Attendance</span>
                   </button>
                 </Link>
 
@@ -493,7 +492,7 @@ export default function SubjectAttendanceStudent() {
                       alt="" 
                       className="h-4 w-4 sm:h-5 sm:w-5"
                     />
-                    <span className="sm:inline">ANALYTICS</span>
+                    <span className="sm:inline">Analytics</span>
                   </button>
                 </Link>
               </div>
@@ -506,16 +505,6 @@ export default function SubjectAttendanceStudent() {
                   <img 
                     src={StudentsIcon} 
                     alt="Student List" 
-                    className="h-5 w-5 sm:h-6 sm:w-6" 
-                  />
-                </button>
-              </Link>
-
-              <Link to={`/ArchiveClassStudent?code=${subjectCode}`}>
-                <button className="p-2 bg-[#fff] rounded-md shadow-md border-2 border-transparent hover:border-[#00874E] transition-all duration-200 flex-shrink-0 cursor-pointer w-10 h-10 sm:w-auto sm:h-auto">
-                  <img 
-                    src={Archive} 
-                    alt="Archive" 
                     className="h-5 w-5 sm:h-6 sm:w-6" 
                   />
                 </button>

@@ -11,11 +11,6 @@ import StudentIcon from '../../assets/Student(Light).svg';
 import Details from '../../assets/Details(Light).svg';
 import PersonIcon from '../../assets/Person.svg';
 import ClassManagementIcon from "../../assets/ClassManagement(Light).svg";
-import StudentsIcon from "../../assets/ClassManagement(Light).svg";
-import Announcement from "../../assets/Announcement(Light).svg";
-import Classwork from "../../assets/Classwork(Light).svg";
-import Attendance from "../../assets/Attendance(Light).svg";
-import Archive from "../../assets/Archive(Light).svg";
 
 export default function StudentListStudent() {
   const location = useLocation();
@@ -24,7 +19,7 @@ export default function StudentListStudent() {
   
   const [isOpen, setIsOpen] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
-  const [activeDropdown, setActiveDropdown] = useState(null);
+  const [setActiveDropdown] = useState(null);
 
   // State for backend data
   const [classInfo, setClassInfo] = useState(null);
@@ -32,43 +27,7 @@ export default function StudentListStudent() {
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [studentId, setStudentId] = useState('');
-
-  // Dummy data for teachers and students
-  const dummyTeachers = [
-    {
-      id: "PROF001",
-      name: "Dr. Maria Santos",
-      role: "Head Teacher",
-      email: "maria.santos@university.edu",
-      department: "Computer Science"
-    },
-  ];
-
-  const dummyStudents = [
-    {
-      id: "20230001",
-      name: "Juan Dela Cruz",
-      email: "juan.delacruz@student.university.edu",
-      gender: "Male",
-      yearSection: "BSIT 3-1"
-    },
-    {
-      id: "20230002",
-      name: "Maria Garcia",
-      email: "maria.garcia@student.university.edu", 
-      gender: "Female",
-      yearSection: "BSIT 3-1"
-    },
-  ];
-
-  const dummyClassInfo = {
-    subject_code: subjectCode || "CS101",
-    subject: "Introduction to Programming",
-    section: "BSIT 3-1",
-    professor_ID: "PROF001",
-    professor_name: "Dr. Maria Santos"
-  };
+  const [setStudentId] = useState('');
 
   // Get student ID from localStorage
   useEffect(() => {
@@ -89,20 +48,45 @@ export default function StudentListStudent() {
     getStudentId();
   }, []);
 
+  // Fetch professor details by ID
+  const fetchProfessorDetails = async (professorId) => {
+    try {
+      const response = await fetch(`https://tracked.6minds.site/Professor/SubjectDetailsDB/get_professor_details.php?professor_ID=${professorId}`);
+      
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success) {
+          return result.professor;
+        } else {
+          console.error('Error fetching professor details:', result.message);
+          return null;
+        }
+      } else {
+        throw new Error('Failed to fetch professor details');
+      }
+    } catch (error) {
+      console.error('Error fetching professor details:', error);
+      return null;
+    }
+  };
+
   // Fetch all data
   useEffect(() => {
     const fetchAllData = async () => {
+      if (!subjectCode) {
+        setError("Subject code is required");
+        setLoading(false);
+        return;
+      }
+
       try {
         setLoading(true);
         setError("");
         
-        // Simulate API call delay
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        // Use dummy data
-        setClassInfo(dummyClassInfo);
-        setTeachers(dummyTeachers);
-        setStudents(dummyStudents);
+        await Promise.all([
+          fetchClassDetails(),
+          fetchStudents()
+        ]);
         
       } catch (error) {
         console.error('Error fetching data:', error);
@@ -115,15 +99,91 @@ export default function StudentListStudent() {
     fetchAllData();
   }, [subjectCode]);
 
+  const fetchClassDetails = async () => {
+    try {
+      const response = await fetch(`https://tracked.6minds.site/Student/SubjectDetailsStudentDB/get_class_details_student.php?subject_code=${subjectCode}`);
+      
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success) {
+          setClassInfo(result.class_data);
+          
+          // Fetch professor details to get the actual name
+          if (result.class_data.professor_ID) {
+            const professorDetails = await fetchProfessorDetails(result.class_data.professor_ID);
+            
+            if (professorDetails) {
+              // Set teacher information with actual professor name
+              setTeachers([
+                {
+                  id: result.class_data.professor_ID,
+                  name: professorDetails.tracked_firstname && professorDetails.tracked_lastname 
+                    ? `${professorDetails.tracked_firstname} ${professorDetails.tracked_lastname}`
+                    : `Professor ${result.class_data.professor_ID}`,
+                  role: "Head Teacher",
+                  email: professorDetails.tracked_email,
+                }
+              ]);
+            } else {
+              // Fallback if professor details can't be fetched
+              setTeachers([
+                {
+                  id: result.class_data.professor_ID,
+                  name: `Professor ${result.class_data.professor_ID}`,
+                  role: "Head Teacher",
+                }
+              ]);
+            }
+          }
+        } else {
+          throw new Error(result.message || "Failed to fetch class details");
+        }
+      } else {
+        throw new Error('Failed to fetch class details');
+      }
+    } catch (error) {
+      console.error('Error fetching class details:', error);
+      setError("Error loading class details: " + error.message);
+    }
+  };
+
+  const fetchStudents = async () => {
+    try {
+      const response = await fetch(`https://tracked.6minds.site/Student/SubjectDetailsStudentDB/get_students_by_section_student.php?subject_code=${subjectCode}`);
+      
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success) {
+          // Transform the student data to match the frontend structure
+          const transformedStudents = result.students.map(student => ({
+            id: student.tracked_ID,
+            name: `${student.tracked_firstname} ${student.tracked_lastname}`,
+            email: student.tracked_email,
+            gender: student.tracked_gender,
+            yearSection: student.tracked_yearandsec,
+            program: student.tracked_program,
+            enrolledAt: student.enrolled_at
+          }));
+          setStudents(transformedStudents);
+        } else {
+          throw new Error(result.message || "Failed to fetch students");
+        }
+      } else {
+        throw new Error('Failed to fetch students');
+      }
+    } catch (error) {
+      console.error('Error fetching students:', error);
+      setError("Error loading students: " + error.message);
+    }
+  };
+
   // Filter students and teachers based on search
   const filteredStudents = students.filter(student =>
-    student.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    student.email.toLowerCase().includes(searchQuery.toLowerCase())
+    student.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const filteredTeachers = teachers.filter(teacher =>
-    teacher.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    teacher.email.toLowerCase().includes(searchQuery.toLowerCase())
+    teacher.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   // Close dropdown when clicking outside
@@ -186,16 +246,16 @@ export default function StudentListStudent() {
         {/* Main Content */}
         <div className="p-4 sm:p-5 md:p-6 lg:p-8">
           
-          {/* Page Header */}
-          <div className="mb-4 sm:mb-4">
+          {/* Page Header - Matching Professor Version */}
+          <div className="mb-4 sm:mb-6">
             <div className="flex items-center mb-2">
               <img
-                src={StudentsIcon}
-                alt="Classmates"
+                src={ClassManagementIcon}
+                alt="Class"
                 className="h-7 w-7 sm:h-9 sm:w-9 mr-2 sm:mr-3"
               />
               <h1 className="font-bold text-xl sm:text-2xl lg:text-3xl text-[#465746]">
-                Classmates
+                Class List
               </h1>
             </div>
             <p className="text-sm sm:text-base lg:text-lg text-[#465746]">
@@ -203,37 +263,38 @@ export default function StudentListStudent() {
             </p>
           </div>
 
-          {/* Subject Information */}
+          {/* Subject Information - Matching Professor Version */}
           <div className="flex flex-col gap-2 text-sm sm:text-base lg:text-[1.125rem] text-[#465746] mb-4 sm:mb-5">
-            <div className="flex flex-wrap items-center gap-1 sm:gap-3">
+            <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-1 sm:gap-3">
               <span className="font-semibold">SUBJECT CODE:</span>
-              <span>{classInfo?.subject_code || subjectCode || 'Loading...'}</span>
+              <span className="break-all">{classInfo?.subject_code || 'N/A'}</span>
             </div>
 
-            <div className="flex flex-wrap items-center gap-1 sm:gap-3">
+            <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-1 sm:gap-3">
               <span className="font-semibold">SUBJECT:</span>
-              <span>{classInfo?.subject || 'Loading...'}</span>
+              <span className="break-words">{classInfo?.subject || 'N/A'}</span>
             </div>
 
-            <div className="flex items-center justify-between w-full">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3">
               <div className="flex items-center gap-2">
                 <span className="font-semibold">Section:</span>
-                <span>{classInfo?.section || 'Loading...'}</span>
+                <span>{classInfo?.section || 'N/A'}</span>
               </div>
-              {/* FIXED: Use classInfo instead of undefined classItem */}
-              <Link to={`/SubjectAnnouncementStudent?code=${classInfo?.subject_code || subjectCode}`}>
-                <img 
-                  src={BackButton} 
-                  alt="Back" 
-                  className="h-6 w-6 cursor-pointer hover:opacity-70 transition-opacity" 
-                />
-              </Link>
+              <div className="w-full sm:w-auto flex justify-end">
+                <Link to={`/SubjectAnnouncementStudent?code=${subjectCode}`}>
+                  <img 
+                    src={BackButton} 
+                    alt="Back" 
+                    className="h-6 w-6 cursor-pointer hover:opacity-70 transition-opacity" 
+                  />
+                </Link>
+              </div>
             </div>
           </div>
 
           <hr className="border-[#465746]/30 mb-5 sm:mb-6" />
 
-          {/* Summary Stats */}
+          {/* Summary Stats - Matching Professor Version */}
           <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-5">
             <div className="bg-white p-4 sm:p-5 rounded-lg shadow-md border border-gray-200">
               <div className="flex items-center gap-3">
@@ -253,7 +314,7 @@ export default function StudentListStudent() {
                   <img src={StudentIcon} alt="Students" className="h-6 w-6" />
                 </div>
                 <div>
-                  <p className="text-gray-600 text-sm font-semibold">Classmates</p>
+                  <p className="text-gray-600 text-sm font-semibold">Students</p>
                   <p className="text-2xl font-bold text-gray-900">{students.length}</p>
                 </div>
               </div>
@@ -274,12 +335,12 @@ export default function StudentListStudent() {
             </div>
           </div>
 
-          {/* Search Bar */}
+          {/* Search Bar - Matching Professor Version */}
           <div className="mb-6 sm:mb-8">
             <div className="relative max-w-md">
               <input
                 type="text"
-                placeholder="Search classmates or teachers..."
+                placeholder="Search people by name..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full h-11 sm:h-12 rounded-md px-4 py-2.5 pr-12 shadow-md outline-none bg-white text-sm sm:text-base border-2 border-transparent focus:border-[#00874E] transition-colors"
@@ -294,7 +355,7 @@ export default function StudentListStudent() {
             </div>
           </div>
 
-          {/* Teachers Section */}
+          {/* Teachers Section - Matching Professor Version */}
           <div className="mb-8 sm:mb-10">
             <div className="flex items-center gap-3 mb-4 sm:mb-6">
               <img
@@ -303,7 +364,7 @@ export default function StudentListStudent() {
                 className="h-6 w-6 sm:h-7 sm:w-7"
               />
               <h2 className="font-bold text-lg sm:text-xl lg:text-2xl text-[#465746]">
-                Teachers ({teachers.length})
+                Teachers
               </h2>
             </div>
 
@@ -332,11 +393,6 @@ export default function StudentListStudent() {
                               {teacher.email}
                             </p>
                           )}
-                          {teacher.department && (
-                            <p className="text-gray-500 text-sm mt-1">
-                              {teacher.department}
-                            </p>
-                          )}
                         </div>
                       </div>
                     </div>
@@ -346,23 +402,23 @@ export default function StudentListStudent() {
             </div>
           </div>
 
-          {/* Classmates Section */}
+          {/* Students Section - Matching Professor Version */}
           <div>
             <div className="flex items-center gap-3 mb-4 sm:mb-6">
               <img
                 src={StudentIcon}
-                alt="Classmates"
+                alt="Students"
                 className="h-6 w-6 sm:h-7 sm:w-7"
               />
               <h2 className="font-bold text-lg sm:text-xl lg:text-2xl text-[#465746]">
-                Classmates ({students.length})
+                Students
               </h2>
             </div>
 
             <div className="space-y-4">
               {filteredStudents.length === 0 ? (
                 <div className="text-center py-8 text-gray-500 bg-white rounded-lg shadow-md">
-                  {searchQuery ? "No classmates found matching your search" : "No classmates in this class"}
+                  {searchQuery ? "No students found matching your search" : "No students enrolled in this class"}
                 </div>
               ) : (
                 filteredStudents.map((student) => (
@@ -377,16 +433,11 @@ export default function StudentListStudent() {
                             {student.name}
                           </h3>
                           <p className="text-gray-500 text-sm mt-1">
-                            Classmate • {student.yearSection || 'N/A'}
+                            Student • {student.yearSection || 'N/A'}
                           </p>
                           {student.email && (
                             <p className="text-gray-500 text-sm mt-1 truncate">
                               {student.email}
-                            </p>
-                          )}
-                          {student.gender && (
-                            <p className="text-gray-500 text-sm mt-1">
-                              {student.gender}
                             </p>
                           )}
                         </div>

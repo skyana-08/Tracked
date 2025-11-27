@@ -3,7 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 
 import Sidebar from "../../Components/Sidebar";
 import Header from "../../Components/Header";
-import AnnouncementCard from "../../Components/AnnouncementCard";
+import AnnouncementCardStudent from "../../Components/AnnouncementCardStudent";
 
 import SubjectDetailsIcon from '../../assets/SubjectDetails.svg';
 import BackButton from '../../assets/BackButton(Light).svg';
@@ -13,7 +13,6 @@ import StudentsIcon from "../../assets/ClassManagement(Light).svg";
 import Announcement from "../../assets/Announcement(Light).svg";
 import Classwork from "../../assets/Classwork(Light).svg";
 import Attendance from "../../assets/Attendance(Light).svg";
-import Archive from "../../assets/Archive(Light).svg";
 import Analytics from "../../assets/Analytics(Light).svg";
 
 export default function SubjectAnnouncementStudent() {
@@ -89,7 +88,7 @@ export default function SubjectAnnouncementStudent() {
     if (!studentId) return;
     
     try {
-      const response = await fetch(`https://tracked.6minds.site/Student/SubjectDetailsStudentDB/get_announcements_student.php?subject_code=${subjectCode}&student_id=${studentId}`);
+      const response = await fetch(`https://tracked.6minds.site/Student/AnnouncementStudentDB/get_announcements_student.php?subject_code=${subjectCode}&student_id=${studentId}`);
       
       if (response.ok) {
         const result = await response.json();
@@ -292,7 +291,7 @@ export default function SubjectAnnouncementStudent() {
                     alt="" 
                     className="h-4 w-4 sm:h-5 sm:w-5"
                   />
-                  <span className="sm:inline">CLASS ANNOUNCEMENTS</span>
+                  <span className="sm:inline">Announcements</span>
                 </button>
               </Link>
 
@@ -305,7 +304,7 @@ export default function SubjectAnnouncementStudent() {
                       alt="" 
                       className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0"
                     />
-                    <span className="whitespace-nowrap truncate">SCHOOL WORKS</span>
+                    <span className="whitespace-nowrap truncate">School Works</span>
                   </button>
                 </Link>
 
@@ -316,7 +315,7 @@ export default function SubjectAnnouncementStudent() {
                       alt="" 
                       className="h-4 w-4 sm:h-5 sm:w-5"
                     />
-                    <span className="sm:inline">ATTENDANCE</span>
+                    <span className="sm:inline">Attendance</span>
                   </button>
                 </Link>
 
@@ -327,7 +326,7 @@ export default function SubjectAnnouncementStudent() {
                       alt="" 
                       className="h-4 w-4 sm:h-5 sm:w-5"
                     />
-                    <span className="sm:inline">ANALYTICS</span>
+                    <span className="sm:inline">Analytics</span>
                   </button>
                 </Link>
               </div>
@@ -340,16 +339,6 @@ export default function SubjectAnnouncementStudent() {
                   <img 
                     src={StudentsIcon} 
                     alt="Student List" 
-                    className="h-5 w-5 sm:h-6 sm:w-6" 
-                  />
-                </button>
-              </Link>
-
-              <Link to={`/ArchiveClassStudent?code=${subjectCode}`}>
-                <button className="p-2 bg-[#fff] rounded-md shadow-md border-2 border-transparent hover:border-[#00874E] transition-all duration-200 flex-shrink-0 cursor-pointer w-10 h-10 sm:w-auto sm:h-auto">
-                  <img 
-                    src={Archive} 
-                    alt="Archive" 
                     className="h-5 w-5 sm:h-6 sm:w-6" 
                   />
                 </button>
@@ -424,24 +413,21 @@ export default function SubjectAnnouncementStudent() {
               </div>
             ) : sortedAnnouncements.length > 0 ? (
               sortedAnnouncements.map((announcement) => (
-                <AnnouncementCard
-                  key={announcement.id}
-                  id={announcement.id}
-                  subject={announcement.subject}
-                  title={announcement.title}
-                  postedBy={announcement.postedBy}
-                  datePosted={announcement.datePosted}
-                  deadline={announcement.deadline}
-                  instructions={announcement.instructions}
-                  link={announcement.link}
-                  section={announcement.section}
-                  isRead={announcement.isRead}
-                  onMarkAsRead={() => handleMarkAsRead(announcement.id)}
-                  onMarkAsUnread={() => handleMarkAsUnread(announcement.id)}
-                  // Remove edit and delete functionality for students
-                  onEdit={null}
-                  onDelete={null}
-                />
+              <AnnouncementCardStudent
+                key={announcement.id}
+                id={announcement.id}
+                subject={announcement.subject}
+                title={announcement.title}
+                postedBy={announcement.postedBy}
+                datePosted={announcement.datePosted}
+                deadline={announcement.deadline}
+                instructions={announcement.instructions}
+                link={announcement.link}
+                section={announcement.section}
+                isRead={announcement.isRead}
+                onMarkAsRead={() => handleMarkAsRead(announcement.id)}
+                onMarkAsUnread={() => handleMarkAsUnread(announcement.id)}
+              />
               ))
             ) : (
               renderEmptyState()

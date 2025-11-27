@@ -4,6 +4,7 @@ import { Link, useLocation } from 'react-router-dom';
 import Sidebar from "../../Components/Sidebar";
 import Header from "../../Components/Header";
 import StudentActivityDetails from "../../Components/StudentActivityDetails";
+
 import SubjectDetailsIcon from '../../assets/SubjectDetails.svg';
 import BackButton from '../../assets/BackButton(Light).svg';
 import ArrowDown from "../../assets/ArrowDown(Light).svg";
@@ -12,11 +13,10 @@ import StudentsIcon from "../../assets/ClassManagement(Light).svg";
 import Announcement from "../../assets/Announcement(Light).svg";
 import Classwork from "../../assets/Classwork(Light).svg";
 import Attendance from "../../assets/Attendance(Light).svg";
-import Archive from "../../assets/Archive(Light).svg";
 import Analytics from "../../assets/Analytics(Light).svg";
 
 // New Student Activity Card Component
-const StudentActivityCard = ({ activity, onViewDetails, studentImages }) => {
+const StudentActivityCard = ({ activity, onViewDetails }) => {
   const formatDate = (dateString) => {
     if (!dateString || dateString === "No deadline") return "No deadline";
     
@@ -103,8 +103,11 @@ const StudentActivityCard = ({ activity, onViewDetails, studentImages }) => {
     if (isSubmitted && isLate) return { status: "Late", color: "bg-yellow-100 text-yellow-800" };
     if (isSubmitted) return { status: "Submitted", color: "bg-green-100 text-green-800" };
     if (isOverdue) return { status: "Missed", color: "bg-red-100 text-red-800" };
-    return { status: "Pending", color: "bg-gray-100 text-gray-800" };
+    return { status: "Assigned", color: "bg-gray-100 text-gray-800" };
   };
+
+  // Check if professor has submitted (static for now - you can replace this with actual data from backend)
+  const hasProfessorSubmission = activity.id % 2 === 0; // Example: every other activity has professor submission
 
   const statusInfo = getStudentStatus(activity);
 
@@ -156,6 +159,41 @@ const StudentActivityCard = ({ activity, onViewDetails, studentImages }) => {
                 <span className="text-green-600 font-bold">{activity.points} pts</span>
               </div>
             )}
+          </div>
+
+          {/* Professor's Submission Status - Quick Overview */}
+          <div className={`mt-3 p-2 rounded-lg border ${
+            hasProfessorSubmission 
+              ? 'bg-green-50 border-green-200' 
+              : 'bg-blue-50 border-blue-200'
+          }`}>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className={`text-xs font-medium ${
+                  hasProfessorSubmission ? 'text-green-700' : 'text-blue-700'
+                }`}>
+                  Professor's Evidence:
+                </span>
+                <span className={`text-xs px-2 py-1 rounded-full ${
+                  hasProfessorSubmission 
+                    ? 'bg-green-100 text-green-800 font-semibold' 
+                    : 'bg-blue-100 text-blue-800'
+                }`}>
+                  {hasProfessorSubmission ? 'Available' : 'Pending'}
+                </span>
+              </div>
+              {hasProfessorSubmission && (
+                <span className="text-green-600 text-xs flex items-center gap-1">
+                  <span>✓</span> Ready for comparison
+                </span>
+              )}
+            </div>
+            <p className="text-xs mt-1 text-gray-600">
+              {hasProfessorSubmission 
+                ? 'Professor has uploaded reference materials' 
+                : 'Waiting for professor to upload evidence'
+              }
+            </p>
           </div>
         </div>
       </div>
@@ -456,7 +494,7 @@ export default function SubjectSchoolWorksStudent() {
                     alt="" 
                     className="h-4 w-4 sm:h-5 sm:w-5"
                   />
-                  <span className="sm:inline">CLASS ANNOUNCEMENTS</span>
+                  <span className="sm:inline">Announcements</span>
                 </button>
               </Link>
 
@@ -469,7 +507,7 @@ export default function SubjectSchoolWorksStudent() {
                       alt="" 
                       className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0"
                     />
-                    <span className="whitespace-nowrap truncate">SCHOOL WORKS</span>
+                    <span className="whitespace-nowrap truncate">School Works</span>
                   </button>
                 </Link>
 
@@ -480,7 +518,7 @@ export default function SubjectSchoolWorksStudent() {
                       alt="" 
                       className="h-4 w-4 sm:h-5 sm:w-5"
                     />
-                    <span className="sm:inline">ATTENDANCE</span>
+                    <span className="sm:inline">Attendance</span>
                   </button>
                 </Link>
 
@@ -491,7 +529,7 @@ export default function SubjectSchoolWorksStudent() {
                       alt="" 
                       className="h-4 w-4 sm:h-5 sm:w-5"
                     />
-                    <span className="sm:inline">ANALYTICS</span>
+                    <span className="sm:inline">Analytics</span>
                   </button>
                 </Link>
               </div>
@@ -504,16 +542,6 @@ export default function SubjectSchoolWorksStudent() {
                   <img 
                     src={StudentsIcon} 
                     alt="Student List" 
-                    className="h-5 w-5 sm:h-6 sm:w-6" 
-                  />
-                </button>
-              </Link>
-
-              <Link to={`/ArchiveClassStudent?code=${subjectCode}`}>
-                <button className="p-2 bg-[#fff] rounded-md shadow-md border-2 border-transparent hover:border-[#00874E] transition-all duration-200 flex-shrink-0 cursor-pointer w-10 h-10 sm:w-auto sm:h-auto">
-                  <img 
-                    src={Archive} 
-                    alt="Archive" 
                     className="h-5 w-5 sm:h-6 sm:w-6" 
                   />
                 </button>
@@ -540,7 +568,7 @@ export default function SubjectSchoolWorksStudent() {
               {/* Dropdown options */}
               {filterDropdownOpen && (
                 <div className="absolute top-full mt-2 bg-white rounded-md w-full sm:min-w-[200px] shadow-xl border border-gray-200 z-20 overflow-hidden">
-                  {["All", "Submitted", "Pending", "Late", "Missed"].map((option) => (
+                  {["All", "Submitted", "Assigned", "Missed"].map((option) => (
                     <button
                       key={option}
                       className={`block px-4 py-2.5 w-full text-left hover:bg-gray-100 active:bg-gray-200 text-sm sm:text-base transition-colors duration-150 cursor-pointer touch-manipulation ${

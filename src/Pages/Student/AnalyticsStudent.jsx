@@ -338,7 +338,7 @@ export default function AnalyticsStudent() {
   };
 
   // Pagination Component
-  const Pagination = ({ currentPage, totalPages, onPageChange, dataType }) => {
+  const Pagination = ({ currentPage, totalPages, onPageChange }) => {
     const maxVisiblePages = 5;
     
     let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
