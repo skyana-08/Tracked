@@ -44,7 +44,7 @@ define("SMTP_PORT", 587);
 define("SMTP_USER", "tracked.0725@gmail.com");
 define("SMTP_PASS", "nmvi itzx dqrh qimh");
 define("FROM_EMAIL", "tracked.0725@gmail.com");
-define("FROM_NAME", "TrackED System");
+define("FROM_NAME", "TrackEd System");
 
 // Create DB connection
 $conn = new mysqli($servername, $username, $password, $dbname);
@@ -200,7 +200,7 @@ function sendPasswordResetEmail($user_Email, $user_name, $token) {
 
         // Email content
         $mail->isHTML(true);
-        $mail->Subject = "Password Reset Request - TrackED";
+        $mail->Subject = "Password Reset Request - TrackEd";
         
         // Use production link for host
         $resetLink = "https://tracked.6minds.site/ForgotPass?token=" . $token;

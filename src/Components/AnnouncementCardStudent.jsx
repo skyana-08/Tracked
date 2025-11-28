@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 
 import ArrowDown from "../assets/ArrowDown(Light).svg";
 
@@ -6,8 +6,8 @@ export default function AnnouncementCardStudent({
   subject,
   title,
   postedBy,
-  datePosted, // This should now be a UTC timestamp from backend
-  deadline, // This should now be a UTC timestamp from backend
+  datePosted,
+  deadline,
   instructions,
   link = "#",
   isRead = false,
@@ -17,10 +17,80 @@ export default function AnnouncementCardStudent({
   const [open, setOpen] = useState(false);
   const [readStatus, setReadStatus] = useState(isRead);
   const [showFullInstructions, setShowFullInstructions] = useState(false);
+  const [relativeTime, setRelativeTime] = useState("");
 
-  // Format dates for display in local timezone
-  const formattedDatePosted = formatLocalDateTime(datePosted);
-  const formattedDeadline = deadline ? formatLocalDateTime(deadline) : null;
+  // Function to calculate relative time
+  const getRelativeTime = (dateString) => {
+    if (!dateString || dateString === "No deadline" || dateString === "N/A") return "N/A";
+    
+    try {
+      const date = new Date(dateString);
+      const now = new Date();
+      const diffInSeconds = Math.floor((now - date) / 1000);
+      
+      if (diffInSeconds < 60) {
+        return `${diffInSeconds}s ago`;
+      } else if (diffInSeconds < 3600) {
+        const minutes = Math.floor(diffInSeconds / 60);
+        return `${minutes}m ago`;
+      } else if (diffInSeconds < 86400) {
+        const hours = Math.floor(diffInSeconds / 3600);
+        return `${hours}h ago`;
+      } else if (diffInSeconds < 2592000) {
+        const days = Math.floor(diffInSeconds / 86400);
+        return `${days}d ago`;
+      } else if (diffInSeconds < 31536000) {
+        const months = Math.floor(diffInSeconds / 2592000);
+        return `${months}mo ago`;
+      } else {
+        const years = Math.floor(diffInSeconds / 31536000);
+        return `${years}y ago`;
+      }
+    } catch {
+      return dateString;
+    }
+  };
+
+  // Update relative time periodically
+  useEffect(() => {
+    if (datePosted) {
+      setRelativeTime(getRelativeTime(datePosted));
+      
+      // Update every minute for recent posts
+      const interval = setInterval(() => {
+        setRelativeTime(getRelativeTime(datePosted));
+      }, 60000); // Update every minute
+      
+      return () => clearInterval(interval);
+    }
+  }, [datePosted]);
+
+  // Format deadline for display
+  const formatDeadline = (dateString) => {
+    if (!dateString || dateString === "No deadline" || dateString === "N/A") return "N/A";
+    
+    try {
+      const date = new Date(dateString);
+      
+      // Format date: Month Day, Year | Time
+      const dateFormatted = date.toLocaleDateString('en-US', {
+        month: 'long',
+        day: 'numeric',
+        year: 'numeric'
+      });
+      
+      // Format time: 00:00 AM/PM
+      const timeFormatted = date.toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
+      });
+      
+      return `${dateFormatted} | ${timeFormatted}`;
+    } catch {
+      return dateString;
+    }
+  };
 
   const handleCardClick = () => {
     if (!readStatus) {
@@ -38,33 +108,53 @@ export default function AnnouncementCardStudent({
     if (onMarkAsUnread) onMarkAsUnread();
   };
 
-  // Format UTC timestamp to local timezone for display
-  const formatLocalDateTime = (dateString) => {
-    if (!dateString) return "No date";
-    try {
-      const date = new Date(dateString);
-      const formattedDate = date.toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
-      });
-      const formattedTime = date.toLocaleTimeString('en-US', {
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: true
-      });
-      return `${formattedDate} | ${formattedTime}`;
-    } catch (error) {
-      console.error('Error formatting datetime:', dateString, error);
-      return "Invalid date";
-    }
-  };
-
   // Check if instructions are long (more than 150 characters)
   const isInstructionsLong = instructions && instructions.length > 150;
   const displayInstructions = showFullInstructions 
     ? instructions 
     : (isInstructionsLong ? instructions.substring(0, 150) + '...' : instructions);
+
+  // Format the deadline for display
+  const formattedDeadline = formatDeadline(deadline);
+
+  // Check if deadline is urgent (within 24 hours) or passed
+  const isDeadlineUrgent = (deadline) => {
+    if (!deadline || deadline === "No deadline" || deadline === "N/A") return false;
+    
+    try {
+      const deadlineDate = new Date(deadline);
+      const now = new Date();
+      const timeDiff = deadlineDate.getTime() - now.getTime();
+      const hoursDiff = timeDiff / (1000 * 60 * 60);
+      
+      return hoursDiff <= 24 && hoursDiff > 0; // Within 24 hours but not passed
+    } catch {
+      return false;
+    }
+  };
+
+  // Check if deadline is passed
+  const isDeadlinePassed = (deadline) => {
+    if (!deadline || deadline === "No deadline" || deadline === "N/A") return false;
+    
+    try {
+      const deadlineDate = new Date(deadline);
+      const now = new Date();
+      return deadlineDate.getTime() < now.getTime();
+    } catch {
+      return false;
+    }
+  };
+
+  // Get deadline text color class
+  const getDeadlineColorClass = (deadline) => {
+    if (isDeadlinePassed(deadline)) {
+      return 'text-red-600 font-bold';
+    } else if (isDeadlineUrgent(deadline)) {
+      return 'text-red-500 font-semibold';
+    }
+    return 'text-gray-600 font-medium';
+  };
 
   return (
     <div 
@@ -130,13 +220,18 @@ export default function AnnouncementCardStudent({
 
             {/* Right side */}
             <div className="text-xs sm:text-sm text-gray-600 sm:text-right">
-              {/* Date Posted in green - Now in local timezone */}
+              {/* Date Posted in green with relative time */}
               <p className="text-green-600 font-medium">
-                Date Posted: {formattedDatePosted}
+                Date Posted: {relativeTime}
               </p>
-              {formattedDeadline && (
-                <p className="text-[#FF6666] font-bold mt-1">
+              {deadline && deadline !== "N/A" && (
+                <p className={`mt-1 ${getDeadlineColorClass(deadline)}`}>
                   Deadline: {formattedDeadline}
+                  {(isDeadlinePassed(deadline) || isDeadlineUrgent(deadline)) && (
+                    <span className="ml-2 text-xs bg-red-100 text-red-800 px-2 py-1 rounded-full">
+                      {isDeadlinePassed(deadline) ? 'Deadline Passed' : 'Deadline Approaching'}
+                    </span>
+                  )}
                 </p>
               )}
             </div>

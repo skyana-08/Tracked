@@ -257,7 +257,8 @@ export default function AnnouncementTab() {
             subject: announcement.subject,
             title: announcement.title,
             postedBy: announcement.postedBy || announcement.posted_by,
-            datePosted: announcement.datePosted,
+            // Don't format date here - let the component handle it
+            datePosted: announcement.datePosted || announcement.created_at,
             deadline: announcement.deadline,
             link: announcement.link || '#',
             section: announcement.section,

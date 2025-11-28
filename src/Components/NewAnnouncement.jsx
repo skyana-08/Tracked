@@ -21,7 +21,7 @@ const NewAnnouncement = ({
   getCurrentDateTime,
   currentSubjectCode,
   restrictToCurrentSubject = false,
-  postingAnnouncement = false // ✅ NEW: Add posting state prop with default
+  postingAnnouncement = false
 }) => {
   const [subjectDropdownOpen, setSubjectDropdownOpen] = useState(false);
 
@@ -147,13 +147,13 @@ const NewAnnouncement = ({
             />
           </div>
 
-          {/* Description Textarea */}
+          {/* Instruction Textarea - Changed from "Description" */}
           <div>
             <label className="text-sm font-semibold mb-2 block text-gray-700">
-              Description <span className="text-red-500">*</span>
+              Instruction <span className="text-red-500">*</span>
             </label>
             <textarea
-              placeholder="Enter description..."
+              placeholder="Enter instruction..."
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               className="w-full border-2 border-gray-300 rounded-md px-4 py-3 outline-none min-h-[120px] resize-none text-sm focus:border-[#00874E] transition-colors"
@@ -176,7 +176,7 @@ const NewAnnouncement = ({
           {/* Post Button */}
           <button
             onClick={handlePost}
-            disabled={postingAnnouncement} // ✅ NEW: Disable when posting
+            disabled={postingAnnouncement}
             className={`w-full text-white font-bold py-3 rounded-md transition-all duration-200 text-base cursor-pointer touch-manipulation active:scale-98 ${
               postingAnnouncement 
                 ? 'bg-gray-400 cursor-not-allowed' 

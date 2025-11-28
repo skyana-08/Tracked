@@ -41,10 +41,6 @@ try {
         exit();
     }
 
-    // DEBUG: Log the received parameters
-    error_log("Received professor_ID: " . $professor_ID);
-    error_log("Received classroom_ID: " . $classroom_ID);
-
     // Build query based on whether classroom_ID is provided
     if (empty($classroom_ID)) {
         // Get all announcements for the professor across all classes
@@ -113,34 +109,22 @@ try {
     $stmt->execute();
     $result = $stmt->get_result();
 
-    // DEBUG: Log number of rows found
-    $num_rows = $result->num_rows;
-    error_log("Number of announcements found: " . $num_rows);
-
     $announcements = array();
     while ($row = $result->fetch_assoc()) {
-        // DEBUG: Log each row
-        error_log("Announcement row: " . print_r($row, true));
+        // Send raw timestamp - let frontend handle timezone conversion
+        $row['datePosted'] = $row['created_at']; // Send raw timestamp
         
-        // Format dates for display
-        $row['datePosted'] = date('F j, Y', strtotime($row['created_at']));
-        
-        if ($row['deadline']) {
-            $deadline_date = date('F j, Y', strtotime($row['deadline']));
-            $deadline_time = date('g:ia', strtotime($row['deadline']));
-            $row['deadline'] = $deadline_date . ' | ' . $deadline_time;
-        } else {
-            $row['deadline'] = null;
-        }
+        // For deadline, also send raw timestamp
+        $row['deadline'] = $row['deadline']; // Send raw timestamp
 
         $announcements[] = array(
             'id' => $row['id'],
             'subject' => $row['subject'],
             'title' => $row['title'],
             'postedBy' => $row['posted_by'],
-            'datePosted' => $row['datePosted'],
-            'deadline' => $row['deadline'],
-            'instructions' => $row['description'], // Map to frontend expected field
+            'datePosted' => $row['datePosted'], // Raw timestamp
+            'deadline' => $row['deadline'], // Raw timestamp
+            'instructions' => $row['description'],
             'link' => $row['link'] ?: '#',
             'section' => $row['section'],
             'subject_code' => $row['subject_code']
@@ -149,11 +133,6 @@ try {
 
     $response['success'] = true;
     $response['announcements'] = $announcements;
-    $response['debug'] = array(
-        'total_announcements' => count($announcements),
-        'professor_ID' => $professor_ID,
-        'classroom_ID' => $classroom_ID
-    );
 
     $stmt->close();
 

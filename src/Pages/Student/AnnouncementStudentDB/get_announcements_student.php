@@ -65,8 +65,7 @@ try {
                 a.description,
                 a.link,
                 a.deadline,
-                DATE_FORMAT(a.created_at, '%Y-%m-%dT%H:%i:%sZ') as created_at_utc,
-                DATE_FORMAT(a.deadline, '%Y-%m-%dT%H:%i:%sZ') as deadline_utc,
+                a.created_at,
                 CONCAT(t.tracked_lastname, ', ', t.tracked_firstname, ' ', COALESCE(t.tracked_middlename, '')) as posted_by_fullname,
                 t.tracked_lastname,
                 t.tracked_gender,
@@ -89,14 +88,17 @@ try {
         // Format posted_by with Ma'am/Sir + surname
         $postedBy = formatPostedBy($row['tracked_gender'], $row['tracked_lastname']);
         
-        // Return raw UTC timestamps - frontend will convert to local time
+        // Return raw datetime values - frontend will handle timezone conversion
+        $row['datePosted'] = $row['created_at']; // Return raw datetime
+        $row['deadline'] = $row['deadline']; // Return raw datetime
+
         $announcements[] = array(
             'id' => $row['id'],
             'subject' => $row['subject'],
             'title' => $row['title'],
             'postedBy' => $postedBy,
-            'datePosted' => $row['created_at_utc'], // Raw UTC timestamp
-            'deadline' => $row['deadline_utc'], // Raw UTC timestamp
+            'datePosted' => $row['datePosted'], // Raw datetime string
+            'deadline' => $row['deadline'], // Raw datetime string
             'instructions' => $row['description'],
             'link' => $row['link'] ?: '#',
             'section' => $row['section'],

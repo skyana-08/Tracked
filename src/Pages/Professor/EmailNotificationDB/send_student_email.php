@@ -21,7 +21,7 @@ define("SMTP_PORT", 587);
 define("SMTP_USER", "tracked.0725@gmail.com");
 define("SMTP_PASS", "nmvi itzx dqrh qimh");
 define("FROM_EMAIL", "tracked.0725@gmail.com");
-define("FROM_NAME", "TrackED System");
+define("FROM_NAME", "TrackEd System");
 
 function sendStudentEmailNotification($studentEmail, $studentName, $subject, $title, $message, $type = 'general') {
     try {
@@ -73,7 +73,7 @@ function buildEmailBody($studentName, $title, $message, $type) {
     $html = '
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f9f9f9;">
         <div style="background-color: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-            <h2 style="color: ' . $color . '; margin-bottom: 20px; text-align: center;">' . $icon . ' TrackED Notification</h2>
+            <h2 style="color: ' . $color . '; margin-bottom: 20px; text-align: center;">' . $icon . ' TrackEd Notification</h2>
             
             <p style="color: #333; font-size: 16px; margin-bottom: 20px;">Hi ' . htmlspecialchars($studentName) . ',</p>
             
@@ -95,7 +95,7 @@ function buildEmailBody($studentName, $title, $message, $type) {
     $html .= '
             <div style="background-color: #e8f5e8; padding: 15px; border-radius: 5px; margin-top: 20px;">
                 <p style="margin: 0; color: #155724; font-size: 14px;">
-                    <strong>📱 Reminder:</strong> Check your TrackED dashboard for more details and updates.
+                    <strong>📱 Reminder:</strong> Check your TrackEd dashboard for more details and updates.
                 </p>
             </div>
             
@@ -111,10 +111,10 @@ function buildEmailBody($studentName, $title, $message, $type) {
 }
 
 function buildPlainTextBody($title, $message) {
-    return "TrackED Notification\n\n" .
+    return "TrackEd Notification\n\n" .
            $title . "\n\n" .
            $message . "\n\n" .
-           "Check your TrackED dashboard for more details and updates.\n\n" .
+           "Check your TrackEd dashboard for more details and updates.\n\n" .
            "This is an automated notification. Please do not reply to this email.";
 }
 

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 
 import ArrowDown from "../assets/ArrowDown(Light).svg";
@@ -23,6 +23,81 @@ export default function AnnouncementCard({
   const [open, setOpen] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [readStatus, setReadStatus] = useState(isRead);
+  const [showFullInstructions, setShowFullInstructions] = useState(false);
+  const [relativeTime, setRelativeTime] = useState("");
+
+  // Function to calculate relative time
+  const getRelativeTime = (dateString) => {
+    if (!dateString || dateString === "No deadline" || dateString === "N/A") return "N/A";
+    
+    try {
+      const date = new Date(dateString);
+      const now = new Date();
+      const diffInSeconds = Math.floor((now - date) / 1000);
+      
+      if (diffInSeconds < 60) {
+        return `${diffInSeconds}s ago`;
+      } else if (diffInSeconds < 3600) {
+        const minutes = Math.floor(diffInSeconds / 60);
+        return `${minutes}m ago`;
+      } else if (diffInSeconds < 86400) {
+        const hours = Math.floor(diffInSeconds / 3600);
+        return `${hours}h ago`;
+      } else if (diffInSeconds < 2592000) {
+        const days = Math.floor(diffInSeconds / 86400);
+        return `${days}d ago`;
+      } else if (diffInSeconds < 31536000) {
+        const months = Math.floor(diffInSeconds / 2592000);
+        return `${months}mo ago`;
+      } else {
+        const years = Math.floor(diffInSeconds / 31536000);
+        return `${years}y ago`;
+      }
+    } catch {
+      return dateString;
+    }
+  };
+
+  // Update relative time periodically
+  useEffect(() => {
+    if (datePosted) {
+      setRelativeTime(getRelativeTime(datePosted));
+      
+      // Update every minute for recent posts
+      const interval = setInterval(() => {
+        setRelativeTime(getRelativeTime(datePosted));
+      }, 60000); // Update every minute
+      
+      return () => clearInterval(interval);
+    }
+  }, [datePosted]);
+
+  // Format deadline for display
+  const formatDeadline = (dateString) => {
+    if (!dateString || dateString === "No deadline" || dateString === "N/A") return "N/A";
+    
+    try {
+      const date = new Date(dateString);
+      
+      // Format date: Month Day, Year | Time
+      const dateFormatted = date.toLocaleDateString('en-US', {
+        month: 'long',
+        day: 'numeric',
+        year: 'numeric'
+      });
+      
+      // Format time: 00:00 AM/PM
+      const timeFormatted = date.toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
+      });
+      
+      return `${dateFormatted} | ${timeFormatted}`;
+    } catch {
+      return dateString;
+    }
+  };
 
   const handleCardClick = () => {
     if (!readStatus) {
@@ -53,6 +128,15 @@ export default function AnnouncementCard({
     setOpen(false); // Close the card when marking as unread
     if (onMarkAsUnread) onMarkAsUnread();
   };
+
+  // Check if instructions are long (more than 150 characters)
+  const isInstructionsLong = instructions && instructions.length > 150;
+  const displayInstructions = showFullInstructions 
+    ? instructions 
+    : (isInstructionsLong ? instructions.substring(0, 150) + '...' : instructions);
+
+  // Format the deadline for display
+  const formattedDeadline = formatDeadline(deadline);
 
   return (
     <>
@@ -135,21 +219,29 @@ export default function AnnouncementCard({
 
               {/* Right side */}
               <div className="text-xs sm:text-sm text-gray-600 sm:text-right">
-                <p>Date Posted: {datePosted}</p>
-                {deadline && (
+                <p>Date Posted: {relativeTime}</p>
+                {deadline && deadline !== "N/A" && (
                   <p className="text-[#FF6666] font-bold mt-1">
-                    Deadline: {deadline}
+                    Deadline: {formattedDeadline}
                   </p>
                 )}
               </div>
             </div>
 
-            {/* Instructions */}
+            {/* Instructions with Show More/Less */}
             <div className="mt-4">
               <p className="font-semibold mb-2 text-sm sm:text-base">Instructions:</p>
               <p className="text-xs sm:text-sm text-gray-700 whitespace-pre-wrap break-words">
-                {instructions}
+                {displayInstructions}
               </p>
+              {isInstructionsLong && (
+                <button
+                  onClick={() => setShowFullInstructions(!showFullInstructions)}
+                  className="mt-2 text-[#00A15D] font-medium hover:underline text-xs sm:text-sm cursor-pointer"
+                >
+                  {showFullInstructions ? 'Show less' : 'Show more'}
+                </button>
+              )}
               {link && link !== "#" && link !== null && link !== "" && (
                 <a
                   href={link}

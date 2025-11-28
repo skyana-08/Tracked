@@ -7,7 +7,7 @@ const ClassWorkCreate = ({
   onClose, 
   onCreateActivity,
   onDuplicateTask,
-  activityTypes = ["Assignment", "Quiz", "Activity", "Project", "Laboratory"],
+  activityTypes = ["Activity", "Assignment", "Quiz", "Laboratory", "Project"],
   getCurrentDateTime,
   subjectCode,
   creatingActivity = false

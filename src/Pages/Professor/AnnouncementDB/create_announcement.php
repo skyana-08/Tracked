@@ -108,7 +108,7 @@ try {
             $emailTitle = "New Announcement in " . $class['subject'] . " (" . $class['section'] . ")";
             $emailMessage = "Professor has posted a new announcement:\n\n" . 
                            "Title: " . $title . "\n" .
-                           "Description: " . $description . "\n" .
+                           "Instruction: " . $description . "\n" .
                            ($deadline ? "Deadline: " . date('M j, Y g:i A', strtotime($deadline)) : "");
             
             $emailResults = sendBatchStudentEmails($students, $emailSubject, $emailTitle, $emailMessage, 'general');
