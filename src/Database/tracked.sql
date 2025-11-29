@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Nov 13, 2025 at 08:50 PM
+-- Generation Time: Nov 29, 2025 at 06:04 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -44,6 +44,27 @@ CREATE TABLE `activities` (
   `school_work_edited` tinyint(1) DEFAULT 0
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+--
+-- Dumping data for table `activities`
+--
+
+INSERT INTO `activities` (`id`, `subject_code`, `professor_ID`, `activity_type`, `task_number`, `title`, `instruction`, `link`, `points`, `deadline`, `created_at`, `updated_at`, `archived`, `school_work_edited`) VALUES
+(53, 'DQ1766', '202210602', 'Assignment', 'Assignment', 'Song lyricist', 'Create a musicalkhfilubawlb', '', 10, '2025-11-12 20:45:00', '2025-11-11 12:47:49', '2025-11-11 12:47:49', 0, 0),
+(54, 'DQ1766', '202210602', 'Assignment', 'Assignment 2', 'Songerist', 'dubi dubi duwa', '', 20, '2025-11-13 20:58:00', '2025-11-11 12:58:14', '2025-11-11 13:15:59', 1, 0),
+(55, 'DQ1766', '202210602', 'Assignment', 'Assignment 2', 'Songerist', 'dubi dubi duwa', '', 20, '2025-11-13 20:58:00', '2025-11-11 12:58:18', '2025-11-11 13:15:54', 1, 0),
+(56, 'DQ1766', '202210602', 'Activity', 'Activity 1', 'Dance and Sing', 'Sing along with Elsa.', '', 30, '2025-11-14 22:52:00', '2025-11-11 14:52:26', '2025-11-11 14:52:26', 0, 0),
+(57, 'DQ1766', '202210602', 'Project', 'Project 1', 'Idol Project', 'Do a concert', '', 50, '2025-11-14 23:06:00', '2025-11-11 15:06:31', '2025-11-11 15:06:31', 0, 0),
+(58, 'DQ1766', '202210602', 'Laboratory', 'Laboratory 1', 'Lab Live', 'work as a team and produce a concert worthy of your fans', '', 50, '2025-11-17 06:42:00', '2025-11-11 22:42:15', '2025-11-11 22:42:15', 0, 0),
+(59, 'DQ1766', '202210602', 'Assignment', 'Assignment 5', 'Cover Up', 'Produce a cover song of a famous song', '', 30, '2025-11-19 07:40:00', '2025-11-11 23:40:19', '2025-11-11 23:40:19', 0, 0),
+(60, 'DQ1766', '202210602', 'Laboratory', 'Laboratory 2', 'Anonymous Concerto', 'Produce your own concert without the help of your agency', '', 30, '2025-11-20 08:04:00', '2025-11-12 00:04:55', '2025-11-12 00:04:55', 0, 0),
+(61, 'DQ1766', '202210602', 'Laboratory', 'Laboratory 3', 'Actingerist', 'Be more than just an Idol', '', 50, '2025-11-15 09:06:00', '2025-11-12 01:06:08', '2025-11-12 01:06:08', 0, 0),
+(62, 'DQ1766', '202210602', 'Laboratory', 'Laboratory 4', 'Musical Heart', 'Create a song that brings out your soul', '', 40, '2025-11-18 09:39:00', '2025-11-12 01:39:20', '2025-11-12 01:39:20', 0, 0),
+(63, 'DQ1766', '202210602', 'Laboratory', 'Laboratory 5', 'Dance the night away', 'Produce a dance concert under the moonlight using the custom Lily pad lake stage', '', 60, '2025-11-18 10:20:00', '2025-11-12 02:20:45', '2025-11-12 02:20:45', 0, 0),
+(64, 'DQ1766', '202210602', 'Quiz', 'Quiz 1', 'Fill in the Songs', 'You\'ll be given a song, and you must sing and figure out the lyrics blanked out.', '', 20, '2025-11-18 10:34:00', '2025-11-16 02:34:15', '2025-11-16 02:34:15', 0, 0),
+(65, 'AY0822', '202210602', 'Quiz', 'Quiz 1', 'How are you?', 'Simple quiz to test your knowledge.', '', 10, '2025-11-17 14:26:00', '2025-11-16 06:26:13', '2025-11-16 06:26:13', 0, 0),
+(66, 'SO0261', '202210602', 'Laboratory', 'Laboratory 1', 'Labubu', 'Make Labubu dance', '', 50, '2025-11-18 06:35:00', '2025-11-16 07:32:41', '2025-11-16 07:32:41', 0, 0),
+(67, 'SO0261', '202210602', 'Quiz', 'Quiz 1', 'Quizno', 'Heheyhey fortune cookie', '', 50, '2025-11-18 18:31:00', '2025-11-16 10:31:12', '2025-11-16 10:31:12', 0, 0);
+
 -- --------------------------------------------------------
 
 --
@@ -61,6 +82,43 @@ CREATE TABLE `activity_grades` (
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `activity_grades`
+--
+
+INSERT INTO `activity_grades` (`id`, `activity_ID`, `student_ID`, `grade`, `submitted`, `submitted_at`, `late`, `created_at`, `updated_at`) VALUES
+(317, 53, '202210718', 10.00, 1, '2025-11-11 12:57:28', 0, '2025-11-11 12:56:36', '2025-11-11 12:57:28'),
+(319, 55, '202210718', 0.00, 0, NULL, 0, '2025-11-11 13:03:48', '2025-11-11 13:07:47'),
+(321, 54, '202210718', NULL, 0, NULL, 0, '2025-11-11 13:03:48', '2025-11-11 13:03:48'),
+(323, 56, '202210718', NULL, 0, NULL, 0, '2025-11-11 15:05:11', '2025-11-11 15:05:11'),
+(325, 57, '202210718', NULL, 0, NULL, 0, '2025-11-11 15:06:31', '2025-11-16 03:40:51'),
+(327, 58, '202210718', 31.00, 1, '2025-11-16 03:40:36', 0, '2025-11-11 22:42:15', '2025-11-16 03:40:36'),
+(329, 59, '202210718', 25.00, 1, '2025-11-16 03:40:27', 0, '2025-11-11 23:40:19', '2025-11-16 03:40:27'),
+(331, 60, '202210718', 15.00, 1, '2025-11-16 03:40:17', 0, '2025-11-12 00:04:55', '2025-11-16 03:40:17'),
+(333, 61, '202210718', NULL, 0, NULL, 0, '2025-11-12 01:06:08', '2025-11-16 05:00:20'),
+(335, 62, '202210718', 35.00, 1, '2025-11-16 03:40:01', 0, '2025-11-12 01:39:20', '2025-11-16 05:00:12'),
+(337, 63, '202210718', 50.00, 1, '2025-11-12 06:42:02', 0, '2025-11-12 02:20:45', '2025-11-16 05:00:04'),
+(339, 64, '202210718', 15.00, 1, '2025-11-16 03:39:46', 1, '2025-11-16 02:34:15', '2025-11-16 04:59:49'),
+(340, 64, '202210784', 10.00, 1, '2025-11-16 04:59:49', 0, '2025-11-16 04:59:22', '2025-11-16 04:59:49'),
+(341, 63, '202210784', 60.00, 1, '2025-11-16 05:00:04', 0, '2025-11-16 04:59:22', '2025-11-16 05:00:04'),
+(342, 62, '202210784', 33.00, 1, '2025-11-16 05:00:12', 0, '2025-11-16 04:59:22', '2025-11-16 05:00:12'),
+(343, 61, '202210784', NULL, 0, NULL, 0, '2025-11-16 04:59:22', '2025-11-16 05:00:20'),
+(344, 60, '202210784', NULL, 0, NULL, 0, '2025-11-16 04:59:22', '2025-11-16 04:59:22'),
+(345, 59, '202210784', NULL, 0, NULL, 0, '2025-11-16 04:59:22', '2025-11-16 04:59:22'),
+(346, 58, '202210784', NULL, 0, NULL, 0, '2025-11-16 04:59:22', '2025-11-16 04:59:22'),
+(347, 57, '202210784', NULL, 0, NULL, 0, '2025-11-16 04:59:22', '2025-11-16 04:59:22'),
+(348, 56, '202210784', NULL, 0, NULL, 0, '2025-11-16 04:59:22', '2025-11-16 04:59:22'),
+(349, 53, '202210784', NULL, 0, NULL, 0, '2025-11-16 04:59:22', '2025-11-16 04:59:22'),
+(350, 65, '202210784', 5.00, 1, '2025-11-16 06:26:33', 0, '2025-11-16 06:26:13', '2025-11-16 06:26:33'),
+(351, 65, '202210870', 3.00, 1, '2025-11-16 06:26:33', 0, '2025-11-16 06:26:13', '2025-11-16 06:26:33'),
+(352, 65, '202210718', 1.00, 1, '2025-11-16 06:26:33', 0, '2025-11-16 06:26:13', '2025-11-16 06:26:33'),
+(353, 66, '202210784', 45.00, 1, '2025-11-16 07:33:03', 0, '2025-11-16 07:32:41', '2025-11-16 07:33:03'),
+(354, 66, '202210718', 6.00, 1, '2025-11-16 07:33:03', 0, '2025-11-16 07:32:41', '2025-11-16 07:33:03'),
+(355, 66, '202210870', 1.00, 1, '2025-11-16 07:33:03', 1, '2025-11-16 07:32:41', '2025-11-16 07:33:03'),
+(356, 67, '202210784', 45.00, 1, '2025-11-16 10:31:32', 0, '2025-11-16 10:31:12', '2025-11-16 10:31:32'),
+(357, 67, '202210718', 30.00, 1, '2025-11-16 10:31:32', 0, '2025-11-16 10:31:12', '2025-11-16 10:31:32'),
+(358, 67, '202210870', 25.00, 1, '2025-11-16 10:31:32', 0, '2025-11-16 10:31:12', '2025-11-16 10:31:32');
 
 -- --------------------------------------------------------
 
@@ -80,6 +138,13 @@ CREATE TABLE `announcements` (
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+--
+-- Dumping data for table `announcements`
+--
+
+INSERT INTO `announcements` (`announcement_ID`, `professor_ID`, `classroom_ID`, `title`, `description`, `link`, `deadline`, `created_at`, `updated_at`) VALUES
+(15, '202210602', 'AY0822', 'SIngerist', 'Baby SHark doo doo', NULL, '2025-11-19 14:43:00', '2025-11-12 06:43:48', '2025-11-20 23:30:36');
+
 -- --------------------------------------------------------
 
 --
@@ -97,6 +162,20 @@ CREATE TABLE `attendance` (
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+--
+-- Dumping data for table `attendance`
+--
+
+INSERT INTO `attendance` (`id`, `subject_code`, `professor_ID`, `attendance_date`, `student_ID`, `status`, `created_at`, `updated_at`) VALUES
+(49, 'DQ1766', '202210602', '2025-11-16', '202210718', 'present', '2025-11-16 06:16:31', '2025-11-16 06:16:31'),
+(50, 'DQ1766', '202210602', '2025-11-16', '202210784', 'absent', '2025-11-16 06:16:31', '2025-11-16 06:16:31'),
+(51, 'AY0822', '202210602', '2025-11-16', '202210718', 'absent', '2025-11-16 06:25:12', '2025-11-16 06:25:12'),
+(52, 'AY0822', '202210602', '2025-11-16', '202210784', 'present', '2025-11-16 06:25:12', '2025-11-16 06:25:12'),
+(53, 'AY0822', '202210602', '2025-11-16', '202210870', 'late', '2025-11-16 06:25:12', '2025-11-16 06:25:12'),
+(54, 'SO0261', '202210602', '2025-11-16', '202210718', 'present', '2025-11-16 07:31:52', '2025-11-16 07:31:52'),
+(55, 'SO0261', '202210602', '2025-11-16', '202210784', 'absent', '2025-11-16 07:31:52', '2025-11-16 07:31:52'),
+(56, 'SO0261', '202210602', '2025-11-16', '202210870', 'absent', '2025-11-16 07:31:52', '2025-11-16 07:31:52');
+
 -- --------------------------------------------------------
 
 --
@@ -113,6 +192,15 @@ CREATE TABLE `classes` (
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   `status` varchar(10) NOT NULL DEFAULT 'Active'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `classes`
+--
+
+INSERT INTO `classes` (`subject_code`, `year_level`, `subject`, `section`, `professor_ID`, `created_at`, `updated_at`, `status`) VALUES
+('AY0822', '3rd Year', 'ITEC111', 'A', '202210602', '2025-11-16 06:20:18', '2025-11-16 06:20:18', 'Active'),
+('DQ1766', '1st Year', 'Song Class', 'A', '202210602', '2025-11-11 07:21:11', '2025-11-11 07:21:11', 'Active'),
+('SO0261', '4th Year', 'OMG789', 'B', '202210602', '2025-11-16 07:31:13', '2025-11-16 07:31:13', 'Active');
 
 -- --------------------------------------------------------
 
@@ -144,6 +232,41 @@ CREATE TABLE `student_classes` (
   `archived_at` timestamp NULL DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+--
+-- Dumping data for table `student_classes`
+--
+
+INSERT INTO `student_classes` (`id`, `student_ID`, `subject_code`, `enrolled_at`, `archived`, `archived_at`) VALUES
+(8, '202210718', 'DQ1766', '2025-11-11 07:29:15', 0, NULL),
+(11, '202210784', 'DQ1766', '2025-11-16 04:58:50', 0, NULL),
+(12, '202210784', 'AY0822', '2025-11-16 06:23:55', 0, NULL),
+(13, '202210870', 'AY0822', '2025-11-16 06:24:20', 0, NULL),
+(14, '202210718', 'AY0822', '2025-11-16 06:24:55', 0, NULL),
+(15, '202210784', 'SO0261', '2025-11-16 07:31:25', 0, NULL),
+(16, '202210718', 'SO0261', '2025-11-16 07:31:31', 0, NULL),
+(17, '202210870', 'SO0261', '2025-11-16 07:31:37', 0, NULL);
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `tracked_semester`
+--
+
+CREATE TABLE `tracked_semester` (
+  `semesterID` int(1) NOT NULL,
+  `class_semester` varchar(50) NOT NULL,
+  `semester_status` varchar(10) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `tracked_semester`
+--
+
+INSERT INTO `tracked_semester` (`semesterID`, `class_semester`, `semester_status`) VALUES
+(1, 'first_sem', 'ACTIVE'),
+(2, 'second_sem', 'INACTIVE'),
+(3, 'summer_sem', 'INACTIVE');
+
 -- --------------------------------------------------------
 
 --
@@ -166,21 +289,20 @@ CREATE TABLE `tracked_users` (
   `tracked_phone` varchar(15) DEFAULT NULL,
   `tracked_Status` varchar(10) NOT NULL DEFAULT 'Active',
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
-  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
-  `temporary_password` varchar(255) DEFAULT NULL
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `tracked_users`
 --
 
-INSERT INTO `tracked_users` (`tracked_ID`, `tracked_Role`, `tracked_email`, `tracked_password`, `tracked_firstname`, `tracked_lastname`, `tracked_middlename`, `tracked_program`, `tracked_yearandsec`, `tracked_semester`, `tracked_bday`, `tracked_gender`, `tracked_phone`, `tracked_Status`, `created_at`, `updated_at`, `temporary_password`) VALUES
-('12345', 'Admin', 'ic.brielle.balatayo@cvsu.edu.ph', '$2y$10$rwNNDwVE.VOuQ7Kljc46.OHDBvQGbDd72iY3wyw.5b07noRgemBw6', 'Brielle Edrian', 'Balatayo', 'Ana', 'Not Applicable', 'Not Applicable', 'Not Applicable', '2002-08-18', 'Male', '9153406553', 'Active', '2025-11-10 18:51:38', '2025-11-13 17:57:34', '08182002Admin12345NTL'),
-('202210602', 'Professor', 'ic.dhenizekristafaith.lopez@cvsu.edu.ph', '$2y$10$e1u9aKZ7vOFOfBvvEplsGOG.z/pUt5sF.ZupaWmp7PgugfRGREziW', 'Dhenize Krista Faith', 'Lopez', 'Cabardo', 'Information Technology', 'Not Applicable', 'Not Applicable', '2004-11-24', 'Male', '9988262316', 'Active', '2025-11-10 18:51:38', '2025-11-13 19:46:53', '11242004Professor202210602FOT'),
-('202210718', 'Student', 'ic.michaelrhoi.gonzales@cvsu.edu.ph', '$2y$10$edvJGZZc3ftzz7AmHU7cvOdksWG0NEd4aOlWbPCIUn9gMEd86yPEC', 'Michael Rhoi', 'Gonzales', 'Ladrica', 'BSIT', '4D', 'FIRST', '2004-06-20', 'Female', '9085527790', 'Active', '2025-11-12 06:13:21', '2025-11-13 18:54:14', '06202004Student202210718CZP'),
-('202210784', 'Student', 'ic.jeannen.basay@cvsu.edu.ph', '$2y$10$QN.GT8z65puL9pZUiYwi5e6YW/m.ZiEKUBumYYKEvhpL2/SIJWRBS', 'Jeannen', 'Basay', 'Kummer', 'BSIT', '4D', 'SECOND', '2002-03-24', 'Female', '0', 'Active', '2025-11-10 18:51:38', '2025-11-13 17:31:13', '03242002Student202210784847'),
-('202210870', 'Student', 'ic.xyrilljohn.abreu@cvsu.edu.ph', '$2y$10$RDNcVIT7vP7wDWOGcZAfHudu0IIxo8ginsCrMjD5IIoGW468kmVdO', 'Xyrill John', 'Abreu', 'Fecundo', 'BSIT', '4D', 'FIRST', '2003-08-03', 'Female', '9422169425', 'Active', '2025-11-10 18:51:39', '2025-11-13 17:31:19', '08032003Student202210870GCM'),
-('20230003', 'Professor', 'ic.juliaann.fajardo@cvsu.edu.ph', '$2y$10$jg72Vd4BASuZNECAeCWAJOzMygwF5dZzK4cR6m8SJRW0dRIamimr.', 'Julia Ann', 'Fajardo', 'Sisno', 'Information Technology', 'Not Applicable', 'Not Applicable', '2001-06-07', 'Female', '9679532083', 'Active', '2025-11-10 18:51:39', '2025-11-13 17:31:24', '06072001Professor20230003HMU');
+INSERT INTO `tracked_users` (`tracked_ID`, `tracked_Role`, `tracked_email`, `tracked_password`, `tracked_firstname`, `tracked_lastname`, `tracked_middlename`, `tracked_program`, `tracked_yearandsec`, `tracked_semester`, `tracked_bday`, `tracked_gender`, `tracked_phone`, `tracked_Status`, `created_at`, `updated_at`) VALUES
+('12345', 'Admin', 'ic.brielle.balatayo@cvsu.edu.ph', '$2y$10$HQKWZMfWzvUqDjJYbITcmu4aVchIJlmr2ngrtaDjN6VAuUp5EyFIa', 'Brielle Edrian', 'Balatayo', 'Ana', 'Not Applicable', 'Not Applicable', 'Not Applicable', '2002-08-18', 'Male', '9153406553', 'Active', '2025-11-10 18:51:38', '2025-11-16 13:39:22'),
+('202210602', 'Professor', 'ic.dhenizekristafaith.lopez@cvsu.edu.ph', '$2y$10$H0MgsQHmMC/jFrXqHqmmeesiv4dPPeA9LuRQ0WkpYSadj.LTpANEa', 'Dhenize Krista Faith', 'Lopez', 'Cabardo', 'Information Technology', 'Not Applicable', 'Not Applicable', '2004-11-24', 'Male', '9988262316', 'Active', '2025-11-10 18:51:38', '2025-11-16 02:30:09'),
+('202210718', 'Student', 'ic.michaelrhoi.gonzales@cvsu.edu.ph', '123', 'Michael Rhoi', 'Gonzales', 'Ladrica', 'BSIT', '4D', 'FIRST', '2004-06-20', 'Female', '9085527790', 'Active', '2025-11-12 06:13:21', '2025-11-17 01:12:47'),
+('202210784', 'Student', 'ic.jeannen.basay@cvsu.edu.ph', '$2y$10$J0ZYn2vh3krWWjUzTEbBZu4P6MFGcztYVAn5C3sWPl4kEx1DvHjD.', 'Jeannen', 'Basay', 'Kummer', 'BSIT', '4D', 'SECOND', '2002-03-24', 'Female', '0', 'Active', '2025-11-10 18:51:38', '2025-11-16 04:58:28'),
+('202210870', 'Student', 'ic.xyrilljohn.abreu@cvsu.edu.ph', '$2y$10$HKLdOP2Qwajflclg/TjBTuUjAkr3lAXVDVOJJGCb51wvHkOVMEXha', 'Xyrill John', 'Abreu', 'Fecundo', 'BSIT', '4D', 'FIRST', '2003-08-03', 'Female', '9422169425', 'Active', '2025-11-10 18:51:39', '2025-11-16 06:23:22'),
+('20230003', 'Professor', 'ic.juliaann.fajardo@cvsu.edu.ph', '$2y$10$fJcns6eh3Xh0SJVF6mSxOeuLN0cVtmUvqiOoS4MiAOSY7BUSXkCeu', 'Julia Ann', 'Fajardo', 'Sisno', 'Information Technology', 'Not Applicable', 'Not Applicable', '2001-06-07', 'Female', '9679532083', 'Active', '2025-11-10 18:51:39', '2025-11-12 07:56:08');
 
 -- --------------------------------------------------------
 
@@ -277,6 +399,12 @@ ALTER TABLE `student_classes`
   ADD KEY `subject_code` (`subject_code`);
 
 --
+-- Indexes for table `tracked_semester`
+--
+ALTER TABLE `tracked_semester`
+  ADD PRIMARY KEY (`semesterID`);
+
+--
 -- Indexes for table `tracked_users`
 --
 ALTER TABLE `tracked_users`
@@ -298,13 +426,13 @@ ALTER TABLE `users`
 -- AUTO_INCREMENT for table `activities`
 --
 ALTER TABLE `activities`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=65;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=68;
 
 --
 -- AUTO_INCREMENT for table `activity_grades`
 --
 ALTER TABLE `activity_grades`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=340;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=359;
 
 --
 -- AUTO_INCREMENT for table `announcements`
@@ -316,7 +444,7 @@ ALTER TABLE `announcements`
 -- AUTO_INCREMENT for table `attendance`
 --
 ALTER TABLE `attendance`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=45;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=57;
 
 --
 -- AUTO_INCREMENT for table `password_resets`
@@ -328,7 +456,7 @@ ALTER TABLE `password_resets`
 -- AUTO_INCREMENT for table `student_classes`
 --
 ALTER TABLE `student_classes`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=18;
 
 --
 -- Constraints for dumped tables
@@ -346,7 +474,7 @@ ALTER TABLE `activities`
 --
 ALTER TABLE `activity_grades`
   ADD CONSTRAINT `activity_grades_ibfk_1` FOREIGN KEY (`activity_ID`) REFERENCES `activities` (`id`) ON DELETE CASCADE,
-  ADD CONSTRAINT `activity_grades_ibfk_2` FOREIGN KEY (`student_ID`) REFERENCES `users` (`user_ID`) ON DELETE CASCADE;
+  ADD CONSTRAINT `activity_grades_ibfk_2` FOREIGN KEY (`student_ID`) REFERENCES `tracked_users` (`tracked_ID`);
 
 --
 -- Constraints for table `announcements`
@@ -361,7 +489,7 @@ ALTER TABLE `announcements`
 ALTER TABLE `attendance`
   ADD CONSTRAINT `attendance_ibfk_1` FOREIGN KEY (`subject_code`) REFERENCES `classes` (`subject_code`) ON DELETE CASCADE,
   ADD CONSTRAINT `attendance_ibfk_2` FOREIGN KEY (`professor_ID`) REFERENCES `tracked_users` (`tracked_ID`) ON DELETE CASCADE,
-  ADD CONSTRAINT `attendance_ibfk_3` FOREIGN KEY (`student_ID`) REFERENCES `users` (`user_ID`) ON DELETE CASCADE;
+  ADD CONSTRAINT `attendance_ibfk_3` FOREIGN KEY (`student_ID`) REFERENCES `tracked_users` (`tracked_ID`);
 
 --
 -- Constraints for table `classes`
@@ -379,8 +507,8 @@ ALTER TABLE `password_resets`
 -- Constraints for table `student_classes`
 --
 ALTER TABLE `student_classes`
-  ADD CONSTRAINT `student_classes_ibfk_1` FOREIGN KEY (`student_ID`) REFERENCES `users` (`user_ID`) ON DELETE CASCADE,
-  ADD CONSTRAINT `student_classes_ibfk_2` FOREIGN KEY (`subject_code`) REFERENCES `classes` (`subject_code`) ON DELETE CASCADE;
+  ADD CONSTRAINT `student_classes_ibfk_2` FOREIGN KEY (`subject_code`) REFERENCES `classes` (`subject_code`) ON DELETE CASCADE,
+  ADD CONSTRAINT `student_classes_ibfk_3` FOREIGN KEY (`student_ID`) REFERENCES `tracked_users` (`tracked_ID`);
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;

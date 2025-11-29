@@ -11,13 +11,16 @@ import SuperAdmin from '../../assets/SuperAdminIcon(Light).svg';
 
 export default function SuperAdminAccountList() {
   const [isOpen, setIsOpen] = useState(false);
+  const [adminCount, setAdminCount] = useState(0);
   const [professorCount, setProfessorCount] = useState(0);
   const [studentCount, setStudentCount] = useState(0);
 
   useEffect(() => {
-    fetch("https://tracked.6minds.site/Admin/UserManagementDB/get_user_counts.php")
+    fetch("https://tracked.6minds.site/Admin/UserManagementDB/get_superadmin_user_counts.php")
       .then((res) => res.json())
       .then((data) => {
+        console.log("Fetched data:", data); // Debug log
+        setAdminCount(data.Admins || 0);
         setProfessorCount(data.Professors || 0);
         setStudentCount(data.Students || 0);
       })
@@ -80,7 +83,7 @@ export default function SuperAdminAccountList() {
                     Total of Admin Account Created:
                   </p>
                   <p className="font-bold text-sm sm:text-base lg:text-lg text-[#00874E] sm:ml-2">
-                    {studentCount}
+                    {adminCount}
                   </p>
                 </div>
               </div>
