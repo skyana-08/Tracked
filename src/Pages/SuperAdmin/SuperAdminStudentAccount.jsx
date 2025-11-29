@@ -18,10 +18,11 @@ import KickWarningIcon from "../../assets/Warning(Red).svg"; // You can use a re
 export default function UserManagementStudentAccounts() {
   const [isOpen, setIsOpen] = useState(false);
   const [open, setOpen] = useState(false);
-  const [showArchiveModal, setShowArchiveModal] = useState(false);
+  const [setShowArchiveModal] = useState(false);
   const [showKickModal, setShowKickModal] = useState(false);
-  const [selectedFilter, setSelectedFilter] = useState("All");
-  const [selectedStudent, setSelectedStudent] = useState(null);
+  const [setSelectedFilter] = useState("All");
+  // const [selectedStudent, setSelectedStudent] = useState(null);
+  const [setSelectedStudent] = useState(null);
   const [selectedStudentForKick, setSelectedStudentForKick] = useState(null);
 
   const [students, setStudents] = useState([]);
@@ -49,12 +50,12 @@ export default function UserManagementStudentAccounts() {
     setShowArchiveModal(true);
   };
 
-  const confirmArchive = () => {
-    // Add your archive logic here
-    console.log("Archiving student:", selectedStudent);
-    setShowArchiveModal(false);
-    setSelectedStudent(null);
-  };
+  // const confirmArchive = () => {
+  //   // Add your archive logic here
+  //   console.log("Archiving student:", selectedStudent);
+  //   setShowArchiveModal(false);
+  //   setSelectedStudent(null);
+  // };
 
   const handleKickClick = (stud) => {
     setSelectedStudentForKick(stud);
@@ -195,7 +196,7 @@ export default function UserManagementStudentAccounts() {
                   </tr>
                 </thead>
                 <tbody className="text-[#465746]">
-                  {currentStudents.map((stud, index) => (
+                  {currentStudents.map((stud) => (
                     <tr
                       key={stud.tracked_ID}
                       className="bg-[#fff] rounded-lg shadow hover:bg-gray-50 transition-colors duration-200"

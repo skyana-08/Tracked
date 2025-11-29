@@ -15,7 +15,7 @@ import KickWarningIcon from "../../assets/Warning(Red).svg"; // You can use a re
 export default function SuperAdminAdminAccount() {
   const [isOpen, setIsOpen] = useState(false);
   const [open, setOpen] = useState(false);
-  const [selectedFilter, setSelectedFilter] = useState("All");
+  const [setSelectedFilter] = useState("All");
   const [showKickModal, setShowKickModal] = useState(false);
   const [selectedAdmin, setSelectedAdmin] = useState(null);
 
@@ -163,7 +163,7 @@ export default function SuperAdminAdminAccount() {
                   </tr>
                 </thead>
                 <tbody className="text-[#465746]">
-                  {currentProfessors.map((prof, index) => (
+                  {currentProfessors.map((prof) => (
                     <tr
                       key={prof.tracked_ID}
                       className="bg-[#fff] rounded-lg shadow hover:bg-gray-50 transition-colors duration-200"

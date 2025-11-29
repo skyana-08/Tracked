@@ -110,7 +110,7 @@ export default function Report() {
   const fetchSemesterStatus = async () => {
     setIsLoadingSemester(true);
     try {
-      const response = await fetch("http://localhost/TrackEd/src/Pages/Admin/UserManagementDB_ReportsDB/semester_settings.php", {
+      const response = await fetch("https://tracked.6minds.site/Admin/UserManagementDB_ReportsDB/semester_settings.php", {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -139,7 +139,7 @@ export default function Report() {
     try {
       console.log('Updating semester:', semester, 'to:', status);
       
-      const response = await fetch("http://localhost/TrackEd/src/Pages/Admin/UserManagementDB_ReportsDB/semester_settings.php", {
+      const response = await fetch("https://tracked.6minds.site/Admin/UserManagementDB_ReportsDB/semester_settings.php", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

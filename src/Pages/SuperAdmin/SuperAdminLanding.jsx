@@ -43,7 +43,7 @@ export default function SuperAdminLanding() {
 
   const fetchUsers = () => {
     setIsLoading(true);
-    fetch("http://localhost/TrackEd/src/Pages/SuperAdmin/SuperAdminImportDB/get_superadmin_user.php")
+    fetch("https://tracked.6minds.site/SuperAdmin/SuperAdminImportDB/get_superadmin_user.php")
       .then((res) => {
         if (!res.ok) {
           throw new Error(`HTTP error! status: ${res.status}`);
@@ -131,7 +131,7 @@ export default function SuperAdminLanding() {
     const formData = new FormData();
     formData.append("sqlFile", importFile);
 
-    fetch("http://localhost/TrackEd/src/Pages/SuperAdmin/SuperAdminImportDB/import_admin_accounts.php", {
+    fetch("https://tracked.6minds.site/SuperAdmin/SuperAdminImportDB/import_admin_accounts.php", {
       method: "POST",
       body: formData,
     })
