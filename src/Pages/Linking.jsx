@@ -22,7 +22,7 @@ import ClassManagement from './Professor/ClassManagement.jsx';
 import Class from './Professor/AnnouncementTab.jsx';
 import AnalyticsProf from './Professor/AnalyticsProf.jsx';
 import ClassworkTab from './Professor/ClassworkTab.jsx';
-import NotificationProf from './Professor/NotificationProf.jsx';
+// import NotificationProf from './Professor/NotificationProf.jsx';
 import ProfileProf from './Professor/ProfileProf.jsx';
 import AccountSettingProf from './Professor/AccountSettingProf.jsx';
 import SubjectDetails from './Professor/ClassworkTab.jsx';
@@ -41,7 +41,7 @@ import DashboardStudent from './Student/DashboardStudent.jsx';
 import Subjects from './Student/Subjects.jsx';
 import ArchiveClassStudent from './Student/ArchiveClassStudent.jsx';
 import AnalyticsStudent from './Student/AnalyticsStudent.jsx';
-import NotificationStudent from './Student/NotificationStudent.jsx';
+// import NotificationStudent from './Student/NotificationStudent.jsx';
 import ProfileStudent from './Student/ProfileStudent.jsx';
 import AccountSetting from './Student/AccountSetting.jsx';
 import AttendanceHistoryStudent from './Student/AttendanceHistoryStudent.jsx';
@@ -91,7 +91,7 @@ function Linking() {
         <Route path="/Class" element={<Class />} /> 
         <Route path="/AnalyticsProf" element={<AnalyticsProf />} />  
         <Route path="/ClassworkTab" element={<ClassworkTab />} />  
-        <Route path="/NotificationProf" element={<NotificationProf />} />  
+        {/* <Route path="/NotificationProf" element={<NotificationProf />} />   */}
         <Route path="/ProfileProf" element={<ProfileProf/>} />  
         <Route path="/AccountSettingProf" element={<AccountSettingProf/>} />  
         <Route path="/SubjectDetails" element={<SubjectDetails/>} />  
@@ -110,7 +110,7 @@ function Linking() {
         <Route path="/Subjects" element={<Subjects />} />
         <Route path="/ArchiveClassStudent" element={<ArchiveClassStudent />} />
         <Route path="/AnalyticsStudent" element={<AnalyticsStudent />} />
-        <Route path="/NotificationStudent" element={<NotificationStudent />} />
+        {/* <Route path="/NotificationStudent" element={<NotificationStudent />} /> */}
         <Route path="/ProfileStudent" element={<ProfileStudent />} />
         <Route path="/AccountSetting" element={<AccountSetting />} />
         <Route path="/AttendanceHistoryStudent" element={<AttendanceHistoryStudent />} />

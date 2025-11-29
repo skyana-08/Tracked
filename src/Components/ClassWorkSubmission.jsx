@@ -56,12 +56,12 @@ const ClassWorkSubmission = ({
   ];
 
   const calculateStudentStatus = (student, activity) => {
-    const now = new Date();
-    const deadline = activity.deadline ? new Date(activity.deadline) : null;
+    const currentTime = new Date();
+    const activityDeadline = activity.deadline ? new Date(activity.deadline) : null;
     
     if (student.submitted) {
-      return student.late ? 'Late' : 'Submitted';
-    } else if (deadline && deadline < now) {
+      return 'Submitted';
+    } else if (activityDeadline && activityDeadline < currentTime) {
       return 'Missed';
     } else {
       return 'Assigned';
@@ -71,8 +71,7 @@ const ClassWorkSubmission = ({
   const statusCounts = {
     assigned: localStudents.filter(student => calculateStudentStatus(student, activity) === 'Assigned').length,
     submitted: localStudents.filter(student => 
-      calculateStudentStatus(student, activity) === 'Submitted' || 
-      calculateStudentStatus(student, activity) === 'Late'
+      calculateStudentStatus(student, activity) === 'Submitted'
     ).length,
     missed: localStudents.filter(student => calculateStudentStatus(student, activity) === 'Missed').length
   };
@@ -84,13 +83,13 @@ const ClassWorkSubmission = ({
       case "Assigned":
         return status === 'Assigned';
       case "Submitted":
-        return status === 'Submitted' || status === 'Late';
+        return status === 'Submitted';
       case "Missed":
         return status === 'Missed';
       case "Graded":
         return student.grade != null && student.grade !== '';
       case "Not Graded":
-        return (status === 'Submitted' || status === 'Late') && 
+        return status === 'Submitted' && 
                (student.grade == null || student.grade === '');
       default:
         return true;
@@ -123,18 +122,14 @@ const ClassWorkSubmission = ({
       const saveData = {
         activity_ID: activity.id,
         students: localStudents.map(student => {
-          const now = new Date();
-          const deadline = activity.deadline ? new Date(activity.deadline) : null;
-          
           const hasGrade = student.grade && student.grade !== '';
           const shouldMarkAsSubmitted = hasGrade && !student.submitted;
-          const isLate = shouldMarkAsSubmitted && deadline && deadline < now;
           
           return {
             user_ID: student.user_ID,
             grade: student.grade || null,
             submitted: student.submitted || shouldMarkAsSubmitted,
-            late: student.late || isLate
+            late: false
           };
         })
       };
@@ -158,14 +153,11 @@ const ClassWorkSubmission = ({
         const updatedStudents = localStudents.map(student => {
           const hasGrade = student.grade && student.grade !== '';
           const shouldMarkAsSubmitted = hasGrade && !student.submitted;
-          const now = new Date();
-          const deadline = activity.deadline ? new Date(activity.deadline) : null;
-          const isLate = shouldMarkAsSubmitted && deadline && deadline < now;
           
           return {
             ...student,
             submitted: student.submitted || shouldMarkAsSubmitted,
-            late: student.late || isLate
+            late: false
           };
         });
         
@@ -429,9 +421,9 @@ const ClassWorkSubmission = ({
           {/* Main Content */}
           <div className={`flex ${isMobile ? 'flex-col' : 'flex-row'} flex-1 overflow-hidden`}>
             {/* Left Panel - Entire content scrolls together */}
-            <div className={`${isMobile ? 'w-full' : 'w-1/2'} ${isMobile ? 'flex-1' : ''} border-r border-gray-200 flex flex-col overflow-hidden`}>
+            <div className={`${isMobile ? 'w-full' : 'w-1/2'} ${isMobile ? 'flex-1' : ''} border-r border-gray-200 flex flex-col overflow-y-auto`}>
               
-              {/* Instructions */}
+              {/* Instructions - With show more/less functionality */}
               <div className="p-3 sm:p-4 md:p-6 border-b border-gray-200">
                 <h3 className="text-sm sm:text-base md:text-lg font-semibold text-gray-900 mb-2">Instructions</h3>
                 <div className="relative">
@@ -533,8 +525,8 @@ const ClassWorkSubmission = ({
                 </div>
               </div>
 
-              {/* Students List - No horizontal scroll */}
-              <div className="flex-1 overflow-y-auto">
+              {/* Students List - Now part of the scrollable area */}
+              <div className="flex-1">
                 <div className="w-full">
                   <table className="w-full">
                     <thead className="bg-gray-50 sticky top-0">
@@ -580,7 +572,6 @@ const ClassWorkSubmission = ({
                                 (() => {
                                   switch (status) {
                                     case 'Submitted': return 'bg-green-100 text-green-800';
-                                    case 'Late': return 'bg-yellow-100 text-yellow-800';
                                     case 'Missed': return 'bg-red-100 text-red-800';
                                     default: return 'bg-gray-100 text-gray-800';
                                   }
@@ -674,103 +665,105 @@ const ClassWorkSubmission = ({
               </div>
             </div>
 
-            {/* Right Panel - Enhanced Analytics */}
-            <div className={`${isMobile ? 'w-full border-t border-gray-200' : 'w-1/2'} ${isMobile ? 'max-h-96 overflow-y-auto' : ''} p-3 sm:p-4 md:p-6`}>
-              {selectedStudent ? (
-                <div className={`${isMobile ? 'min-h-0' : 'h-full'} flex flex-col`}>
-                  <h3 className="text-sm sm:text-base md:text-lg font-semibold text-gray-900 mb-3 sm:mb-4">
-                    Performance Analytics - {selectedStudent.name}
-                  </h3>
-                  
-                  {/* Enhanced Pie Chart with Performance Feedback */}
-                  <div className={`${isMobile ? 'flex-shrink-0' : 'flex-1'} flex flex-col items-center justify-center mb-4 sm:mb-6`}>
-                    {studentAnalytics ? (
-                      <>
-                        {renderPieChart(studentAnalytics)}
-                        
-                        {/* Performance Feedback */}
-                        <div className="mt-4 sm:mt-6 text-center">
-                          <div className={`inline-block px-3 py-2 rounded-lg ${
-                            studentAnalytics.percentage >= 85 ? 'bg-green-50 border border-green-200' :
-                            studentAnalytics.percentage >= 70 ? 'bg-yellow-50 border border-yellow-200' :
-                            studentAnalytics.percentage >= 50 ? 'bg-orange-50 border border-orange-200' :
-                            'bg-red-50 border border-red-200'
-                          }`}>
-                            <p className="text-sm font-semibold text-gray-900">
-                              {studentAnalytics.performanceLevel}
-                            </p>
-                            <p className="text-xs text-gray-600 max-w-xs">
-                              {studentAnalytics.feedback}
-                            </p>
-                          </div>
-                        </div>
-
-                        {/* Enhanced Score Breakdown */}
-                        <div className="mt-4 sm:mt-6 w-full max-w-xs">
-                          <div className="grid grid-cols-2 gap-3 text-center">
-                            <div className="bg-blue-50 rounded-lg p-3">
-                              <p className="text-xs text-blue-600 font-medium">Current Score</p>
-                              <p className="text-lg font-bold text-blue-800">
-                                {studentAnalytics.data[0].value}/{studentAnalytics.totalPoints}
+            {/* Right Panel - Enhanced Analytics - FIXED: Made scrollable */}
+            <div className={`${isMobile ? 'w-full border-t border-gray-200' : 'w-1/2'} ${isMobile ? 'max-h-96' : ''} flex flex-col overflow-hidden`}>
+              <div className="p-3 sm:p-4 md:p-6 flex-1 overflow-y-auto">
+                {selectedStudent ? (
+                  <div className="h-full flex flex-col">
+                    <h3 className="text-sm sm:text-base md:text-lg font-semibold text-gray-900 mb-3 sm:mb-4">
+                      Performance Analytics - {selectedStudent.name}
+                    </h3>
+                    
+                    {/* Enhanced Pie Chart with Performance Feedback */}
+                    <div className="flex flex-col items-center justify-center mb-4 sm:mb-6">
+                      {studentAnalytics ? (
+                        <>
+                          {renderPieChart(studentAnalytics)}
+                          
+                          {/* Performance Feedback */}
+                          <div className="mt-4 sm:mt-6 text-center">
+                            <div className={`inline-block px-3 py-2 rounded-lg ${
+                              studentAnalytics.percentage >= 85 ? 'bg-green-50 border border-green-200' :
+                              studentAnalytics.percentage >= 70 ? 'bg-yellow-50 border border-yellow-200' :
+                              studentAnalytics.percentage >= 50 ? 'bg-orange-50 border border-orange-200' :
+                              'bg-red-50 border border-red-200'
+                            }`}>
+                              <p className="text-sm font-semibold text-gray-900">
+                                {studentAnalytics.performanceLevel}
                               </p>
-                            </div>
-                            <div className="bg-gray-50 rounded-lg p-3">
-                              <p className="text-xs text-gray-600 font-medium">Points Available</p>
-                              <p className="text-lg font-bold text-gray-800">
-                                {studentAnalytics.data[1].value}
+                              <p className="text-xs text-gray-600 max-w-xs">
+                                {studentAnalytics.feedback}
                               </p>
                             </div>
                           </div>
-                        </div>
 
-                        {/* Progress Legend */}
-                        <div className="mt-4 flex justify-center gap-3">
-                          {studentAnalytics.data.map((item, index) => (
-                            <div key={index} className="flex items-center gap-1">
-                              <div 
-                                className="w-3 h-3 rounded-full" 
-                                style={{ backgroundColor: item.color }}
-                              ></div>
-                              <span className="text-xs text-gray-600">
-                                {item.label}: {item.value}
-                              </span>
+                          {/* Enhanced Score Breakdown */}
+                          <div className="mt-4 sm:mt-6 w-full max-w-xs">
+                            <div className="grid grid-cols-2 gap-3 text-center">
+                              <div className="bg-blue-50 rounded-lg p-3">
+                                <p className="text-xs text-blue-600 font-medium">Current Score</p>
+                                <p className="text-lg font-bold text-blue-800">
+                                  {studentAnalytics.data[0].value}/{studentAnalytics.totalPoints}
+                                </p>
+                              </div>
+                              <div className="bg-gray-50 rounded-lg p-3">
+                                <p className="text-xs text-gray-600 font-medium">Points Available</p>
+                                <p className="text-lg font-bold text-gray-800">
+                                  {studentAnalytics.data[1].value}
+                                </p>
+                              </div>
                             </div>
-                          ))}
+                          </div>
+
+                          {/* Progress Legend */}
+                          <div className="mt-4 flex justify-center gap-3">
+                            {studentAnalytics.data.map((item, index) => (
+                              <div key={index} className="flex items-center gap-1">
+                                <div 
+                                  className="w-3 h-3 rounded-full" 
+                                  style={{ backgroundColor: item.color }}
+                                ></div>
+                                <span className="text-xs text-gray-600">
+                                  {item.label}: {item.value}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </>
+                      ) : (
+                        <div className="text-center text-xs sm:text-sm text-gray-500">
+                          No grade data available for this student.
                         </div>
-                      </>
-                    ) : (
-                      <div className="text-center text-xs sm:text-sm text-gray-500">
-                        No grade data available for this student.
+                      )}
+                    </div>
+
+                    {/* Student Details */}
+                    <div className="mt-3 sm:mt-4 md:mt-6 p-2 sm:p-3 md:p-4 bg-gray-50 rounded-lg">
+                      <h4 className="font-medium text-gray-900 mb-1 sm:mb-2 text-xs sm:text-sm md:text-base">Student Details</h4>
+                      <div className="space-y-1 text-xs sm:text-sm text-gray-600">
+                        <p className="break-words">Email: {localStudents.find(s => s.user_ID === selectedStudent.id)?.user_Email || 'N/A'}</p>
+                        <p>Status: {calculateStudentStatus(
+                          localStudents.find(s => s.user_ID === selectedStudent.id), 
+                          activity
+                        )}</p>
+                        <p>Current Grade: {localStudents.find(s => s.user_ID === selectedStudent.id)?.grade || 'Not graded'}</p>
+                      </div>
+                    </div>
+
+                    {isMobile && (
+                      <div className="mt-4 p-3 bg-blue-50 rounded-lg">
+                        <p className="text-xs text-blue-700 text-center">
+                          Scroll to see more analytics information
+                        </p>
                       </div>
                     )}
                   </div>
-
-                  {/* Student Details */}
-                  <div className="mt-3 sm:mt-4 md:mt-6 p-2 sm:p-3 md:p-4 bg-gray-50 rounded-lg">
-                    <h4 className="font-medium text-gray-900 mb-1 sm:mb-2 text-xs sm:text-sm md:text-base">Student Details</h4>
-                    <div className="space-y-1 text-xs sm:text-sm text-gray-600">
-                      <p className="break-words">Email: {localStudents.find(s => s.user_ID === selectedStudent.id)?.user_Email || 'N/A'}</p>
-                      <p>Status: {calculateStudentStatus(
-                        localStudents.find(s => s.user_ID === selectedStudent.id), 
-                        activity
-                      )}</p>
-                      <p>Current Grade: {localStudents.find(s => s.user_ID === selectedStudent.id)?.grade || 'Not graded'}</p>
-                    </div>
+                ) : (
+                  <div className="h-full flex items-center justify-center text-xs sm:text-sm text-gray-500">
+                    {isMobile && localStudents.length > 0 ? "Tap a student to view analytics" : "Select a student to view analytics"}
                   </div>
-
-                  {isMobile && (
-                    <div className="mt-4 p-3 bg-blue-50 rounded-lg">
-                      <p className="text-xs text-blue-700 text-center">
-                        Scroll to see more analytics information
-                      </p>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div className="h-full flex items-center justify-center text-xs sm:text-sm text-gray-500">
-                  {isMobile && localStudents.length > 0 ? "Tap a student to view analytics" : "Select a student to view analytics"}
-                </div>
-              )}
+                )}
+              </div>
             </div>
           </div>
 

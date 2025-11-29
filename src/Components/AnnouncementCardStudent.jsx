@@ -19,16 +19,45 @@ export default function AnnouncementCardStudent({
   const [showFullInstructions, setShowFullInstructions] = useState(false);
   const [relativeTime, setRelativeTime] = useState("");
 
-  // Function to calculate relative time
+  // Function to parse and convert server timestamp to local time
+  const parseServerTimestamp = (dateString) => {
+    if (!dateString || dateString === "No deadline" || dateString === "N/A") return null;
+    
+    try {
+      // If the dateString is already a valid ISO string with timezone info, use it directly
+      if (dateString.includes('Z') || dateString.includes('+')) {
+        return new Date(dateString);
+      }
+      
+      // If it's a MySQL datetime format (YYYY-MM-DD HH:MM:SS), assume UTC and convert to local
+      if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(dateString)) {
+        // Append 'Z' to indicate UTC, then let JavaScript convert to local time
+        return new Date(dateString + 'Z');
+      }
+      
+      // Fallback: try parsing as is
+      return new Date(dateString);
+    } catch {
+      return null;
+    }
+  };
+
+  // Function to calculate relative time with proper timezone handling
   const getRelativeTime = (dateString) => {
     if (!dateString || dateString === "No deadline" || dateString === "N/A") return "N/A";
     
     try {
-      const date = new Date(dateString);
+      const date = parseServerTimestamp(dateString);
+      if (!date || isNaN(date.getTime())) {
+        return "Recently";
+      }
+      
       const now = new Date();
       const diffInSeconds = Math.floor((now - date) / 1000);
       
-      if (diffInSeconds < 60) {
+      if (diffInSeconds < 0) {
+        return "Just now";
+      } else if (diffInSeconds < 60) {
         return `${diffInSeconds}s ago`;
       } else if (diffInSeconds < 3600) {
         const minutes = Math.floor(diffInSeconds / 60);
@@ -47,7 +76,7 @@ export default function AnnouncementCardStudent({
         return `${years}y ago`;
       }
     } catch {
-      return dateString;
+      return "Recently";
     }
   };
 
@@ -65,21 +94,24 @@ export default function AnnouncementCardStudent({
     }
   }, [datePosted]);
 
-  // Format deadline for display
+  // Format deadline for display with local timezone
   const formatDeadline = (dateString) => {
     if (!dateString || dateString === "No deadline" || dateString === "N/A") return "N/A";
     
     try {
-      const date = new Date(dateString);
+      const date = parseServerTimestamp(dateString);
+      if (!date || isNaN(date.getTime())) {
+        return dateString;
+      }
       
-      // Format date: Month Day, Year | Time
+      // Format date: Month Day, Year | Time (in user's local timezone)
       const dateFormatted = date.toLocaleDateString('en-US', {
         month: 'long',
         day: 'numeric',
         year: 'numeric'
       });
       
-      // Format time: 00:00 AM/PM
+      // Format time: 00:00 AM/PM (in user's local timezone)
       const timeFormatted = date.toLocaleTimeString('en-US', {
         hour: '2-digit',
         minute: '2-digit',
@@ -117,12 +149,14 @@ export default function AnnouncementCardStudent({
   // Format the deadline for display
   const formattedDeadline = formatDeadline(deadline);
 
-  // Check if deadline is urgent (within 24 hours) or passed
+  // Check if deadline is urgent (within 24 hours) or passed - with proper timezone handling
   const isDeadlineUrgent = (deadline) => {
     if (!deadline || deadline === "No deadline" || deadline === "N/A") return false;
     
     try {
-      const deadlineDate = new Date(deadline);
+      const deadlineDate = parseServerTimestamp(deadline);
+      if (!deadlineDate || isNaN(deadlineDate.getTime())) return false;
+      
       const now = new Date();
       const timeDiff = deadlineDate.getTime() - now.getTime();
       const hoursDiff = timeDiff / (1000 * 60 * 60);
@@ -133,12 +167,14 @@ export default function AnnouncementCardStudent({
     }
   };
 
-  // Check if deadline is passed
+  // Check if deadline is passed - with proper timezone handling
   const isDeadlinePassed = (deadline) => {
     if (!deadline || deadline === "No deadline" || deadline === "N/A") return false;
     
     try {
-      const deadlineDate = new Date(deadline);
+      const deadlineDate = parseServerTimestamp(deadline);
+      if (!deadlineDate || isNaN(deadlineDate.getTime())) return false;
+      
       const now = new Date();
       return deadlineDate.getTime() < now.getTime();
     } catch {

@@ -9,7 +9,7 @@ import Announcement from "../assets/Announcement.svg";
 import Report from "../assets/Report.svg";
 import AccountRequest from "../assets/AccountRequest.svg";
 import Import from "../assets/Import.svg";
-import Notification from "../assets/Notification.svg";
+// import Notification from "../assets/Notification.svg";
 import Profile from "../assets/Profile.svg";
 import AccountSettings from "../assets/Settings.svg";
 import LogOut from "../assets/LogOut.svg";
@@ -222,7 +222,7 @@ export default function Sidebar({ role = "student", isOpen: isOpenProp, setIsOpe
         { label: "Reports", icon: Analytics, path: "/AnalyticsStudent" },
       ],
       extras: [
-        { label: "Notification", icon: Notification, path: "/NotificationStudent" },
+        // { label: "Notification", icon: Notification, path: "/NotificationStudent" },
         { label: "Profile", icon: Profile, path: "/ProfileStudent" },
         { label: "Account Setting", icon: AccountSettings, path: "/AccountSetting" },
       ],
@@ -240,7 +240,7 @@ export default function Sidebar({ role = "student", isOpen: isOpenProp, setIsOpe
         { label: "Reports", icon: Analytics, path: "/AnalyticsProf" },
       ],
       extras: [
-        { label: "Notification", icon: Notification, path: "/NotificationProf" },
+        // { label: "Notification", icon: Notification, path: "/NotificationProf" },
         { label: "Profile", icon: Profile, path: "/ProfileProf" },
         { label: "Account Setting", icon: AccountSettings, path: "/AccountSettingProf" },
       ],

@@ -503,21 +503,6 @@ export default function ClassworkTab() {
     });
   };
 
-  // Updated: Check if activity has any grades (excluding 0 grades)
-  const hasSomeGrades = (activity) => {
-    if (!activity.students || activity.students.length === 0) return false;
-    
-    return activity.students.some(student => {
-      const grade = student.grade;
-      // Consider null, undefined, empty string, and 0 as "not graded"
-      return grade != null && 
-             grade !== '' && 
-             grade !== undefined && 
-             grade !== 0 && 
-             grade !== '0';
-    });
-  };
-
   // Check if deadline is passed
   const isDeadlinePassed = (deadline) => {
     if (!deadline || deadline === "No deadline") return false;

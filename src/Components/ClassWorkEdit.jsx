@@ -45,15 +45,25 @@ const ClassWorkEdit = ({
       setAssignTo("wholeClass"); // Default to whole class for edit
       setSelectedStudents([]); // Reset selected students for edit
 
-      // Format deadline for datetime-local input
+      // FIXED: Use the exact same deadline format as ClassworkTab.jsx
       if (activity.deadline && activity.deadline !== "No deadline") {
         try {
           const date = new Date(activity.deadline);
           if (!isNaN(date.getTime())) {
-            setDeadline(date.toISOString().slice(0, 16));
+            // Convert to local datetime string in the exact same format
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            const hours = String(date.getHours()).padStart(2, '0');
+            const minutes = String(date.getMinutes()).padStart(2, '0');
+            
+            // Format: YYYY-MM-DDTHH:mm (local time)
+            const localDateTimeString = `${year}-${month}-${day}T${hours}:${minutes}`;
+            setDeadline(localDateTimeString);
           }
         } catch (error) {
           console.warn('Error parsing deadline:', error);
+          setDeadline("");
         }
       } else {
         setDeadline("");
@@ -153,7 +163,7 @@ const ClassWorkEdit = ({
       instruction,
       link,
       points: points || 0,
-      deadline,
+      deadline, // This will preserve the exact deadline format
       ...assignmentData
     });
   };

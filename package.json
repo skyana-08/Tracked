@@ -12,7 +12,8 @@
   "dependencies": {
     "@notificationapi/react": "^1.6.2",
     "@tailwindcss/vite": "^4.1.12",
-    "jspdf": "^3.0.3",
+    "jspdf": "^3.0.4",
+    "jspdf-autotable": "^5.0.2",
     "lottie-react": "^2.4.1",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",

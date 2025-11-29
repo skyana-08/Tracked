@@ -1,17 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import jsPDF from 'jspdf';
 
 import Sidebar from "../../Components/Sidebar";
 import Header from "../../Components/Header";
 import AttendanceCard from "../../Components/AttendanceCard";
-import RemoveStudent from "../../Components/RemoveStudent"; // Add this import
+import RemoveStudent from "../../Components/RemoveStudent";
 
 import AttendanceHistoryIcon from '../../assets/AttendanceHistory.svg';
 import BackButton from '../../assets/BackButton(Light).svg';
 import Search from '../../assets/Search.svg';
 
 export default function AttendanceHistory() {
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const location = useLocation();
   const searchParams = new URLSearchParams(location.search);
   const subjectCode = searchParams.get('code');
@@ -20,8 +21,9 @@ export default function AttendanceHistory() {
   const [classInfo, setClassInfo] = useState(null);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [showRemoveStudentModal, setShowRemoveStudentModal] = useState(false); // Add this state
-  const [selectedStudent, setSelectedStudent] = useState(null); // Add this state
+  const [showRemoveStudentModal, setShowRemoveStudentModal] = useState(false);
+  const [selectedStudent, setSelectedStudent] = useState(null);
+  const [downloading, setDownloading] = useState(false);
 
   // Get professor ID from localStorage
   const getProfessorId = () => {
@@ -109,17 +111,186 @@ export default function AttendanceHistory() {
     setSelectedStudent(null);
   };
 
-  // Handle removing student (you'll need to implement this logic)
+  // Handle removing student
   const handleRemoveStudent = async (student) => {
     try {
-      // Implement your remove student logic here
       console.log('Removing student:', student);
-      
-      // After successful removal, refresh the attendance history
       await fetchAttendanceHistory();
       setShowRemoveStudentModal(false);
     } catch (error) {
       console.error('Error removing student:', error);
+    }
+  };
+
+  // Download all attendance records as PDF
+  const downloadAllAttendanceRecords = async () => {
+    if (!attendanceHistory.length) {
+      alert('No attendance records to download');
+      return;
+    }
+
+    setDownloading(true);
+    try {
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const margin = 15;
+      let yPosition = margin;
+      
+      // Add title and class information
+      pdf.setFontSize(20);
+      pdf.setFont(undefined, 'bold');
+      pdf.text('Complete Attendance History', pageWidth / 2, yPosition, { align: 'center' });
+      
+      pdf.setFontSize(12);
+      pdf.setFont(undefined, 'normal');
+      yPosition += 10;
+      
+      // Class information
+      if (classInfo) {
+        pdf.text(`Subject: ${classInfo.subject || 'N/A'} (${classInfo.subject_code || 'N/A'})`, margin, yPosition);
+        yPosition += 6;
+        pdf.text(`Section: ${classInfo.section || 'N/A'}`, margin, yPosition);
+        yPosition += 6;
+        pdf.text(`Professor: ${classInfo.professor_name || 'N/A'}`, margin, yPosition);
+        yPosition += 6;
+      }
+      
+      pdf.text(`Generated on: ${new Date().toLocaleDateString()}`, margin, yPosition);
+      yPosition += 15;
+
+      // Process each attendance date
+      attendanceHistory.forEach((record, recordIndex) => {
+        // Check if we need a new page
+        if (yPosition > 250 && recordIndex > 0) {
+          pdf.addPage();
+          yPosition = margin;
+        }
+
+        // Date header
+        pdf.setFontSize(16);
+        pdf.setFont(undefined, 'bold');
+        pdf.text(`Attendance for ${record.date}`, margin, yPosition);
+        yPosition += 8;
+
+        // Calculate statistics for this date
+        const presentCount = record.students.filter(s => s.status === 'present').length;
+        const lateCount = record.students.filter(s => s.status === 'late').length;
+        const absentCount = record.students.filter(s => s.status === 'absent').length;
+        const totalStudents = record.students.length;
+
+        // Summary
+        pdf.setFontSize(10);
+        pdf.setFont(undefined, 'normal');
+        pdf.text(`Summary: Present: ${presentCount} | Late: ${lateCount} | Absent: ${absentCount} | Total: ${totalStudents}`, margin, yPosition);
+        yPosition += 10;
+
+        // Table headers
+        pdf.setFont(undefined, 'bold');
+        pdf.text('#', margin, yPosition);
+        pdf.text('Student ID', margin + 15, yPosition);
+        pdf.text('Full Name', margin + 60, yPosition);
+        pdf.text('Status', pageWidth - margin - 20, yPosition);
+        
+        // Line under headers
+        yPosition += 3;
+        pdf.line(margin, yPosition, pageWidth - margin, yPosition);
+        yPosition += 7;
+
+        // Student data
+        pdf.setFont(undefined, 'normal');
+        pdf.setFontSize(9);
+        
+        record.students.forEach((student, index) => {
+          // Check if we need a new page
+          if (yPosition > 270) {
+            pdf.addPage();
+            yPosition = margin;
+            
+            // Add headers on new page
+            pdf.setFont(undefined, 'bold');
+            pdf.setFontSize(10);
+            pdf.text('#', margin, yPosition);
+            pdf.text('Student ID', margin + 15, yPosition);
+            pdf.text('Full Name', margin + 60, yPosition);
+            pdf.text('Status', pageWidth - margin - 20, yPosition);
+            yPosition += 10;
+            pdf.setFont(undefined, 'normal');
+            pdf.setFontSize(9);
+          }
+
+          const studentNumber = student.student_ID || student.user_ID || 'N/A';
+          const studentName = student.user_Name || 'Unknown';
+          const status = student.status.charAt(0).toUpperCase() + student.status.slice(1);
+
+          // Add student data
+          pdf.text(`${index + 1}`, margin, yPosition);
+          pdf.text(studentNumber, margin + 15, yPosition);
+          
+          // Truncate long names to fit
+          const maxNameWidth = 80;
+          let displayName = studentName;
+          if (pdf.getTextWidth(studentName) > maxNameWidth) {
+            // Find a reasonable truncation point
+            for (let i = studentName.length; i > 0; i--) {
+              const testName = studentName.substring(0, i) + '...';
+              if (pdf.getTextWidth(testName) <= maxNameWidth) {
+                displayName = testName;
+                break;
+              }
+            }
+          }
+          pdf.text(displayName, margin + 60, yPosition);
+          
+          // Set color based on status
+          switch (student.status) {
+            case 'present':
+              pdf.setTextColor(0, 161, 93); // Green
+              break;
+            case 'late':
+              pdf.setTextColor(118, 126, 224); // Blue
+              break;
+            case 'absent':
+              pdf.setTextColor(239, 68, 68); // Red
+              break;
+            default:
+              pdf.setTextColor(0, 0, 0);
+          }
+          
+          pdf.text(status, pageWidth - margin - 20, yPosition, { align: 'right' });
+          
+          // Reset text color for next row
+          pdf.setTextColor(0, 0, 0);
+          
+          yPosition += 6;
+        });
+        
+        yPosition += 10; // Space between records
+      });
+
+      // Add footer with page numbers
+      const pageCount = pdf.internal.getNumberOfPages();
+      for (let i = 1; i <= pageCount; i++) {
+        pdf.setPage(i);
+        pdf.setFontSize(8);
+        pdf.setTextColor(128, 128, 128);
+        pdf.text(
+          `Page ${i} of ${pageCount}`,
+          pageWidth / 2,
+          pdf.internal.pageSize.getHeight() - 10,
+          { align: 'center' }
+        );
+      }
+
+      // Save the PDF
+      const fileName = `attendance-history-${classInfo?.subject_code || 'class'}-${new Date().toISOString().split('T')[0]}.pdf`;
+      pdf.save(fileName);
+
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      console.error('Error details:', error.message);
+      alert('Error generating PDF file. Please try again.');
+    } finally {
+      setDownloading(false);
     }
   };
 
@@ -190,7 +361,7 @@ export default function AttendanceHistory() {
 
           <hr className="border-[#465746]/30 mb-5 sm:mb-6" />
 
-          {/* Search */}
+          {/* Search and Download All Button */}
           <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center mt-4 sm:mt-5 gap-3">
             <div className="relative flex-1 max-w-full sm:max-w-md">
               <input
@@ -211,6 +382,24 @@ export default function AttendanceHistory() {
                 />
               </button>
             </div>
+            
+            {/* Download All Button */}
+            <button
+              onClick={downloadAllAttendanceRecords}
+              disabled={downloading || !attendanceHistory.length}
+              className="flex items-center justify-center gap-2 px-4 py-2 bg-[#00A15D] text-white font-semibold text-sm rounded-lg hover:bg-[#00874E] disabled:bg-gray-400 disabled:cursor-not-allowed transition-all duration-200 shadow-md hover:shadow-lg whitespace-nowrap cursor-pointer"
+            >
+              {downloading ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  <span>Generating PDF...</span>
+                </>
+              ) : (
+                <>
+                  <span>Download All Records</span>
+                </>
+              )}
+            </button>
           </div>
 
           {/* Attendance Cards */}
@@ -223,7 +412,7 @@ export default function AttendanceHistory() {
                   students={record.students}
                   rawDate={record.raw_date}
                   subjectCode={subjectCode}
-                  onRemoveStudent={handleOpenRemoveStudent} // Pass the handler
+                  onRemoveStudent={handleOpenRemoveStudent}
                 />
               ))
             ) : (

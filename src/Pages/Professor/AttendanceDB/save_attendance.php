@@ -81,8 +81,8 @@ try {
         if (!empty($absentStudents)) {
             $absentStudentDetails = getStudentsByIds($pdo, $absentStudents);
             foreach ($absentStudentDetails as $student) {
-                $emailSubject = "Absence Notification - " . $class['subject'];
-                $emailTitle = "Absence Recorded";
+                $emailSubject = "Absent Notification - " . $class['subject'];
+                $emailTitle = "Absent Recorded";
                 $emailMessage = "You were marked as absent in " . $class['subject'] . " (" . $class['section'] . ") on " . 
                                date('M j, Y', strtotime($input['attendance_date'])) . ".\n\n" .
                                "Please coordinate with your professor if you have any concerns.";
