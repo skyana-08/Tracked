@@ -15,6 +15,8 @@ import ProfessorAccounts from '../../assets/ProfessorAccounts.svg';
 import ActiveAccounts from '../../assets/ActiveAccounts.svg';
 import DisabledAccounts from '../../assets/DisabledAccounts.svg';
 import Details from '../../assets/Details(Light).svg';
+import SuccessIcon from '../../assets/Success(Green).svg';
+import ErrorIcon from '../../assets/Error(Red).svg';
 
 // Import the Lottie animation JSON file
 import loadingAnimation from "../../assets/system-regular-716-spinner-three-dots-loop-expand.json";
@@ -45,10 +47,19 @@ export default function Report() {
   const [studentFilter, setStudentFilter] = useState('all');
   const [professorFilter, setProfessorFilter] = useState('all');
 
-  // State for semester toggles
-  const [firstSemester, setFirstSemester] = useState(true);
-  const [secondSemester, setSecondSemester] = useState(false);
-  const [summer, setSummer] = useState(false);
+  // State for semester settings
+  const [semesterSettings, setSemesterSettings] = useState({
+    first_sem: 'INACTIVE',
+    second_sem: 'INACTIVE',
+    summer_sem: 'INACTIVE'
+  });
+  const [isLoadingSemester, setIsLoadingSemester] = useState(false);
+  const [semesterModal, setSemesterModal] = useState({
+    show: false,
+    type: '', // 'success' or 'error'
+    title: '',
+    message: ''
+  });
 
   // Lottie animation options
   const defaultLottieOptions = {
@@ -95,8 +106,102 @@ export default function Report() {
     }
   };
 
+  // Fetch semester status from backend
+  const fetchSemesterStatus = async () => {
+    setIsLoadingSemester(true);
+    try {
+      const response = await fetch("http://localhost/TrackEd/src/Pages/Admin/UserManagementDB_ReportsDB/semester_settings.php", {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      const data = await response.json();
+      
+      if (data.success && data.data) {
+        setSemesterSettings(data.data);
+      } else {
+        console.error("Failed to fetch semester status:", data.message);
+        showSemesterModal('error', 'Fetch Failed', 'Failed to load semester settings');
+      }
+    } catch (error) {
+      console.error("Error fetching semester status:", error);
+      showSemesterModal('error', 'Network Error', 'Failed to connect to server');
+    } finally {
+      setIsLoadingSemester(false);
+    }
+  };
+
+  // Update semester status
+  const updateSemesterStatus = async (semester, status) => {
+    setIsLoadingSemester(true);
+    try {
+      console.log('Updating semester:', semester, 'to:', status);
+      
+      const response = await fetch("http://localhost/TrackEd/src/Pages/Admin/UserManagementDB_ReportsDB/semester_settings.php", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          semester: semester,
+          status: status
+        }),
+      });
+
+      const data = await response.json();
+      console.log('Update response:', data);
+      
+      if (data.success) {
+        // Refresh the semester status
+        await fetchSemesterStatus();
+        showSemesterModal('success', 'Success', data.message || 'Semester status updated successfully');
+      } else {
+        showSemesterModal('error', 'Update Failed', data.message || 'Failed to update semester status');
+      }
+    } catch (error) {
+      console.error("Error updating semester status:", error);
+      showSemesterModal('error', 'Network Error', 'Failed to connect to server');
+    } finally {
+      setIsLoadingSemester(false);
+    }
+  };
+
+  // Show semester modal
+  const showSemesterModal = (type, title, message) => {
+    setSemesterModal({
+      show: true,
+      type,
+      title,
+      message
+    });
+  };
+
+  // Close semester modal
+  const closeSemesterModal = () => {
+    setSemesterModal({ show: false, type: '', title: '', message: '' });
+  };
+
+  // Handle semester toggle
+  const handleSemesterToggle = (semester) => {
+    const newStatus = semesterSettings[semester] === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
+    updateSemesterStatus(semester, newStatus);
+  };
+
+  // Get semester display name
+  const getSemesterDisplayName = (semester) => {
+    const names = {
+      first_sem: 'First Semester',
+      second_sem: 'Second Semester',
+      summer_sem: 'Summer Semester'
+    };
+    return names[semester] || semester;
+  };
+
   useEffect(() => {
     fetchWidgetData();
+    fetchSemesterStatus();
   }, []);
 
   // Filter students based on search and filter
@@ -144,25 +249,31 @@ export default function Report() {
     setProfessorFilterOpen(false);
   };
 
-  // Toggle switch component
-  const ToggleSwitch = ({ isOn, onToggle, label }) => (
-    <div className="flex items-center justify-between">
-      <span className="text-xs sm:text-sm text-[#465746] font-medium">{label}</span>
-      <button
-        onClick={onToggle}
-        className={`relative inline-flex h-4 w-8 sm:h-5 sm:w-10 items-center rounded-full transition-colors focus:outline-none ${
-          isOn ? 'bg-[#00874E]' : 'bg-gray-300'
-        }`}
-        title={`Turn ${label} ${isOn ? 'off' : 'on'}`}
-      >
-        <span
-          className={`inline-block h-3 w-3 sm:h-4 sm:w-4 transform rounded-full bg-white transition-transform ${
-            isOn ? 'translate-x-4 sm:translate-x-5' : 'translate-x-1'
-          }`}
-        />
-      </button>
-    </div>
-  );
+  // Semester Toggle Switch component
+  const SemesterToggleSwitch = ({ semester, status, onToggle, disabled }) => {
+    const isActive = status === 'ACTIVE';
+    const displayName = getSemesterDisplayName(semester);
+    
+    return (
+      <div className="flex items-center justify-between">
+        <span className="text-xs sm:text-sm text-[#465746] font-medium">{displayName}</span>
+        <button
+          onClick={onToggle}
+          disabled={disabled}
+          className={`relative inline-flex h-4 w-8 sm:h-5 sm:w-10 items-center rounded-full transition-colors focus:outline-none ${
+            isActive ? 'bg-[#00874E]' : 'bg-gray-300'
+          } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+          title={`Turn ${displayName} ${isActive ? 'off' : 'on'}`}
+        >
+          <span
+            className={`inline-block h-3 w-3 sm:h-4 sm:w-4 transform rounded-full bg-white transition-transform ${
+              isActive ? 'translate-x-4 sm:translate-x-5' : 'translate-x-1'
+            }`}
+          />
+        </button>
+      </div>
+    );
+  };
 
   if (loading) {
     return (
@@ -342,26 +453,34 @@ export default function Report() {
                 </div>
               </div>
 
-              {/* NEW: Semester Toggles Widget */}
+              {/* NEW: Semester Settings Widget */}
               <div className='bg-[#fff] h-24 sm:h-32 md:h-36 lg:h-40 rounded-lg sm:rounded-xl p-2 sm:p-3 lg:p-4 text-[#465746] shadow-md'> 
                 <div className='font-bold text-[10px] sm:text-sm md:text-base lg:text-[1.125rem] h-full flex flex-col'>
                   <p className='mb-1 sm:mb-2'> Semester Settings </p>
                   <div className='flex flex-col space-y-1 sm:space-y-2 mt-auto'>
-                    <ToggleSwitch 
-                      isOn={firstSemester} 
-                      onToggle={() => setFirstSemester(!firstSemester)}
-                      label="First Semester"
-                    />
-                    <ToggleSwitch 
-                      isOn={secondSemester} 
-                      onToggle={() => setSecondSemester(!secondSemester)}
-                      label="Second Semester"
-                    />
-                    <ToggleSwitch 
-                      isOn={summer} 
-                      onToggle={() => setSummer(!summer)}
-                      label="Summer"
-                    />
+                    {isLoadingSemester ? (
+                      <div className="flex items-center justify-center py-2">
+                        <div className="w-4 h-4 mr-2">
+                          <Lottie 
+                            {...defaultLottieOptions}
+                            style={{ width: '100%', height: '100%' }}
+                          />
+                        </div>
+                        <span className="text-xs text-[#465746]">Loading...</span>
+                      </div>
+                    ) : (
+                      <>
+                        {Object.entries(semesterSettings).map(([semester, status]) => (
+                          <SemesterToggleSwitch
+                            key={semester}
+                            semester={semester}
+                            status={status}
+                            onToggle={() => handleSemesterToggle(semester)}
+                            disabled={isLoadingSemester}
+                          />
+                        ))}
+                      </>
+                    )}
                   </div>
                 </div>
               </div>
@@ -706,6 +825,53 @@ export default function Report() {
           </div>
           
         </div>
+
+        {/* Semester Settings Modal */}
+        {semesterModal.show && (
+          <div
+            className="fixed inset-0 bg-black/50 flex justify-center items-center z-50 overlay-fade p-4"
+            onClick={closeSemesterModal}
+            role="dialog"
+            aria-modal="true"
+          >
+            <div 
+              className="bg-white text-black rounded-lg shadow-2xl w-full max-w-sm sm:max-w-md p-6 sm:p-8 relative modal-pop"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="text-center">
+                {/* Icon */}
+                <div className={`mx-auto flex items-center justify-center h-16 w-16 rounded-full mb-4 ${
+                  semesterModal.type === 'success' ? 'bg-green-100' : 'bg-red-100'
+                }`}>
+                  <img 
+                    src={semesterModal.type === 'success' ? SuccessIcon : ErrorIcon} 
+                    alt={semesterModal.type === 'success' ? 'Success' : 'Error'} 
+                    className="h-8 w-8" 
+                  />
+                </div>
+
+                <h3 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">
+                  {semesterModal.title}
+                </h3>
+                
+                <div className="mt-4 mb-6">
+                  <p className="text-sm text-gray-600">
+                    {semesterModal.message}
+                  </p>
+                </div>
+
+                <div className="flex justify-center">
+                  <button
+                    onClick={closeSemesterModal}
+                    className="px-6 py-3 bg-[#00874E] hover:bg-[#00743E] text-white font-bold rounded-md transition-all duration-200 cursor-pointer"
+                  >
+                    OK
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -5,9 +5,9 @@ header("Access-Control-Allow-Headers: Content-Type");
 header("Content-Type: application/json");
 
 $servername = "localhost";
-$username = "u713320770_trackedDB";
-$password = "Tracked@2025";
-$dbname = "u713320770_tracked";
+$username = "root";
+$password = "";
+$dbname = "tracked";
 
 $conn = new mysqli($servername, $username, $password, $dbname);
 
@@ -32,8 +32,8 @@ define("SMTP_PASS", "nmvi itzx dqrh qimh");
 define("FROM_EMAIL", "tracked.0725@gmail.com");
 define("FROM_NAME", "TrackED System");
 
-// Fetch only Professor and Student users from the users table
-$sql = "SELECT * FROM users WHERE user_Role IN ('Professor', 'Student')";
+// Fetch only Admin users from the users table
+$sql = "SELECT * FROM users WHERE user_Role IN ('Admin')";
 $result = $conn->query($sql);
 
 $successCount = 0;
@@ -107,7 +107,7 @@ if ($result && $result->num_rows > 0) {
                 }
             } else {
                 $errorCount++;
-                $errorMessages[] = "Failed to insert user $user_ID: " . $conn->error;
+                $errorMessages[] = "Failed to insert admin $user_ID: " . $conn->error;
             }
         } else if ($check_result) {
             // Update existing record
@@ -139,13 +139,13 @@ if ($result && $result->num_rows > 0) {
                 }
             } else {
                 $errorCount++;
-                $errorMessages[] = "Failed to update user $user_ID: " . $conn->error;
+                $errorMessages[] = "Failed to update admin $user_ID: " . $conn->error;
             }
         }
     }
 
-    $message = "Professor and Student accounts activated successfully. ";
-    $message .= "Emails sent to $successCount users. ";
+    $message = "Admin accounts activated successfully. ";
+    $message .= "Emails sent to $successCount admins. ";
     if ($errorCount > 0) {
         $message .= "$errorCount emails failed to send. ";
         $message .= "Errors: " . implode(", ", array_slice($errorMessages, 0, 5));
@@ -153,7 +153,7 @@ if ($result && $result->num_rows > 0) {
 
     echo json_encode(["status" => "success", "message" => $message]);
 } else {
-    echo json_encode(["status" => "error", "message" => "No Professor or Student accounts found in source table."]);
+    echo json_encode(["status" => "error", "message" => "No Admin accounts found in source table."]);
 }
 
 $conn->close();
@@ -182,21 +182,21 @@ function sendTemporaryPasswordEmail($user_Email, $user_firstname, $user_ID, $pla
 
         // Email content
         $mail->isHTML(true);
-        $mail->Subject = "Your TrackED Account Has Been Activated";
+        $mail->Subject = "Your TrackED Admin Account Has Been Activated";
 
         $mail->Body = '
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f9f9f9;">
             <div style="background-color: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                <h2 style="color: #00A15D; text-align: center; margin-bottom: 20px;">Welcome to TrackED!</h2>
+                <h2 style="color: #00A15D; text-align: center; margin-bottom: 20px;">Welcome to TrackED Admin Portal!</h2>
                 
                 <p style="color: #333; font-size: 16px; margin-bottom: 20px;">Dear ' . htmlspecialchars($user_firstname) . ',</p>
                 
                 <p style="color: #333; font-size: 16px; line-height: 1.6; margin-bottom: 20px;">
-                    Your TrackED account has been successfully activated. Below are your login credentials:
+                    Your TrackED Admin account has been successfully activated. Below are your login credentials:
                 </p>
                 
                 <div style="background-color: #f5f5f5; padding: 20px; border-radius: 5px; margin: 20px 0;">
-                    <p style="margin: 10px 0;"><strong>User ID:</strong> ' . htmlspecialchars($user_ID) . '</p>
+                    <p style="margin: 10px 0;"><strong>Admin ID:</strong> ' . htmlspecialchars($user_ID) . '</p>
                     <p style="margin: 10px 0;"><strong>Temporary Password:</strong> <code style="background-color: #eee; padding: 5px 10px; border-radius: 3px; font-size: 16px;">' . htmlspecialchars($plain_password) . '</code></p>
                 </div>
                 
@@ -208,7 +208,7 @@ function sendTemporaryPasswordEmail($user_Email, $user_firstname, $user_ID, $pla
                 </div>
                 
                 <p style="color: #666; font-size: 14px; line-height: 1.6; margin-bottom: 15px;">
-                    You can now access your account at: <a href="https://tracked.6minds.site"> https://tracked.6minds.site </a>
+                    You can now access your admin account at: <a href="https://tracked.6minds.site"> https://tracked.6minds.site </a>
                 </p>
                 
                 <p style="color: #666; font-size: 14px; line-height: 1.6; margin-bottom: 20px;">
@@ -223,7 +223,7 @@ function sendTemporaryPasswordEmail($user_Email, $user_firstname, $user_ID, $pla
             </div>
         </div>';
 
-        $mail->AltBody = "Welcome to TrackED!\n\nDear " . $user_firstname . ",\n\nYour TrackED account has been successfully activated.\n\nLogin Credentials:\nUser ID: " . $user_ID . "\nTemporary Password: " . $plain_password . "\n\nImportant: For security reasons, please change your password after your first login. You can use the 'Forgot Password' feature if needed, using this temporary password as your current password.\n\nLogin URL: https://tracked.6minds.site\n\nThis is a system generated message. Please do not reply.";
+        $mail->AltBody = "Welcome to TrackED Admin Portal!\n\nDear " . $user_firstname . ",\n\nYour TrackED Admin account has been successfully activated.\n\nLogin Credentials:\nAdmin ID: " . $user_ID . "\nTemporary Password: " . $plain_password . "\n\nImportant: For security reasons, please change your password after your first login. You can use the 'Forgot Password' feature if needed, using this temporary password as your current password.\n\nLogin URL: https://tracked.6minds.site\n\nThis is a system generated message. Please do not reply.";
 
         return $mail->send();
     } catch (Exception $e) {

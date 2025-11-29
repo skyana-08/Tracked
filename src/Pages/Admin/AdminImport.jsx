@@ -178,11 +178,15 @@ export default function AdminImport() {
   };
 
   const handleActivateAccounts = () => {
-    if (users.length === 0) {
+    const professorAndStudentUsers = users.filter(user => 
+      user.user_Role === 'Professor' || user.user_Role === 'Student'
+    );
+    
+    if (professorAndStudentUsers.length === 0) {
       setResultData({
         type: "error",
         title: "No Users Found!",
-        message: "There are no users to activate. Please import data first."
+        message: "There are no Professor or Student accounts to activate. Please import data first."
       });
       setShowResultModal(true);
       return;
@@ -240,6 +244,10 @@ export default function AdminImport() {
   const indexOfFirstUser = indexOfLastUser - usersPerPage;
   const currentUsers = users.slice(indexOfFirstUser, indexOfLastUser);
   const totalPages = Math.ceil(users.length / usersPerPage);
+
+  const professorAndStudentUsers = users.filter(user => 
+    user.user_Role === 'Professor' || user.user_Role === 'Student'
+  );
 
   const handlePageChange = (pageNumber) => {
     setCurrentPage(pageNumber);
@@ -370,9 +378,9 @@ export default function AdminImport() {
 
               <button
                 onClick={handleActivateAccounts}
-                disabled={users.length === 0 || isActivating}
+                disabled={professorAndStudentUsers.length === 0 || isActivating}
                 className={`font-bold text-white px-3 sm:px-4 py-2 rounded-md shadow-md border-2 border-transparent text-xs sm:text-sm lg:text-base transition-all duration-200 cursor-pointer ${
-                  users.length === 0 || isActivating
+                  professorAndStudentUsers.length === 0 || isActivating
                     ? "bg-gray-400 cursor-not-allowed"
                     : "bg-[#00A15D] hover:bg-[#00874E]"
                 }`}
@@ -709,17 +717,17 @@ export default function AdminImport() {
               
               <div className="mt-4 mb-6">
                 <p className="text-sm text-gray-600 mb-3">
-                  Are you sure you want to activate all imported accounts? This action will make all imported user accounts active in the system.
+                  Are you sure you want to activate all imported Professor and Student accounts? This action will make all imported Professor and Student accounts active in the system.
                 </p>
                 <div className="bg-gray-50 rounded-lg p-4 text-left">
                   <p className="text-base sm:text-lg font-semibold text-gray-900">
-                    This will affect {users.length} user accounts
+                    This will affect {professorAndStudentUsers.length} user accounts
                   </p>
                   <p className="text-sm text-gray-600 mt-2">
-                    • Students: {users.filter(user => user.user_Role === 'Student').length}
+                    • Students: {professorAndStudentUsers.filter(user => user.user_Role === 'Student').length}
                   </p>
                   <p className="text-sm text-gray-600">
-                    • Professors: {users.filter(user => user.user_Role === 'Professor').length}
+                    • Professors: {professorAndStudentUsers.filter(user => user.user_Role === 'Professor').length}
                   </p>
                 </div>
               </div>
@@ -805,10 +813,10 @@ export default function AdminImport() {
                 {resultData.type === "success" && (
                   <div className="bg-gray-50 rounded-lg p-4 text-left">
                     <p className="text-base sm:text-lg font-semibold text-gray-900">
-                      {resultData.title.includes("Import") ? "Database imported successfully!" : "Accounts have been activated successfully"}
+                      {resultData.title.includes("Import") ? "Database imported successfully!" : "Professor and Student accounts have been activated successfully"}
                     </p>
                     <p className="text-sm text-gray-600 mt-2">
-                      • Total users processed: {users.length}
+                      • Total users processed: {professorAndStudentUsers.length}
                     </p>
                     {resultData.title.includes("Import") ? (
                       <p className="text-sm text-gray-600">

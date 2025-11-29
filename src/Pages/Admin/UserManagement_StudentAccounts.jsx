@@ -29,7 +29,7 @@ export default function UserManagementStudentAccounts() {
 
   const [students, setStudents] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
-  const [loading, setLoading] = useState(true); // Add loading state
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const itemsPerPage = 10;
 
@@ -38,8 +38,15 @@ export default function UserManagementStudentAccounts() {
   const [showRestoreModal, setShowRestoreModal] = useState(false);
   const [backupModalContent, setBackupModalContent] = useState(null);
   const [restoreModalContent, setRestoreModalContent] = useState(null);
-  const [isBackingUp, setIsBackingUp] = useState(false); // Add backup loading state
-  const [isRestoring, setIsRestoring] = useState(false); // Add restore loading state
+  const [isBackingUp, setIsBackingUp] = useState(false);
+  const [isRestoring, setIsRestoring] = useState(false);
+
+  // New state for Year and Section dropdowns
+  const [yearOpen, setYearOpen] = useState(false);
+  const [sectionOpen, setSectionOpen] = useState(false);
+  const [selectedYear, setSelectedYear] = useState("All");
+  const [selectedSection, setSelectedSection] = useState("All");
+  const [availableSections, setAvailableSections] = useState(['All']);
 
   // Lottie animation options
   const defaultLottieOptions = {
@@ -56,6 +63,26 @@ export default function UserManagementStudentAccounts() {
     fetchStudents();
   }, []);
 
+  // Extract available sections from students data
+  useEffect(() => {
+    if (students.length > 0) {
+      // Extract unique sections from tracked_yearandsec
+      const sections = [...new Set(students
+        .map(stud => {
+          const yearSec = stud.tracked_yearandsec;
+          // Extract section (everything after first character)
+          if (yearSec && yearSec.length > 1) {
+            return yearSec.substring(1);
+          }
+          return null;
+        })
+        .filter(section => section !== null && section !== '')
+      )].sort();
+
+      setAvailableSections(['All', ...sections]);
+    }
+  }, [students]);
+
   const fetchStudents = () => {
     setLoading(true);
     setError(null);
@@ -66,19 +93,18 @@ export default function UserManagementStudentAccounts() {
         if (Array.isArray(data)) {
           setStudents(data);
         } else if (data.success && data.student) {
-          // If it returns a single student, wrap it in an array
           setStudents([data.student]);
         } else if (data.success && Array.isArray(data.students)) {
           setStudents(data.students);
         } else {
           console.error("Unexpected response format:", data);
-          setStudents([]); // Set empty array as fallback
+          setStudents([]);
           setError("Failed to load students data");
         }
       })
       .catch((err) => {
         console.error(err);
-        setStudents([]); // Set empty array on error
+        setStudents([]);
         setError("Network error. Please check if the server is running.");
       })
       .finally(() => {
@@ -160,7 +186,6 @@ export default function UserManagementStudentAccounts() {
           message: `Students restored successfully!`,
           filename: data.filename
         });
-        // Refresh the student list
         fetchStudents();
       } else {
         setRestoreModalContent({
@@ -194,10 +219,30 @@ export default function UserManagementStudentAccounts() {
     setRestoreModalContent(null);
   };
 
-  // Filter students based on selected filter
+  // Filter students based on selected filters
   const filteredStudents = students.filter(stud => {
-    if (selectedFilter === "All") return true;
-    return stud.tracked_Status === selectedFilter;
+    // Status filter
+    if (selectedFilter !== "All" && stud.tracked_Status !== selectedFilter) {
+      return false;
+    }
+
+    // Year filter
+    if (selectedYear !== "All") {
+      const studentYear = stud.tracked_yearandsec?.charAt(0);
+      if (studentYear !== selectedYear) {
+        return false;
+      }
+    }
+
+    // Section filter
+    if (selectedSection !== "All") {
+      const studentSection = stud.tracked_yearandsec?.substring(1);
+      if (studentSection !== selectedSection) {
+        return false;
+      }
+    }
+
+    return true;
   });
 
   // Pagination setup
@@ -237,7 +282,6 @@ export default function UserManagementStudentAccounts() {
       const data = await response.json();
       
       if (data.success) {
-        // Update local state
         setStudents(prevStudents => 
           prevStudents.map(stud => 
             stud.tracked_ID === selectedStudent.tracked_ID 
@@ -285,7 +329,6 @@ export default function UserManagementStudentAccounts() {
         className={`cursor-pointer inline-flex items-center h-6 rounded-full w-11 transition-colors duration-200 ease-in-out focus:outline-none ${
           isActive ? 'bg-[#00A15D]' : 'bg-[#FF6666]'
         }`}
-        // title={isActive ? "Deactivate" : "Activate"}
       >
         <span
           className={`inline-block w-4 h-4 transform bg-white rounded-full transition-transform duration-200 ease-in-out ${
@@ -365,7 +408,7 @@ export default function UserManagementStudentAccounts() {
               {/* BUTTONS */}
               <div className="flex flex-col sm:flex-row text-[#465746] gap-3 sm:gap-4 sm:justify-between sm:items-center">
                 <div className="flex flex-wrap gap-2 sm:gap-3">
-                  {/* Filter Dropdown */}
+                  {/* Status Filter Dropdown */}
                   <div className="relative">
                     <button
                       onClick={() => setOpen(!open)}
@@ -388,10 +431,76 @@ export default function UserManagementStudentAccounts() {
                             onClick={() => {
                               setSelectedFilter(f);
                               setOpen(false);
-                              setCurrentPage(1); // Reset to first page when filter changes
+                              setCurrentPage(1);
                             }}
                           >
                             {f}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Year Filter Dropdown */}
+                  <div className="relative">
+                    <button
+                      onClick={() => setYearOpen(!yearOpen)}
+                      className="flex items-center justify-between font-bold px-3 sm:px-4 py-2 bg-[#fff] rounded-md w-28 sm:w-36 lg:w-40 shadow-md border-2 border-transparent hover:border-[#00874E] text-xs sm:text-sm lg:text-base transition-all duration-200 cursor-pointer"
+                    >
+                      <span>Year: {selectedYear}</span>
+                      <img
+                        src={ArrowDown}
+                        alt="ArrowDown"
+                        className="h-4 w-4 sm:h-5 sm:w-5 lg:h-6 lg:w-6 ml-2"
+                      />
+                    </button>
+
+                    {yearOpen && (
+                      <div className="absolute top-full mt-1 bg-white rounded-md w-28 sm:w-36 lg:w-40 shadow-lg border border-gray-200 z-10">
+                        {["All", "1", "2", "3", "4"].map((year) => (
+                          <button
+                            key={year}
+                            className="block px-3 sm:px-4 py-2 w-full text-left hover:bg-gray-100 text-xs sm:text-sm lg:text-base transition-colors duration-200 cursor-pointer"
+                            onClick={() => {
+                              setSelectedYear(year);
+                              setYearOpen(false);
+                              setCurrentPage(1);
+                            }}
+                          >
+                            {year}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Section Filter Dropdown */}
+                  <div className="relative">
+                    <button
+                      onClick={() => setSectionOpen(!sectionOpen)}
+                      className="flex items-center justify-between font-bold px-3 sm:px-4 py-2 bg-[#fff] rounded-md w-28 sm:w-36 lg:w-40 shadow-md border-2 border-transparent hover:border-[#00874E] text-xs sm:text-sm lg:text-base transition-all duration-200 cursor-pointer"
+                    >
+                      <span>Section: {selectedSection}</span>
+                      <img
+                        src={ArrowDown}
+                        alt="ArrowDown"
+                        className="h-4 w-4 sm:h-5 sm:w-5 lg:h-6 lg:w-6 ml-2"
+                      />
+                    </button>
+
+                    {sectionOpen && (
+                      <div className="absolute top-full mt-1 bg-white rounded-md w-28 sm:w-36 lg:w-40 shadow-lg border border-gray-200 z-10">
+                        {availableSections.map((section) => (
+                          <button
+                            key={section}
+                            className="block px-3 sm:px-4 py-2 w-full text-left hover:bg-gray-100 text-xs sm:text-sm lg:text-base transition-colors duration-200 cursor-pointer"
+                            onClick={() => {
+                              setSelectedSection(section);
+                              setSectionOpen(false);
+                              setCurrentPage(1);
+                            }}
+                          >
+                            {section}
                           </button>
                         ))}
                       </div>
@@ -459,16 +568,6 @@ export default function UserManagementStudentAccounts() {
                       />
                     </button>
                   </div>
-
-                  {/* <Link to="/AdminAccountArchive">
-                    <button className="font-bold py-2 bg-[#fff] rounded-md w-9 sm:w-10 lg:w-11 h-9 sm:h-10 lg:h-11 shadow-md flex items-center justify-center border-2 border-transparent hover:border-[#00874E] transition-all duration-200 cursor-pointer">
-                      <img
-                        src={Archive}
-                        alt="Archive"
-                        className="h-5 w-5 sm:h-5 sm:w-5 lg:h-6 lg:w-6"
-                      />
-                    </button>
-                  </Link> */}
                 </div>
               </div>
 
@@ -518,7 +617,6 @@ export default function UserManagementStudentAccounts() {
                                 status={stud.tracked_Status}
                                 onClick={() => handleStatusChange(stud)}
                               />
-                              {/* UPDATED: Use query parameter instead of URL parameter */}
                               <Link 
                                 to={`/UserManagementStudentAccountDetails?id=${stud.tracked_ID}`}
                               >
@@ -555,7 +653,6 @@ export default function UserManagementStudentAccounts() {
                             status={stud.tracked_Status}
                             onClick={() => handleStatusChange(stud)}
                           />
-                          {/* UPDATED: Use query parameter instead of URL parameter */}
                           <Link 
                             to={`/UserManagementStudentAccountDetails?id=${stud.tracked_ID}`}
                           >
@@ -602,7 +699,7 @@ export default function UserManagementStudentAccounts() {
                 {/* No results message */}
                 {currentStudents.length === 0 && (
                   <div className="text-center py-8 text-gray-500">
-                    No students found matching the current filter.
+                    No students found matching the current filters.
                   </div>
                 )}
 
