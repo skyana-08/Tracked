@@ -5,9 +5,9 @@ header('Access-Control-Allow-Methods: POST');
 header('Access-Control-Allow-Headers: Content-Type');
 
 $servername = "localhost";
-$username = "root";
-$password = "";
-$dbname = "tracked";
+$username = "u713320770_trackedDB";
+$password = "Tracked@2025";
+$dbname = "u713320770_tracked";
 
 $conn = new mysqli($servername, $username, $password, $dbname);
 

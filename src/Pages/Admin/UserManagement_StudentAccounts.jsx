@@ -215,24 +215,26 @@ export default function UserManagementStudentAccounts() {
     setRestoreModalContent(null);
   };
 
-  // Filter students based on selected filters and search term
+  // Filter students based on selected filters and search term - FIXED VERSION
   const filteredStudents = students.filter(stud => {
     // Status filter
     if (selectedFilter !== "All" && stud.tracked_Status !== selectedFilter) {
       return false;
     }
 
-    // Year filter
+    // Year filter - FIXED: Compare numbers instead of number vs text
     if (selectedYear !== "All") {
-      const studentYear = stud.tracked_yearandsec?.charAt(0);
-      if (studentYear !== selectedYear) {
+      const studentYear = stud.tracked_yearandsec?.charAt(0); // "4" from "4D"
+      const selectedYearNumber = selectedYear.charAt(0); // "4" from "4th"
+      
+      if (studentYear !== selectedYearNumber) {
         return false;
       }
     }
 
     // Section filter from URL
     if (selectedSection !== "All") {
-      const studentSection = stud.tracked_yearandsec?.substring(1);
+      const studentSection = stud.tracked_yearandsec?.substring(1); // "D" from "4D"
       if (studentSection !== selectedSection) {
         return false;
       }
@@ -421,14 +423,78 @@ export default function UserManagementStudentAccounts() {
 
           {!loading && (
             <>
-              {/* BUTTONS */}
-              <div className="flex flex-col sm:flex-row text-[#465746] gap-3 sm:gap-4 sm:justify-between sm:items-center">
-                <div className="flex flex-wrap gap-2 sm:gap-3">
+              {/* BUTTONS - New Responsive Layout */}
+              <div className="flex flex-col text-[#465746] gap-3 sm:gap-4">
+                {/* Top Row: Backup/Restore buttons aligned right */}
+                <div className="flex justify-end gap-2 sm:gap-3 w-full">
+                  {/* Backup Button */}
+                  <button 
+                    onClick={handleBackup}
+                    disabled={isBackingUp}
+                    className={`font-bold px-3 sm:px-4 py-2 bg-[#4CAF50] text-white rounded-md shadow-md border-2 border-transparent hover:bg-[#45a049] hover:border-[#00874E] text-xs sm:text-sm lg:text-base transition-all duration-200 cursor-pointer flex items-center justify-center min-w-[100px] sm:min-w-[110px] ${
+                      isBackingUp ? 'opacity-50 cursor-not-allowed' : ''
+                    }`}
+                  >
+                    {isBackingUp ? (
+                      <div className="flex items-center">
+                        <div className="w-4 h-4 mr-2">
+                          <Lottie 
+                            {...defaultLottieOptions}
+                            style={{ width: '100%', height: '100%' }}
+                          />
+                        </div>
+                        Backing up...
+                      </div>
+                    ) : (
+                      <div className="flex items-center">
+                        <img 
+                          src={BackupIcon} 
+                          alt="Backup" 
+                          className="h-4 w-4 sm:h-5 sm:w-5 mr-2" 
+                        />
+                        Backup
+                      </div>
+                    )}
+                  </button>
+
+                  {/* Restore Button */}
+                  <button 
+                    onClick={handleRestore}
+                    disabled={isRestoring}
+                    className={`font-bold px-3 sm:px-4 py-2 bg-[#4CAF50] text-white rounded-md shadow-md border-2 border-transparent hover:bg-[#45a049] hover:border-[#00874E] text-xs sm:text-sm lg:text-base transition-all duration-200 cursor-pointer flex items-center justify-center min-w-[100px] sm:min-w-[110px] ${
+                      isRestoring ? 'opacity-50 cursor-not-allowed' : ''
+                    }`}
+                  >
+                    {isRestoring ? (
+                      <div className="flex items-center">
+                        <div className="w-4 h-4 mr-2">
+                          <Lottie 
+                            {...defaultLottieOptions}
+                            style={{ width: '100%', height: '100%' }}
+                          />
+                        </div>
+                        Restoring...
+                      </div>
+                    ) : (
+                      <div className="flex items-center">
+                        <img 
+                          src={RestoreIcon} 
+                          alt="Restore" 
+                          className="h-4 w-4 sm:h-5 sm:w-5 mr-2" 
+                        />
+                        Restore
+                      </div>
+                    )}
+                  </button>
+                </div>
+
+                {/* Middle Row: Filter dropdowns aligned right */}
+                <div className="flex justify-end gap-2 sm:gap-3 w-full">
                   {/* Status Filter Dropdown */}
                   <div className="relative">
                     <button
                       onClick={() => setOpen(!open)}
-                      className="flex items-center justify-between font-bold px-3 sm:px-4 py-2 bg-[#fff] rounded-md w-28 sm:w-36 lg:w-40 shadow-md border-2 border-transparent hover:border-[#00874E] text-xs sm:text-sm lg:text-base transition-all duration-200 cursor-pointer"
+                      className="flex items-center justify-between font-bold px-3 sm:px-4 py-2 bg-[#fff] rounded-md w-28 sm:w-36 lg:w-40 h-9 sm:h-10 lg:h-11 shadow-md border-2 border-transparent hover:border-[#00874E] text-xs sm:text-sm lg:text-base transition-all duration-200 cursor-pointer"
                     >
                       <span>Filter</span>
                       <img
@@ -461,7 +527,7 @@ export default function UserManagementStudentAccounts() {
                   <div className="relative">
                     <button
                       onClick={() => setYearOpen(!yearOpen)}
-                      className="flex items-center justify-between font-bold px-3 sm:px-4 py-2 bg-[#fff] rounded-md w-28 sm:w-36 lg:w-40 shadow-md border-2 border-transparent hover:border-[#00874E] text-xs sm:text-sm lg:text-base transition-all duration-200 cursor-pointer"
+                      className="flex items-center justify-between font-bold px-3 sm:px-4 py-2 bg-[#fff] rounded-md w-28 sm:w-36 lg:w-40 h-9 sm:h-10 lg:h-11 shadow-md border-2 border-transparent hover:border-[#00874E] text-xs sm:text-sm lg:text-base transition-all duration-200 cursor-pointer"
                     >
                       <span>Year: {selectedYear}</span>
                       <img
@@ -473,7 +539,7 @@ export default function UserManagementStudentAccounts() {
 
                     {yearOpen && (
                       <div className="absolute top-full mt-1 bg-white rounded-md w-28 sm:w-36 lg:w-40 shadow-lg border border-gray-200 z-10">
-                        {["All", "1", "2", "3", "4"].map((year) => (
+                        {["All", "1st", "2nd", "3rd", "4th"].map((year) => (
                           <button
                             key={year}
                             className="block px-3 sm:px-4 py-2 w-full text-left hover:bg-gray-100 text-xs sm:text-sm lg:text-base transition-colors duration-200 cursor-pointer"
@@ -489,97 +555,35 @@ export default function UserManagementStudentAccounts() {
                       </div>
                     )}
                   </div>
-
-                  {/* Backup Button with Background Color */}
-                  <button 
-                    onClick={handleBackup}
-                    disabled={isBackingUp}
-                    className={`font-bold px-3 sm:px-4 py-2 bg-[#4CAF50] text-white rounded-md shadow-md border-2 border-transparent hover:bg-[#45a049] hover:border-[#00874E] text-xs sm:text-sm lg:text-base transition-all duration-200 cursor-pointer flex items-center justify-center min-w-[80px] ${
-                      isBackingUp ? 'opacity-50 cursor-not-allowed' : ''
-                    }`}
-                  >
-                    {isBackingUp ? (
-                      <div className="flex items-center">
-                        <div className="w-4 h-4 mr-2">
-                          <Lottie 
-                            {...defaultLottieOptions}
-                            style={{ width: '100%', height: '100%' }}
-                          />
-                        </div>
-                        Backing up...
-                      </div>
-                    ) : (
-                      <>
-                        <img 
-                          src={BackupIcon} 
-                          alt="Backup" 
-                          className="h-4 w-4 sm:h-5 sm:w-5 mr-2" 
-                        />
-                        Backup
-                      </>
-                    )}
-                  </button>
-
-                  {/* Restore Button with Background Color */}
-                  <button 
-                    onClick={handleRestore}
-                    disabled={isRestoring}
-                    className={`font-bold px-3 sm:px-4 py-2 bg-[#4CAF50] text-white rounded-md shadow-md border-2 border-transparent hover:bg-[#45a049] hover:border-[#00874E] text-xs sm:text-sm lg:text-base transition-all duration-200 cursor-pointer flex items-center justify-center min-w-[80px] ${
-                      isRestoring ? 'opacity-50 cursor-not-allowed' : ''
-                    }`}
-                  >
-                    {isRestoring ? (
-                      <div className="flex items-center">
-                        <div className="w-4 h-4 mr-2">
-                          <Lottie 
-                            {...defaultLottieOptions}
-                            style={{ width: '100%', height: '100%' }}
-                          />
-                        </div>
-                        Restoring...
-                      </div>
-                    ) : (
-                      <>
-                        <img 
-                          src={RestoreIcon} 
-                          alt="Restore" 
-                          className="h-4 w-4 sm:h-5 sm:w-5 mr-2" 
-                        />
-                        Restore
-                      </>
-                    )}
-                  </button>
                 </div>
 
-                {/* Search Bar - Made wider */}
-                <div className="flex items-center gap-2 sm:gap-3">
-                  <div className="relative flex-1 sm:w-96 md:w-[500px] lg:w-[600px] xl:w-[700px]">
-                    <input
-                      type="text"
-                      placeholder="Search by name, student ID, email, or year and section..."
-                      value={searchTerm}
-                      onChange={handleSearchChange}
-                      className="w-full h-9 sm:h-10 lg:h-11 rounded-md px-3 py-2 pr-10 shadow-md outline-none text-[#465746] bg-white text-xs sm:text-sm border-2 border-transparent focus:border-[#00874E] transition-all duration-200"
-                    />
-                    <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center">
-                      {searchTerm && (
-                        <button
-                          onClick={handleClearSearch}
-                          className="text-gray-500 hover:text-[#465746] mr-1"
-                        >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                          </svg>
-                        </button>
-                      )}
-                      <button className="text-gray-500 hover:text-[#465746]">
-                        <img
-                          src={Search}
-                          alt="Search"
-                          className="h-4 w-4 sm:h-5 sm:w-5 lg:h-6 lg:w-6"
-                        />
+                {/* Bottom Row: Search Bar - Full width */}
+                <div className="relative w-full">
+                  <input
+                    type="text"
+                    placeholder="Search by name, student ID, email, or year and section..."
+                    value={searchTerm}
+                    onChange={handleSearchChange}
+                    className="w-full h-9 sm:h-10 lg:h-11 rounded-md px-3 py-2 pr-10 shadow-md outline-none text-[#465746] bg-white text-xs sm:text-sm border-2 border-transparent focus:border-[#00874E] transition-all duration-200"
+                  />
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center">
+                    {searchTerm && (
+                      <button
+                        onClick={handleClearSearch}
+                        className="text-gray-500 hover:text-[#465746] mr-1"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
                       </button>
-                    </div>
+                    )}
+                    <button className="text-gray-500 hover:text-[#465746]">
+                      <img
+                        src={Search}
+                        alt="Search"
+                        className="h-4 w-4 sm:h-5 sm:w-5 lg:h-6 lg:w-6"
+                      />
+                    </button>
                   </div>
                 </div>
               </div>

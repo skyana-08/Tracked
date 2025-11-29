@@ -257,7 +257,7 @@ export default function Sidebar({ role = "student", isOpen: isOpenProp, setIsOpe
     superadmin: {
       main: [
         { label: "User Management", icon: ClassManagement, path: "/SuperAdminAccountList" },
-        { label: "Import", icon: Import, path: "/SuperAdminLanding" },
+        { label: "Import", icon: Import, path: "/SuperAdminImport" },
       ],
     },
   };

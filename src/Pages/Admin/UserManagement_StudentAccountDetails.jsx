@@ -276,7 +276,7 @@ export default function UserManagement_StudentAccountDetails() {
                 <img
                   src={BackButton}
                   alt="BackButton"
-                  className="h-5 w-5 sm:h-6 sm:w-6 lg:h-7 lg:w-7 hover:opacity-70 transition-opacity sm:hidden"
+                  className="h-5 w-5 sm:h-6 sm:w-6 lg:h-7 lg:w-7 hover:opacity-70 transition-opacity"
                 />
               </Link>
             </div>

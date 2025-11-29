@@ -14,18 +14,74 @@ export default function SuperAdminAccountList() {
   const [adminCount, setAdminCount] = useState(0);
   const [professorCount, setProfessorCount] = useState(0);
   const [studentCount, setStudentCount] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    fetch("https://tracked.6minds.site/Admin/UserManagementDB/get_superadmin_user_counts.php")
-      .then((res) => res.json())
-      .then((data) => {
-        console.log("Fetched data:", data); // Debug log
-        setAdminCount(data.Admins || 0);
-        setProfessorCount(data.Professors || 0);
-        setStudentCount(data.Students || 0);
-      })
-      .catch((err) => console.error("Error fetching user counts:", err));
+    const fetchUserCounts = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        
+        const response = await fetch("https://tracked.6minds.site/SuperAdmin/SuperAdminDB/get_superadmin_user_counts.php");
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        console.log("Fetched data:", data);
+
+        // Handle different response structures
+        if (data.success === false) {
+          throw new Error(data.message || "Failed to fetch user counts");
+        } else if (data.Admins !== undefined) {
+          setAdminCount(data.Admins || 0);
+          setProfessorCount(data.Professors || 0);
+          setStudentCount(data.Students || 0);
+        } else {
+          // If the structure is different, try to adapt
+          const admins = data.adminCount || data.admins || data.Admin || 0;
+          const professors = data.professorCount || data.professors || data.Professor || 0;
+          const students = data.studentCount || data.students || data.Student || 0;
+          
+          setAdminCount(admins);
+          setProfessorCount(professors);
+          setStudentCount(students);
+        }
+      } catch (err) {
+        console.error("Error fetching user counts:", err);
+        setError(err.message);
+        // Set default values on error
+        setAdminCount(0);
+        setProfessorCount(0);
+        setStudentCount(0);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUserCounts();
   }, []);
+
+  if (loading) {
+    return (
+      <div>
+        <Sidebar role="superadmin" isOpen={isOpen} setIsOpen={setIsOpen} />
+        <div className={`
+          transition-all duration-300
+          ${isOpen ? "lg:ml-[250px] xl:ml-[280px] 2xl:ml-[300px]" : "ml-0"}
+        `}>
+          <Header setIsOpen={setIsOpen} isOpen={isOpen} />
+          <div className="p-4 sm:p-5 md:p-6 lg:p-8">
+            <div className="flex justify-center items-center h-40">
+              <p className="text-lg text-[#465746]">Loading user counts...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -61,6 +117,12 @@ export default function SuperAdminAccountList() {
           </div>
           
           <hr className="border-[#465746]/30 mb-5 sm:mb-6" />
+
+          {error && (
+            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+              <p>Error: {error}</p>
+            </div>
+          )}
 
           <div className="grid grid-cols-1 lg:grid-cols-1 gap-4 sm:gap-5 lg:gap-6">
             

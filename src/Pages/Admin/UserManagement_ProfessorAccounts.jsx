@@ -29,7 +29,7 @@ export default function UserManagementProfessorAccounts() {
   const [professors, setProfessors] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const itemsPerPage = 10;
 
@@ -361,14 +361,17 @@ export default function UserManagementProfessorAccounts() {
 
           {!loading && (
             <>
-              {/* BUTTONS */}
-              <div className="flex flex-col sm:flex-row text-[#465746] gap-3 sm:gap-4 sm:justify-between sm:items-center">
-                <div className="flex flex-wrap gap-2 sm:gap-3">
-                  {/* Filter Dropdown */}
+              {/* BUTTONS - New Responsive Layout */}
+              <div className="flex flex-col lg:flex-row text-[#465746] gap-3 sm:gap-4">
+                {/* Left side: Filter Dropdown */}
+                <div className="flex flex-col gap-3 flex-shrink-0">
+                  {/* Spacer div to push filter down on desktop */}
+                  <div className="hidden lg:block h-[42px]"></div>
+                  
                   <div className="relative">
                     <button
                       onClick={() => setOpen(!open)}
-                      className="flex items-center justify-between font-bold px-3 sm:px-4 py-2 bg-[#fff] rounded-md w-28 sm:w-36 lg:w-40 shadow-md border-2 border-transparent hover:border-[#00874E] text-xs sm:text-sm lg:text-base transition-all duration-200 cursor-pointer"
+                      className="flex items-center justify-between font-bold px-3 sm:px-4 py-2 bg-[#fff] rounded-md w-28 sm:w-36 lg:w-40 h-9 sm:h-10 lg:h-11 shadow-md border-2 border-transparent hover:border-[#00874E] text-xs sm:text-sm lg:text-base transition-all duration-200 cursor-pointer"
                     >
                       <span>Filter</span>
                       <img
@@ -396,72 +399,75 @@ export default function UserManagementProfessorAccounts() {
                       </div>
                     )}
                   </div>
-
-                  {/* Backup Button with Icon and Lighter Green Background */}
-                  <button 
-                    onClick={handleBackup}
-                    disabled={isBackingUp}
-                    className={`font-bold px-3 sm:px-4 py-2 bg-[#4CAF50] text-white rounded-md shadow-md border-2 border-transparent hover:bg-[#45a049] hover:border-[#00874E] text-xs sm:text-sm lg:text-base transition-all duration-200 cursor-pointer flex items-center justify-center min-w-[100px] ${
-                      isBackingUp ? 'opacity-50 cursor-not-allowed' : ''
-                    }`}
-                  >
-                    {isBackingUp ? (
-                      <div className="flex items-center">
-                        <div className="w-4 h-4 mr-2">
-                          <Lottie 
-                            {...defaultLottieOptions}
-                            style={{ width: '100%', height: '100%' }}
-                          />
-                        </div>
-                        Backing up...
-                      </div>
-                    ) : (
-                      <div className="flex items-center">
-                        <img 
-                          src={BackupIcon} 
-                          alt="Backup" 
-                          className="h-4 w-4 sm:h-5 sm:w-5 mr-2" 
-                        />
-                        Backup
-                      </div>
-                    )}
-                  </button>
-
-                  {/* Restore Button with Icon and Lighter Green Background */}
-                  <button 
-                    onClick={handleRestore}
-                    disabled={isRestoring}
-                    className={`font-bold px-3 sm:px-4 py-2 bg-[#4CAF50] text-white rounded-md shadow-md border-2 border-transparent hover:bg-[#45a049] hover:border-[#00874E] text-xs sm:text-sm lg:text-base transition-all duration-200 cursor-pointer flex items-center justify-center min-w-[100px] ${
-                      isRestoring ? 'opacity-50 cursor-not-allowed' : ''
-                    }`}
-                  >
-                    {isRestoring ? (
-                      <div className="flex items-center">
-                        <div className="w-4 h-4 mr-2">
-                          <Lottie 
-                            {...defaultLottieOptions}
-                            style={{ width: '100%', height: '100%' }}
-                          />
-                        </div>
-                        Restoring...
-                      </div>
-                    ) : (
-                      <div className="flex items-center">
-                        <img 
-                          src={RestoreIcon} 
-                          alt="Restore" 
-                          className="h-4 w-4 sm:h-5 sm:w-5 mr-2" 
-                        />
-                        Restore
-                      </div>
-                    )}
-                  </button>
-                  
                 </div>
 
-                {/* Search Bar - Made Wider */}
-                <div className="flex items-center gap-2 sm:gap-3">
-                  <div className="relative flex-1 sm:w-96 md:w-[500px] lg:w-[600px] xl:w-[700px]">
+                {/* Right side: Backup/Restore buttons and Search Bar */}
+                <div className="flex-1 flex flex-col gap-3">
+                  {/* Backup and Restore Buttons Row */}
+                  <div className="flex flex-wrap gap-2 sm:gap-3 lg:justify-end h-9 sm:h-10 lg:h-[42px]">
+                    {/* Backup Button with Icon and Lighter Green Background */}
+                    <button 
+                      onClick={handleBackup}
+                      disabled={isBackingUp}
+                      className={`font-bold px-3 sm:px-4 py-2 bg-[#4CAF50] text-white rounded-md shadow-md border-2 border-transparent hover:bg-[#45a049] hover:border-[#00874E] text-xs sm:text-sm lg:text-base transition-all duration-200 cursor-pointer flex items-center justify-center min-w-[100px] sm:min-w-[110px] ${
+                        isBackingUp ? 'opacity-50 cursor-not-allowed' : ''
+                      }`}
+                    >
+                      {isBackingUp ? (
+                        <div className="flex items-center">
+                          <div className="w-4 h-4 mr-2">
+                            <Lottie 
+                              {...defaultLottieOptions}
+                              style={{ width: '100%', height: '100%' }}
+                            />
+                          </div>
+                          Backing up...
+                        </div>
+                      ) : (
+                        <div className="flex items-center">
+                          <img 
+                            src={BackupIcon} 
+                            alt="Backup" 
+                            className="h-4 w-4 sm:h-5 sm:w-5 mr-2" 
+                          />
+                          Backup
+                        </div>
+                      )}
+                    </button>
+
+                    {/* Restore Button with Icon and Lighter Green Background */}
+                    <button 
+                      onClick={handleRestore}
+                      disabled={isRestoring}
+                      className={`font-bold px-3 sm:px-4 py-2 bg-[#4CAF50] text-white rounded-md shadow-md border-2 border-transparent hover:bg-[#45a049] hover:border-[#00874E] text-xs sm:text-sm lg:text-base transition-all duration-200 cursor-pointer flex items-center justify-center min-w-[100px] sm:min-w-[110px] ${
+                        isRestoring ? 'opacity-50 cursor-not-allowed' : ''
+                      }`}
+                    >
+                      {isRestoring ? (
+                        <div className="flex items-center">
+                          <div className="w-4 h-4 mr-2">
+                            <Lottie 
+                              {...defaultLottieOptions}
+                              style={{ width: '100%', height: '100%' }}
+                            />
+                          </div>
+                          Restoring...
+                        </div>
+                      ) : (
+                        <div className="flex items-center">
+                          <img 
+                            src={RestoreIcon} 
+                            alt="Restore" 
+                            className="h-4 w-4 sm:h-5 sm:w-5 mr-2" 
+                          />
+                          Restore
+                        </div>
+                      )}
+                    </button>
+                  </div>
+
+                  {/* Search Bar Row */}
+                  <div className="relative w-full">
                     <input
                       type="text"
                       placeholder="Search by name, professor ID, or email..."

@@ -18,7 +18,7 @@ import ErrorIcon from "../../assets/Error(Red).svg";
 // Import the Lottie animation JSON file
 import loadingAnimation from "../../assets/system-regular-716-spinner-three-dots-loop-expand.json";
 
-export default function SuperAdminLanding() {
+export default function SuperAdminImports() {
   const [isOpen, setIsOpen] = useState(false);
   const [open, setOpen] = useState(false);
   const [showPopup, setShowPopup] = useState(false);
@@ -195,9 +195,13 @@ export default function SuperAdminLanding() {
   const confirmActivateAccounts = () => {
     setIsActivating(true);
     
-    fetch("http://localhost/TrackEd/src/Pages/SuperAdmin/SuperAdminImportDB/activate_admin_accounts.php", {
+    // FIXED: Use the correct endpoint URL
+    fetch("https://tracked.6minds.site/SuperAdmin/SuperAdminImportDB/activate_admin_accounts.php", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { 
+        "Content-Type": "application/json",
+        "Accept": "application/json"
+      },
     })
       .then((res) => {
         if (!res.ok) {
@@ -206,18 +210,19 @@ export default function SuperAdminLanding() {
         return res.json();
       })
       .then((data) => {
-        if (data.status === "success") {
+        // FIXED: Handle both response formats
+        if (data.status === "success" || data.success) {
           setResultData({
             type: "success",
             title: "Success!",
-            message: data.message
+            message: data.message || "Admin accounts activated successfully!"
           });
           fetchUsers(); // Refresh user list
         } else {
           setResultData({
             type: "error",
             title: "Activation Failed!",
-            message: data.message
+            message: data.message || "Unknown error occurred"
           });
         }
         setShowResultModal(true);
@@ -227,7 +232,7 @@ export default function SuperAdminLanding() {
         setResultData({
           type: "error",
           title: "Network Error!",
-          message: "An error occurred while activating admin accounts. Please try again."
+          message: "An error occurred while activating admin accounts. Please try again. Error: " + err.message
         });
         setShowResultModal(true);
       })
@@ -294,7 +299,6 @@ export default function SuperAdminLanding() {
 
   return (
     <div>
-      {/* Changed sidebar role from "admin" to "superadmin" */}
       <Sidebar role="superadmin" isOpen={isOpen} setIsOpen={setIsOpen} />
       <div
         className={`transition-all duration-300 ${

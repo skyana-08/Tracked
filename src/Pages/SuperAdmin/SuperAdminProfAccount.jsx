@@ -17,7 +17,7 @@ export default function SuperAdminProfAccount() {
   const [open, setOpen] = useState(false);
   const [setSelectedFilter] = useState("All");
   const [showKickModal, setShowKickModal] = useState(false);
-  const [selectedAdmin, setSelectedAdmin] = useState(null);
+  const [selectedProfessor, setSelectedProfessor] = useState(null);
 
   const [professors, setProfessors] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
@@ -25,7 +25,7 @@ export default function SuperAdminProfAccount() {
 
   // Fetch professors from backend
   useEffect(() => {
-    fetch("https://tracked.6minds.site/Admin/ProfessorAccountsDB/get_professors.php")
+    fetch("https://tracked.6minds.site/SuperAdmin/SuperAdminDB/get_superadmin_professors.php")
       .then((res) => res.json())
       .then((data) => setProfessors(data))
       .catch((err) => console.error(err));
@@ -40,15 +40,15 @@ export default function SuperAdminProfAccount() {
   const handlePageChange = (pageNumber) => setCurrentPage(pageNumber);
 
   const handleKickClick = (prof) => {
-    setSelectedAdmin(prof);
+    setSelectedProfessor(prof);
     setShowKickModal(true);
   };
 
   const confirmKick = () => {
-    console.log("Kicking admin:", selectedAdmin);
+    console.log("Kicking professor:", selectedProfessor);
     
     setShowKickModal(false);
-    setSelectedAdmin(null);
+    setSelectedProfessor(null);
   };
 
   return (
@@ -81,7 +81,7 @@ export default function SuperAdminProfAccount() {
                 <img
                   src={BackButton}
                   alt="BackButton"
-                  className="h-5 w-5 sm:h-6 sm:w-6 lg:h-7 lg:w-7 hover:opacity-70 transition-opacity sm:hidden"
+                  className="h-5 w-5 sm:h-6 sm:w-6 lg:h-7 lg:w-7 hover:opacity-70 transition-opacity"
                 />
               </Link>
             </div>
@@ -170,7 +170,7 @@ export default function SuperAdminProfAccount() {
                     >
                       <td className="py-3 px-2 sm:px-3 rounded-l-lg">{prof.tracked_ID}</td>
                       <td className="py-3 px-2 sm:px-3">
-                        {prof.tracked_fname} {prof.tracked_mi} {prof.tracked_lname}
+                        {prof.tracked_firstname} {prof.tracked_middlename} {prof.tracked_lastname}
                       </td>
                       <td className="py-3 px-2 sm:px-3 break-all sm:break-normal">
                         {prof.tracked_email}
@@ -196,7 +196,7 @@ export default function SuperAdminProfAccount() {
                               className="h-5 w-5 sm:h-6 sm:w-6"
                             />
                           </button>
-                          <Link to="/SuperAdminProfAccountDetails">
+                          <Link to={`/SuperAdminProfAccountDetails?id=${prof.tracked_ID}`}>
                             <img
                               src={Details}
                               alt="Details"
@@ -221,7 +221,7 @@ export default function SuperAdminProfAccount() {
                   <div className="flex justify-between items-start mb-3">
                     <div>
                       <p className="text-xs text-gray-500 mb-1">
-                        No. {indexOfFirst + i + 1} | Admin No.
+                        No. {indexOfFirst + i + 1} | Professor No.
                       </p>
                       <p className="font-semibold text-sm">{prof.tracked_ID}</p>
                     </div>
@@ -232,7 +232,7 @@ export default function SuperAdminProfAccount() {
                       >
                         <img src={Kick} alt="Kick" className="h-5 w-5" />
                       </button>
-                      <Link to="/SuperAdminProfAccountDetails"> 
+                      <Link to={`/SuperAdminProfAccountDetails?id=${prof.tracked_ID}`}>
                         <img src={Details} alt="Details" className="h-5 w-5" />
                       </Link>
                     </div>
@@ -242,7 +242,7 @@ export default function SuperAdminProfAccount() {
                     <div>
                       <p className="text-xs text-gray-500">Full Name</p>
                       <p className="font-medium text-sm">
-                        {prof.tracked_fname} {prof.tracked_lname}
+                        {prof.tracked_firstname} {prof.tracked_lastname}
                       </p>
                     </div>
 
@@ -326,13 +326,13 @@ export default function SuperAdminProfAccount() {
             </div>
 
             {/* Kick Confirmation POPUP */}
-            {showKickModal && selectedAdmin && (
+            {showKickModal && selectedProfessor && (
               <div
                 className="fixed inset-0 bg-black/50 flex justify-center items-center z-50 overlay-fade p-4"
                 onClick={(e) => {
                   if (e.target === e.currentTarget) {
                     setShowKickModal(false);
-                    setSelectedAdmin(null);
+                    setSelectedProfessor(null);
                   }
                 }}
                 role="dialog"
@@ -350,22 +350,22 @@ export default function SuperAdminProfAccount() {
                     </div>
 
                     <h3 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">
-                      Kick Admin?
+                      Kick Professor?
                     </h3>
                     
                     <div className="mt-4 mb-6">
                       <p className="text-sm text-gray-600 mb-3">
-                        Are you sure you want to kick this admin account? This action cannot be undone.
+                        Are you sure you want to kick this professor account? This action cannot be undone.
                       </p>
                       <div className="bg-gray-50 rounded-lg p-4 text-left">
                         <p className="text-base sm:text-lg font-semibold text-gray-900 break-words">
-                          {selectedAdmin.tracked_fname} {selectedAdmin.tracked_lname}
+                          {selectedProfessor.tracked_firstname} {selectedProfessor.tracked_lastname}
                         </p>
                         <p className="text-sm text-gray-600 mt-1">
-                          ID: {selectedAdmin.tracked_ID}
+                          ID: {selectedProfessor.tracked_ID}
                         </p>
                         <p className="text-sm text-gray-600">
-                          Email: {selectedAdmin.tracked_email}
+                          Email: {selectedProfessor.tracked_email}
                         </p>
                       </div>
                     </div>
@@ -374,7 +374,7 @@ export default function SuperAdminProfAccount() {
                       <button
                         onClick={() => {
                           setShowKickModal(false);
-                          setSelectedAdmin(null);
+                          setSelectedProfessor(null);
                         }}
                         className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-3 rounded-md transition-all duration-200 cursor-pointer"
                       >

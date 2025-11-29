@@ -174,11 +174,11 @@ export default function SuperAdminStudentAccountDetails() {
             </div>
             <div className="flex items-center justify-between text-sm sm:text-base lg:text-lg text-[#465746]">
               <span>Student Account Details - {student.tracked_ID}</span>
-              <Link to="/SuperAdminLanding">
+              <Link to="/SuperAdminImport">
                 <img
                   src={BackButton}
                   alt="BackButton"
-                  className="h-5 w-5 sm:h-6 sm:w-6 lg:h-7 lg:w-7 hover:opacity-70 transition-opacity sm:hidden"
+                  className="h-5 w-5 sm:h-6 sm:w-6 lg:h-7 lg:w-7 hover:opacity-70 transition-opacity"
                 />
               </Link>
             </div>

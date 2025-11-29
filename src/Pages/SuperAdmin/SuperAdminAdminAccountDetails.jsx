@@ -123,7 +123,7 @@ export default function SuperAdminAdminAccountDetails() {
   if (!admin) {
     return (
       <div>
-        <Sidebar role="admin" isOpen={isOpen} setIsOpen={setIsOpen} />
+        <Sidebar role="superadmin" isOpen={isOpen} setIsOpen={setIsOpen} />
         <div className={`
           transition-all duration-300
           ${isOpen ? "lg:ml-[250px] xl:ml-[280px] 2xl:ml-[300px]" : "ml-0"}
@@ -139,7 +139,7 @@ export default function SuperAdminAdminAccountDetails() {
 
   return (
     <div>
-      <Sidebar role="admin" isOpen={isOpen} setIsOpen={setIsOpen} />
+      <Sidebar role="superadmin" isOpen={isOpen} setIsOpen={setIsOpen} />
       <div
         className={`
         transition-all duration-300
@@ -164,11 +164,11 @@ export default function SuperAdminAdminAccountDetails() {
             </div>
             <div className="flex items-center justify-between text-sm sm:text-base lg:text-lg text-[#465746]">
               <span>Admin Account Details - {admin.tracked_ID}</span>
-              <Link to="/SuperAdminLanding">
+              <Link to="/SuperAdminAdminAccount">
                 <img
                   src={BackButton}
                   alt="BackButton"
-                  className="h-5 w-5 sm:h-6 sm:w-6 lg:h-7 lg:w-7 hover:opacity-70 transition-opacity sm:hidden"
+                  className="h-5 w-5 sm:h-6 sm:w-6 lg:h-7 lg:w-7 hover:opacity-70 transition-opacity"
                 />
               </Link>
             </div>

@@ -56,7 +56,7 @@ import SubjectAnalyticsStudent from './Student/SubjectAnalyticsStudent.jsx';
 
 // Super Admin Links
 import SuperAdminAccountList from './SuperAdmin/SuperAdminAccountList.jsx';
-import SuperAdminLanding from './SuperAdmin/SuperAdminLanding.jsx';
+import SuperAdminImport from './SuperAdmin/SuperAdminImport.jsx';
 import SuperAdminAdminAccountDetails from './SuperAdmin/SuperAdminAdminAccountDetails.jsx';
 import SuperAdminProfAccountDetails from './SuperAdmin/SuperAdminProfAccountDetails.jsx';
 import SuperAdminStudentAccountDetails from './SuperAdmin/SuperAdminStudentAccountDetails.jsx';
@@ -126,7 +126,7 @@ function Linking() {
 
         {/* Navigations for Super Admin */}
         <Route path="/SuperAdminAccountList" element={<SuperAdminAccountList />} />
-        <Route path="/SuperAdminLanding" element={<SuperAdminLanding />} />
+        <Route path="/SuperAdminImport" element={<SuperAdminImport />} />
         <Route path="/SuperAdminAdminAccountDetails" element={<SuperAdminAdminAccountDetails />} />
         <Route path="/SuperAdminProfAccountDetails" element={<SuperAdminProfAccountDetails />} />
         <Route path="/SuperAdminStudentAccountDetails" element={<SuperAdminStudentAccountDetails />} />

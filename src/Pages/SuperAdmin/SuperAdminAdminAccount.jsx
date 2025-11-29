@@ -19,28 +19,35 @@ export default function SuperAdminAdminAccount() {
   const [showKickModal, setShowKickModal] = useState(false);
   const [selectedAdmin, setSelectedAdmin] = useState(null);
 
-  const [professors, setProfessors] = useState([]);
+  const [admins, setAdmins] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
-  // Fetch professors from backend
+  // Fetch admins from backend
   useEffect(() => {
-    fetch("https://tracked.6minds.site/Admin/ProfessorAccountsDB/get_professors.php")
+    fetch("https://tracked.6minds.site/SuperAdmin/SuperAdminDB/get_admins.php")
       .then((res) => res.json())
-      .then((data) => setProfessors(data))
+      .then((data) => {
+        if (data.success) {
+          setAdmins(data.admins || []);
+        } else {
+          console.error("Error fetching admins:", data.message);
+          setAdmins([]);
+        }
+      })
       .catch((err) => console.error(err));
   }, []);
 
   // Pagination setup
   const indexOfLast = currentPage * itemsPerPage;
   const indexOfFirst = indexOfLast - itemsPerPage;
-  const currentProfessors = professors.slice(indexOfFirst, indexOfLast);
-  const totalPages = Math.ceil(professors.length / itemsPerPage);
+  const currentAdmins = admins.slice(indexOfFirst, indexOfLast);
+  const totalPages = Math.ceil(admins.length / itemsPerPage);
 
   const handlePageChange = (pageNumber) => setCurrentPage(pageNumber);
 
-  const handleKickClick = (prof) => {
-    setSelectedAdmin(prof);
+  const handleKickClick = (admin) => {
+    setSelectedAdmin(admin);
     setShowKickModal(true);
   };
 
@@ -81,7 +88,7 @@ export default function SuperAdminAdminAccount() {
                 <img
                   src={BackButton}
                   alt="BackButton"
-                  className="h-5 w-5 sm:h-6 sm:w-6 lg:h-7 lg:w-7 hover:opacity-70 transition-opacity sm:hidden"
+                  className="h-5 w-5 sm:h-6 sm:w-6 lg:h-7 lg:w-7 hover:opacity-70 transition-opacity"
                 />
               </Link>
             </div>
@@ -163,31 +170,31 @@ export default function SuperAdminAdminAccount() {
                   </tr>
                 </thead>
                 <tbody className="text-[#465746]">
-                  {currentProfessors.map((prof) => (
+                  {currentAdmins.map((admin) => (
                     <tr
-                      key={prof.tracked_ID}
+                      key={admin.tracked_ID}
                       className="bg-[#fff] rounded-lg shadow hover:bg-gray-50 transition-colors duration-200"
                     >
-                      <td className="py-3 px-2 sm:px-3 rounded-l-lg">{prof.tracked_ID}</td>
+                      <td className="py-3 px-2 sm:px-3 rounded-l-lg">{admin.tracked_ID}</td>
                       <td className="py-3 px-2 sm:px-3">
-                        {prof.tracked_fname} {prof.tracked_mi} {prof.tracked_lname}
+                        {admin.tracked_firstname} {admin.tracked_middlename} {admin.tracked_lastname}
                       </td>
                       <td className="py-3 px-2 sm:px-3 break-all sm:break-normal">
-                        {prof.tracked_email}
+                        {admin.tracked_email}
                       </td>
                       <td
                         className={`py-3 px-2 sm:px-3 font-bold ${
-                          prof.tracked_Status === "Active"
+                          admin.tracked_Status === "Active"
                             ? "text-[#00A15D]"
                             : "text-[#FF6666]"
                         }`}
                       >
-                        {prof.tracked_Status}
+                        {admin.tracked_Status}
                       </td>
                       <td className="py-3 px-2 sm:px-3 rounded-r-lg">
                         <div className="flex gap-2">
                           <button
-                            onClick={() => handleKickClick(prof)}
+                            onClick={() => handleKickClick(admin)}
                             className="hover:opacity-70 transition-opacity"
                           >
                             <img
@@ -196,7 +203,7 @@ export default function SuperAdminAdminAccount() {
                               className="h-5 w-5 sm:h-6 sm:w-6"
                             />
                           </button>
-                          <Link to="/SuperAdminAdminAccountDetails">
+                          <Link to={`/SuperAdminAdminAccountDetails?id=${admin.tracked_ID}`}>
                             <img
                               src={Details}
                               alt="Details"
@@ -213,9 +220,9 @@ export default function SuperAdminAdminAccount() {
 
             {/* Mobile Cards */}
             <div className="md:hidden space-y-3">
-              {currentProfessors.map((prof, i) => (
+              {currentAdmins.map((admin, i) => (
                 <div
-                  key={prof.tracked_ID}
+                  key={admin.tracked_ID}
                   className="bg-white rounded-lg shadow p-4 text-[#465746]"
                 >
                   <div className="flex justify-between items-start mb-3">
@@ -223,16 +230,16 @@ export default function SuperAdminAdminAccount() {
                       <p className="text-xs text-gray-500 mb-1">
                         No. {indexOfFirst + i + 1} | Admin No.
                       </p>
-                      <p className="font-semibold text-sm">{prof.tracked_ID}</p>
+                      <p className="font-semibold text-sm">{admin.tracked_ID}</p>
                     </div>
                     <div className="flex gap-2">
                       <button
-                        onClick={() => handleKickClick(prof)}
+                        onClick={() => handleKickClick(admin)}
                         className="hover:opacity-70 transition-opacity"
                       >
                         <img src={Kick} alt="Kick" className="h-5 w-5" />
                       </button>
-                      <Link to="/SuperAdminAdminAccountDetails">
+                      <Link to={`/SuperAdminAdminAccountDetails?id=${admin.tracked_ID}`}>
                         <img src={Details} alt="Details" className="h-5 w-5" />
                       </Link>
                     </div>
@@ -242,25 +249,25 @@ export default function SuperAdminAdminAccount() {
                     <div>
                       <p className="text-xs text-gray-500">Full Name</p>
                       <p className="font-medium text-sm">
-                        {prof.tracked_fname} {prof.tracked_lname}
+                        {admin.tracked_firstname} {admin.tracked_lastname}
                       </p>
                     </div>
 
                     <div>
                       <p className="text-xs text-gray-500">Email</p>
-                      <p className="text-sm break-all">{prof.tracked_email}</p>
+                      <p className="text-sm break-all">{admin.tracked_email}</p>
                     </div>
 
                     <div>
                       <p className="text-xs text-gray-500">Status</p>
                       <p
                         className={`font-bold text-sm ${
-                          prof.tracked_Status === "Active"
+                          admin.tracked_Status === "Active"
                             ? "text-[#00A15D]"
                             : "text-[#FF6666]"
                         }`}
                       >
-                        {prof.tracked_Status}
+                        {admin.tracked_Status}
                       </p>
                     </div>
                   </div>
@@ -359,7 +366,7 @@ export default function SuperAdminAdminAccount() {
                       </p>
                       <div className="bg-gray-50 rounded-lg p-4 text-left">
                         <p className="text-base sm:text-lg font-semibold text-gray-900 break-words">
-                          {selectedAdmin.tracked_fname} {selectedAdmin.tracked_lname}
+                          {selectedAdmin.tracked_firstname} {selectedAdmin.tracked_lastname}
                         </p>
                         <p className="text-sm text-gray-600 mt-1">
                           ID: {selectedAdmin.tracked_ID}

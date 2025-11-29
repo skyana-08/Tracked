@@ -8,21 +8,15 @@ import ClassManagementLight from "../../assets/ClassManagement(Light).svg";
 import BackButton from "../../assets/BackButton(Light).svg";
 import ArrowDown from "../../assets/ArrowDown(Light).svg";
 import Search from "../../assets/Search.svg";
-import Archive from "../../assets/Archive(Light).svg";
-import ArchiveRow from "../../assets/ArchiveRow(Light).svg";
 import Details from "../../assets/Details(Light).svg";
-import ArchiveWarningIcon from "../../assets/Warning(Yellow).svg";
 import Kick from "../../assets/Kick.svg";
-import KickWarningIcon from "../../assets/Warning(Red).svg"; // You can use a red warning icon
+import KickWarningIcon from "../../assets/Warning(Red).svg";
 
 export default function UserManagementStudentAccounts() {
   const [isOpen, setIsOpen] = useState(false);
   const [open, setOpen] = useState(false);
-  const [setShowArchiveModal] = useState(false);
   const [showKickModal, setShowKickModal] = useState(false);
   const [setSelectedFilter] = useState("All");
-  // const [selectedStudent, setSelectedStudent] = useState(null);
-  const [setSelectedStudent] = useState(null);
   const [selectedStudentForKick, setSelectedStudentForKick] = useState(null);
 
   const [students, setStudents] = useState([]);
@@ -31,7 +25,7 @@ export default function UserManagementStudentAccounts() {
 
   // Fetch students from backend
   useEffect(() => {
-    fetch("https://tracked.6minds.site/Admin/StudentAccountsDB/get_students.php")
+    fetch("https://tracked.6minds.site/SuperAdmin/SuperAdminDB/get_superadmin_students.php")
       .then((res) => res.json())
       .then((data) => setStudents(data))
       .catch((err) => console.error(err));
@@ -45,25 +39,12 @@ export default function UserManagementStudentAccounts() {
 
   const handlePageChange = (pageNumber) => setCurrentPage(pageNumber);
 
-  const handleArchiveClick = (stud) => {
-    setSelectedStudent(stud);
-    setShowArchiveModal(true);
-  };
-
-  // const confirmArchive = () => {
-  //   // Add your archive logic here
-  //   console.log("Archiving student:", selectedStudent);
-  //   setShowArchiveModal(false);
-  //   setSelectedStudent(null);
-  // };
-
   const handleKickClick = (stud) => {
     setSelectedStudentForKick(stud);
     setShowKickModal(true);
   };
 
   const confirmKick = () => {
-    // Add your kick logic here
     console.log("Kicking student:", selectedStudentForKick);
     setShowKickModal(false);
     setSelectedStudentForKick(null);
@@ -99,7 +80,7 @@ export default function UserManagementStudentAccounts() {
                 <img
                   src={BackButton}
                   alt="BackButton"
-                  className="h-5 w-5 sm:h-6 sm:w-6 lg:h-7 lg:w-7 hover:opacity-70 transition-opacity sm:hidden"
+                  className="h-5 w-5 sm:h-6 sm:w-6 lg:h-7 lg:w-7 hover:opacity-70 transition-opacity"
                 />
               </Link>
             </div>
@@ -151,7 +132,7 @@ export default function UserManagementStudentAccounts() {
               </button>
             </div>
 
-            {/* Search and Archive Buttons */}
+            {/* Search */}
             <div className="flex items-center gap-2 sm:gap-3">
               <div className="relative flex-1 sm:max-w-xs lg:max-w-md">
                 <input
@@ -167,16 +148,6 @@ export default function UserManagementStudentAccounts() {
                   />
                 </button>
               </div>
-
-              <Link to="/AdminAccountArchive">
-                <button className="font-bold py-2 bg-[#fff] rounded-md w-9 sm:w-10 lg:w-11 h-9 sm:h-10 lg:h-11 shadow-md flex items-center justify-center border-2 border-transparent hover:border-[#00874E] transition-all duration-200 cursor-pointer">
-                  <img
-                    src={Archive}
-                    alt="Archive"
-                    className="h-5 w-5 sm:h-5 sm:w-5 lg:h-6 lg:w-6"
-                  />
-                </button>
-              </Link>
             </div>
           </div>
 
@@ -203,7 +174,7 @@ export default function UserManagementStudentAccounts() {
                     >
                       <td className="py-3 px-2 sm:px-3 rounded-l-lg">{stud.tracked_ID}</td>
                       <td className="py-3 px-2 sm:px-3">
-                        {stud.tracked_fname} {stud.tracked_mi} {stud.tracked_lname}
+                        {stud.tracked_firstname} {stud.tracked_middlename} {stud.tracked_lastname}
                       </td>
                       <td className="py-3 px-2 sm:px-3 break-all sm:break-normal">
                         {stud.tracked_email}
@@ -232,12 +203,7 @@ export default function UserManagementStudentAccounts() {
                               className="h-5 w-5 sm:h-6 sm:w-6"
                             />
                           </button>
-                          <button
-                            onClick={() => handleArchiveClick(stud)}
-                            className="hover:opacity-70 transition-opacity"
-                          >
-                          </button>
-                          <Link to="/SuperAdminStudentAccountDetails">
+                          <Link to={`/SuperAdminStudentAccountDetails?id=${stud.tracked_ID}`}>
                             <img
                               src={Details}
                               alt="Details"
@@ -273,7 +239,7 @@ export default function UserManagementStudentAccounts() {
                       >
                         <img src={Kick} alt="Kick" className="h-5 w-5" />
                       </button>
-                      <Link to="/SuperAdminStudentAccountDetails">
+                      <Link to={`/SuperAdminStudentAccountDetails?id=${stud.tracked_ID}`}>
                         <img src={Details} alt="Details" className="h-5 w-5" />
                       </Link>
                     </div>
@@ -283,7 +249,7 @@ export default function UserManagementStudentAccounts() {
                     <div>
                       <p className="text-xs text-gray-500">Full Name</p>
                       <p className="font-medium text-sm">
-                        {stud.tracked_fname} {stud.tracked_lname}
+                        {stud.tracked_firstname} {stud.tracked_lastname}
                       </p>
                     </div>
 
@@ -405,7 +371,7 @@ export default function UserManagementStudentAccounts() {
                       </p>
                       <div className="bg-gray-50 rounded-lg p-4 text-left">
                         <p className="text-base sm:text-lg font-semibold text-gray-900 break-words">
-                          {selectedStudentForKick.tracked_fname} {selectedStudentForKick.tracked_lname}
+                          {selectedStudentForKick.tracked_firstname} {selectedStudentForKick.tracked_lastname}
                         </p>
                         <p className="text-sm text-gray-600 mt-1">
                           ID: {selectedStudentForKick.tracked_ID}
@@ -460,12 +426,3 @@ export default function UserManagementStudentAccounts() {
     </div>
   );
 }
-
-
-
-
-
-
-
-
-
