@@ -13,7 +13,7 @@ import Professor from "../../assets/Professor(Light).svg";
 import loadingAnimation from "../../assets/system-regular-716-spinner-three-dots-loop-expand.json";
 
 export default function UserManagement() {
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(true);
   const [professorCount, setProfessorCount] = useState(0);
   const [studentCount, setStudentCount] = useState(0);
   const [loading, setLoading] = useState(true);

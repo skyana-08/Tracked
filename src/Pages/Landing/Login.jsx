@@ -49,10 +49,12 @@ export default function Login() {
         
         // Create super admin user object
         const superAdminUser = {
-          id_number: SUPER_ADMIN.idNumber,
+          id: SUPER_ADMIN.idNumber,
           role: "Super Admin",
-          name: "Super Administrator",
-          email: "superadmin@tracked.com",
+          firstname: "Super",
+          lastname: "Administrator",
+          fullName: "Super Administrator",
+          email: "",
           is_super_admin: true
         };
         
@@ -61,7 +63,7 @@ export default function Login() {
         console.log("Super Admin saved to localStorage");
         
         // Redirect to SuperAdminLanding - using the exact route from Linking.jsx
-        navigate("/SuperAdminLanding");
+        navigate("/SuperAdminAccountList");
         setIsLoading(false);
         return;
       }

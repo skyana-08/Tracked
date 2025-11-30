@@ -22,7 +22,7 @@ import ErrorIcon from '../../assets/Error(Red).svg';
 import loadingAnimation from "../../assets/system-regular-716-spinner-three-dots-loop-expand.json";
 
 export default function Report() {
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(true);
   const [studentFilterOpen, setStudentFilterOpen] = useState(false);
   const [professorFilterOpen, setProfessorFilterOpen] = useState(false);
   
@@ -260,7 +260,7 @@ export default function Report() {
         <button
           onClick={onToggle}
           disabled={disabled}
-          className={`relative inline-flex h-4 w-8 sm:h-5 sm:w-10 items-center rounded-full transition-colors focus:outline-none ${
+          className={`cursor-pointer relative inline-flex h-4 w-8 sm:h-5 sm:w-10 items-center rounded-full transition-colors focus:outline-none ${
             isActive ? 'bg-[#00874E]' : 'bg-gray-300'
           } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
           title={`Turn ${displayName} ${isActive ? 'off' : 'on'}`}
@@ -855,7 +855,7 @@ export default function Report() {
                 </h3>
                 
                 <div className="mt-4 mb-6">
-                  <p className="text-sm text-gray-600">
+                  <p className="text-base text-gray-600">
                     {semesterModal.message}
                   </p>
                 </div>

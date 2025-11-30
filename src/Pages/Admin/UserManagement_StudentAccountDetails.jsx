@@ -13,7 +13,7 @@ import BackButton from "../../assets/BackButton(Light).svg";
 import loadingAnimation from "../../assets/system-regular-716-spinner-three-dots-loop-expand.json";
 
 export default function UserManagement_StudentAccountDetails() {
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(true);
   const [popupType, setPopupType] = useState(null);
   const [student, setStudent] = useState(null);
   const [isEditing, setIsEditing] = useState(false);

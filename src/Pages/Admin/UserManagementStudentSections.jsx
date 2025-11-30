@@ -13,7 +13,7 @@ import BackIcon from "../../assets/BackButton(Light).svg";
 import loadingAnimation from "../../assets/system-regular-716-spinner-three-dots-loop-expand.json";
 
 export default function UserManagementStudentSections() {
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(true);
   const [sectionData, setSectionData] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);

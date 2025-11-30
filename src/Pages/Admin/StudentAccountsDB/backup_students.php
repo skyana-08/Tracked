@@ -1,5 +1,5 @@
 <?php
-header('Content-Type: application/json');
+header('Content-Type: application/sql');
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET, POST');
 header('Access-Control-Allow-Headers: Content-Type');
@@ -45,8 +45,8 @@ try {
         $sqlContent .= implode(', ', $updates) . ";\n";
     }
 
-    // Save to backup folder
-    $backupDir = __DIR__ . '/../../Backup/students/';
+    // Save to Hostinger backup folder
+    $backupDir = __DIR__ . '/../../Backups/backup_for_tracked_students/';
     if (!is_dir($backupDir)) {
         mkdir($backupDir, 0777, true);
     }
@@ -54,26 +54,16 @@ try {
     $filename = 'students_backup_' . date('Y-m-d_H-i-s') . '.sql';
     $filepath = $backupDir . $filename;
     
-    if (file_put_contents($filepath, $sqlContent)) {
-        echo json_encode([
-            'success' => true,
-            'message' => 'Backup created successfully',
-            'filename' => $filename,
-            'filepath' => $filepath
-        ]);
-    } else {
-        throw new Exception('Failed to write backup file');
-    }
+    // Save to server
+    file_put_contents($filepath, $sqlContent);
+    
+    // Force download
+    header('Content-Disposition: attachment; filename="' . $filename . '"');
+    header('Content-Length: ' . strlen($sqlContent));
+    echo $sqlContent;
 
-} catch (PDOException $e) {
-    echo json_encode([
-        'success' => false,
-        'message' => 'Database error: ' . $e->getMessage()
-    ]);
 } catch (Exception $e) {
-    echo json_encode([
-        'success' => false,
-        'message' => 'Error: ' . $e->getMessage()
-    ]);
+    header('Content-Type: text/plain');
+    echo "Backup Error: " . $e->getMessage();
 }
 ?>

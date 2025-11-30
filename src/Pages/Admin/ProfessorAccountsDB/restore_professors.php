@@ -13,12 +13,18 @@ try {
     $conn = new PDO("mysql:host=$servername;dbname=$dbname", $username, $password);
     $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
-    // Get the latest backup file for professors
-    $backupDir = __DIR__ . '/../../Backup/professors/';
+    // Get the latest backup file for professors from Hostinger backup folder
+    $backupDir = __DIR__ . '/../../Backups/backup_for_tracked_professors/';
+    
+    // Check if directory exists
+    if (!is_dir($backupDir)) {
+        throw new Exception('Backup directory not found: ' . $backupDir);
+    }
+    
     $files = glob($backupDir . 'professors_backup_*.sql');
     
     if (empty($files)) {
-        throw new Exception('No backup files found for professors');
+        throw new Exception('No backup files found for professors in Hostinger backup folder');
     }
     
     // Get the most recent file
@@ -26,7 +32,7 @@ try {
     $sqlContent = file_get_contents($latestFile);
     
     if (!$sqlContent) {
-        throw new Exception('Failed to read backup file');
+        throw new Exception('Failed to read backup file: ' . $latestFile);
     }
 
     // Execute the SQL statements
@@ -34,7 +40,7 @@ try {
     
     echo json_encode([
         'success' => true,
-        'message' => 'Professors restored successfully',
+        'message' => 'Professors restored successfully from Hostinger backup',
         'filename' => basename($latestFile)
     ]);
 

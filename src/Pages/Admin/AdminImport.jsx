@@ -19,7 +19,7 @@ import ErrorIcon from "../../assets/Error(Red).svg";
 import loadingAnimation from "../../assets/system-regular-716-spinner-three-dots-loop-expand.json";
 
 export default function AdminImport() {
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(true);
   const [open, setOpen] = useState(false);
   const [showPopup, setShowPopup] = useState(false);
   const [users, setUsers] = useState([]);
@@ -199,27 +199,40 @@ export default function AdminImport() {
     
     fetch("https://tracked.6minds.site/Admin/AdminImportDB/activate_accounts.php", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { 
+        "Content-Type": "application/json",
+        "Accept": "application/json"
+      },
     })
-      .then((res) => {
+      .then(async (res) => {
+        const text = await res.text();
+        console.log("Raw response:", text);
+        
         if (!res.ok) {
           throw new Error(`HTTP error! status: ${res.status}`);
         }
-        return res.json();
+        
+        try {
+          return JSON.parse(text);
+        } catch (e) {
+          console.error("JSON parse error:", e);
+          throw new Error("Invalid JSON response from server");
+        }
       })
       .then((data) => {
+        console.log("Parsed data:", data);
         if (data.status === "success") {
           setResultData({
             type: "success",
             title: "Success!",
-            message: data.message
+            message: data.message || "Accounts activated successfully!"
           });
           fetchUsers(); // Refresh user list
         } else {
           setResultData({
             type: "error",
             title: "Activation Failed!",
-            message: data.message
+            message: data.message || "Unknown error occurred"
           });
         }
         setShowResultModal(true);
@@ -228,8 +241,8 @@ export default function AdminImport() {
         console.error("Error activating accounts:", err);
         setResultData({
           type: "error",
-          title: "Network Error!",
-          message: "An error occurred while activating accounts. Please try again."
+          title: "Activation Error!",
+          message: `An error occurred while activating accounts: ${err.message}. Please check server logs and try again.`
         });
         setShowResultModal(true);
       })
@@ -356,7 +369,7 @@ export default function AdminImport() {
 
                 {open && (
                   <div className="absolute top-full mt-1 bg-white rounded-md w-28 sm:w-36 lg:w-40 shadow-lg border border-gray-200 z-10">
-                    {["Year", "Section", "Active", "Deactivated"].map((f) => (
+                    {["Professor", "Student"].map((f) => (
                       <button
                         key={f}
                         className="block px-3 sm:px-4 py-2 w-full text-left hover:bg-gray-100 text-xs sm:text-sm lg:text-base transition-colors duration-200 cursor-pointer"

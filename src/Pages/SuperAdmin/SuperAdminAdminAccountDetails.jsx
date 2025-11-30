@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
+import Lottie from "lottie-react";
 
 import Sidebar from "../../Components/Sidebar";
 import Header from "../../Components/Header";
@@ -8,8 +9,11 @@ import Popup from "../../Components/Popup";
 import ClassManagementLight from '../../assets/ClassManagement(Light).svg';
 import BackButton from '../../assets/BackButton(Light).svg';
 
+// Import the Lottie animation JSON file
+import loadingAnimation from "../../assets/system-regular-716-spinner-three-dots-loop-expand.json";
+
 export default function SuperAdminAdminAccountDetails() {
-  const [isOpen, setIsOpen] = useState(false);  
+  const [isOpen, setIsOpen] = useState(true);  
   const [popupType, setPopupType] = useState(null);
   const [admin, setAdmin] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -17,6 +21,16 @@ export default function SuperAdminAdminAccountDetails() {
   const adminId = searchParams.get('id');
 
   const baseUrl = "https://tracked.6minds.site/SuperAdmin/SuperAdminDB";
+
+  // Lottie animation options
+  const defaultLottieOptions = {
+    loop: true,
+    autoplay: true,
+    animationData: loadingAnimation,
+    rendererSettings: {
+      preserveAspectRatio: 'xMidYMid slice'
+    }
+  };
 
   useEffect(() => {
     if (adminId) {
@@ -112,8 +126,16 @@ export default function SuperAdminAdminAccountDetails() {
           ${isOpen ? "lg:ml-[250px] xl:ml-[280px] 2xl:ml-[300px]" : "ml-0"}
         `}>
           <Header setIsOpen={setIsOpen} isOpen={isOpen} />
-          <div className="p-8 flex justify-center items-center">
-            <div className="text-[#465746]">Loading...</div>
+          <div className="p-8">
+            <div className="flex flex-col justify-center items-center h-40">
+              <div className="w-20 h-20 mb-4">
+                <Lottie 
+                  {...defaultLottieOptions}
+                  style={{ width: '100%', height: '100%' }}
+                />
+              </div>
+              <p className="text-[#465746] text-lg font-medium">Loading admin details...</p>
+            </div>
           </div>
         </div>
       </div>

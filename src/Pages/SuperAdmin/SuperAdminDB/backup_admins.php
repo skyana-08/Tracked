@@ -13,18 +13,18 @@ try {
     $conn = new PDO("mysql:host=$servername;dbname=$dbname", $username, $password);
     $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
-    // Get only professor accounts
-    $stmt = $conn->prepare("SELECT * FROM tracked_users WHERE tracked_Role = 'Professor'");
+    // Get only admin accounts (role = 'Admin')
+    $stmt = $conn->prepare("SELECT * FROM tracked_users WHERE tracked_Role = 'Admin'");
     $stmt->execute();
-    $professors = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $admins = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     // Generate SQL file content
-    $sqlContent = "-- TrackEd Professors Backup\n";
+    $sqlContent = "-- TrackEd Admins Backup\n";
     $sqlContent .= "-- Generated: " . date('Y-m-d H:i:s') . "\n\n";
     
-    foreach ($professors as $professor) {
+    foreach ($admins as $admin) {
         $values = [];
-        foreach ($professor as $key => $value) {
+        foreach ($admin as $key => $value) {
             if ($value === null) {
                 $values[] = "NULL";
             } else {
@@ -32,12 +32,12 @@ try {
             }
         }
         
-        $sqlContent .= "INSERT INTO tracked_users (" . implode(', ', array_keys($professor)) . ") ";
+        $sqlContent .= "INSERT INTO tracked_users (" . implode(', ', array_keys($admin)) . ") ";
         $sqlContent .= "VALUES (" . implode(', ', $values) . ") ";
         $sqlContent .= "ON DUPLICATE KEY UPDATE ";
         
         $updates = [];
-        foreach ($professor as $key => $value) {
+        foreach ($admin as $key => $value) {
             if ($key !== 'tracked_ID') {
                 $updates[] = "$key = " . ($value === null ? "NULL" : $conn->quote($value));
             }
@@ -46,12 +46,12 @@ try {
     }
 
     // Save to Hostinger backup folder
-    $backupDir = __DIR__ . '/../../Backups/backup_for_tracked_professors/';
+    $backupDir = __DIR__ . '/../../Backups/backup_for_tracked_admins/';
     if (!is_dir($backupDir)) {
         mkdir($backupDir, 0777, true);
     }
     
-    $filename = 'professors_backup_' . date('Y-m-d_H-i-s') . '.sql';
+    $filename = 'admins_backup_' . date('Y-m-d_H-i-s') . '.sql';
     $filepath = $backupDir . $filename;
     
     // Save to server

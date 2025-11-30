@@ -19,7 +19,7 @@ import ErrorIcon from "../../assets/Error(Red).svg";
 import loadingAnimation from "../../assets/system-regular-716-spinner-three-dots-loop-expand.json";
 
 export default function SuperAdminImports() {
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(true);
   const [open, setOpen] = useState(false);
   const [showPopup, setShowPopup] = useState(false);
   const [users, setUsers] = useState([]);
@@ -195,7 +195,6 @@ export default function SuperAdminImports() {
   const confirmActivateAccounts = () => {
     setIsActivating(true);
     
-    // FIXED: Use the correct endpoint URL
     fetch("https://tracked.6minds.site/SuperAdmin/SuperAdminImportDB/activate_admin_accounts.php", {
       method: "POST",
       headers: { 
@@ -203,14 +202,23 @@ export default function SuperAdminImports() {
         "Accept": "application/json"
       },
     })
-      .then((res) => {
+      .then(async (res) => {
+        const text = await res.text();
+        console.log("Raw response:", text);
+        
         if (!res.ok) {
           throw new Error(`HTTP error! status: ${res.status}`);
         }
-        return res.json();
+        
+        try {
+          return JSON.parse(text);
+        } catch (e) {
+          console.error("JSON parse error:", e);
+          throw new Error("Invalid JSON response from server");
+        }
       })
       .then((data) => {
-        // FIXED: Handle both response formats
+        console.log("Parsed data:", data);
         if (data.status === "success" || data.success) {
           setResultData({
             type: "success",
@@ -231,8 +239,8 @@ export default function SuperAdminImports() {
         console.error("Error activating accounts:", err);
         setResultData({
           type: "error",
-          title: "Network Error!",
-          message: "An error occurred while activating admin accounts. Please try again. Error: " + err.message
+          title: "Activation Error!",
+          message: `An error occurred while activating admin accounts: ${err.message}. Please check server logs and try again.`
         });
         setShowResultModal(true);
       })
@@ -709,17 +717,14 @@ export default function SuperAdminImports() {
               
               <div className="mt-4 mb-6">
                 <p className="text-sm text-gray-600 mb-3">
-                  Are you sure you want to activate all imported Admin accounts? This action will make all imported Admin accounts active in the system and send them temporary passwords via email.
+                  Are you sure you want to activate all imported Admin accounts? This action will make all imported Admin accounts active in the system.
                 </p>
                 <div className="bg-gray-50 rounded-lg p-4 text-left">
                   <p className="text-base sm:text-lg font-semibold text-gray-900">
                     This will affect {adminUsers.length} admin accounts
                   </p>
                   <p className="text-sm text-gray-600 mt-2">
-                    • Temporary passwords will be generated and emailed
-                  </p>
-                  <p className="text-sm text-gray-600">
-                    • Admins will be able to login immediately
+                    • Admins: {adminUsers.filter(user => user.user_Role === 'Admin').length}
                   </p>
                 </div>
               </div>
@@ -808,7 +813,7 @@ export default function SuperAdminImports() {
                       {resultData.title.includes("Import") ? "Database imported successfully!" : "Admin accounts have been activated successfully"}
                     </p>
                     <p className="text-sm text-gray-600 mt-2">
-                      • Total admin users processed: {adminUsers.length}
+                      • Total users processed: {adminUsers.length}
                     </p>
                     {resultData.title.includes("Import") ? (
                       <p className="text-sm text-gray-600">

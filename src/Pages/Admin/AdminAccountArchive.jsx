@@ -17,7 +17,7 @@ import SuccessIcon from '../../assets/Success(Green).svg';
 import loadingAnimation from "../../assets/system-regular-716-spinner-three-dots-loop-expand.json";
 
 export default function AdminAccountArchive() {
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(true);
   const [open, setOpen] = useState(false);
   const [showUnarchiveModal, setShowUnarchiveModal] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);

@@ -20,7 +20,7 @@ import RestoreIcon from "../../assets/Restore(Light).svg";
 import loadingAnimation from "../../assets/system-regular-716-spinner-three-dots-loop-expand.json";
 
 export default function UserManagementProfessorAccounts() {
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(true);
   const [open, setOpen] = useState(false);
   const [showArchiveModal, setShowArchiveModal] = useState(false);
   const [selectedFilter, setSelectedFilter] = useState("All");
@@ -90,36 +90,45 @@ export default function UserManagementProfessorAccounts() {
   const handleBackup = async () => {
     setIsBackingUp(true);
     try {
+      // Create backup and download in one request
       const response = await fetch("https://tracked.6minds.site/Admin/ProfessorAccountsDB/backup_professors.php", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
       });
-
-      const data = await response.json();
       
-      if (data.success) {
+      if (response.ok) {
+        // Get filename from response headers or generate it
+        const filename = `professors_backup_${new Date().toISOString().replace(/[:.]/g, '-')}.sql`;
+        
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.style.display = 'none';
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+        
         setBackupModalContent({
           type: 'success',
           title: 'Backup Successful',
-          message: `Backup created successfully!`,
-          filename: data.filename,
-          filepath: data.filepath
+          message: `Backup created and downloaded to your computer!`,
+          filename: filename
         });
       } else {
-        setBackupModalContent({
-          type: 'error',
-          title: 'Backup Failed',
-          message: data.message
-        });
+        const errorText = await response.text();
+        throw new Error(errorText || 'Backup failed');
       }
     } catch (error) {
       console.error("Error creating backup:", error);
       setBackupModalContent({
         type: 'error',
-        title: 'Network Error',
-        message: 'Network error during backup. Please check if the server is running.'
+        title: 'Backup Failed',
+        message: error.message || 'Network error during backup. Please check if the server is running.'
       });
     } finally {
       setIsBackingUp(false);

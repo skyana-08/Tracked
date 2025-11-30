@@ -1,56 +1,111 @@
-import React, { useState, useEffect } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import React, { useState, useEffect } from "react";
+import { Link, useLocation } from "react-router-dom";
+import Lottie from "lottie-react";
 
 import Sidebar from "../../Components/Sidebar";
 import Header from "../../Components/Header";
 import Popup from "../../Components/Popup";
 
-import ClassManagementLight from '../../assets/ClassManagement(Light).svg';
-import BackButton from '../../assets/BackButton(Light).svg';
+import ClassManagementLight from "../../assets/ClassManagement(Light).svg";
+import BackButton from "../../assets/BackButton(Light).svg";
+
+// Import the Lottie animation JSON file
+import loadingAnimation from "../../assets/system-regular-716-spinner-three-dots-loop-expand.json";
 
 export default function SuperAdminProfAccountDetails() {
-  const [isOpen, setIsOpen] = useState(false);  
+  const [isOpen, setIsOpen] = useState(true);
   const [popupType, setPopupType] = useState(null);
   const [professor, setProfessor] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [searchParams] = useSearchParams();
-  const professorId = searchParams.get('id');
+  const [isLoading, setIsLoading] = useState(false);
+  const [professorClasses, setProfessorClasses] = useState([]);
+  const [classesLoading, setClassesLoading] = useState(false);
 
-  const baseUrl = "https://tracked.6minds.site/SuperAdmin/SuperAdminDB";
+  const location = useLocation();
+
+  // Lottie animation options
+  const defaultLottieOptions = {
+    loop: true,
+    autoplay: true,
+    animationData: loadingAnimation,
+    rendererSettings: {
+      preserveAspectRatio: 'xMidYMid slice'
+    }
+  };
+
+  // Get ID from query parameters
+  const getProfessorId = () => {
+    const urlParams = new URLSearchParams(location.search);
+    return urlParams.get("id");
+  };
 
   useEffect(() => {
+    const professorId = getProfessorId();
     if (professorId) {
-      fetchProfessorDetails();
+      fetchProfessorData(professorId);
+      fetchProfessorClasses(professorId);
     }
-  }, [professorId]);
+  }, [location.search]);
 
-  const fetchProfessorDetails = async () => {
-    try {
-      const response = await fetch(`${baseUrl}/get_superadmin_professor_details.php?id=${professorId}`);
-      const data = await response.json();
-      if (data.success) {
-        setProfessor(data.professor);
-      } else {
-        console.error("Error fetching professor details:", data.message);
-      }
-    } catch (error) {
-      console.error("Error fetching professor details:", error);
-    } finally {
-      setLoading(false);
-    }
+  const fetchProfessorData = (professorId) => {
+    setIsLoading(true);
+    fetch(
+      `https://tracked.6minds.site/Admin/ProfessorAccountsDB/get_professors.php?id=${professorId}`
+    )
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success && data.professor) {
+          setProfessor(data.professor);
+        } else {
+          console.error("Professor not found:", data.message);
+          setPopupType("error");
+        }
+      })
+      .catch((err) => {
+        console.error("Error fetching professor data:", err);
+        setPopupType("error");
+      })
+      .finally(() => {
+        setIsLoading(false);
+      });
+  };
+
+  const fetchProfessorClasses = (professorId) => {
+    setClassesLoading(true);
+    fetch(
+      `https://tracked.6minds.site/Admin/ProfessorAccountsDB/get_professor_classes.php?professor_id=${professorId}`
+    )
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success) {
+          setProfessorClasses(data.classes || []);
+        } else {
+          console.error("Error fetching professor classes:", data.message);
+          setProfessorClasses([]);
+        }
+      })
+      .catch((err) => {
+        console.error("Error fetching professor classes:", err);
+        setProfessorClasses([]);
+      })
+      .finally(() => {
+        setClassesLoading(false);
+      });
   };
 
   const handleResetPassword = async () => {
     try {
-      const response = await fetch(`${baseUrl}/reset_user_password.php`, {
+      const professorId = getProfessorId();
+      const response = await fetch(`https://tracked.6minds.site/Admin/ProfessorAccountsDB/reset_professor_password.php`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: professorId, userType: 'professor' })
+        body: JSON.stringify({ id: professorId })
       });
       const data = await response.json();
       if (data.success) {
         alert('Password reset successfully!');
         setPopupType(null);
+        // Refresh professor data to get updated temporary password
+        fetchProfessorData(professorId);
       } else {
         alert('Failed to reset password: ' + data.message);
       }
@@ -62,20 +117,20 @@ export default function SuperAdminProfAccountDetails() {
 
   const handleToggleAccount = async () => {
     try {
-      const response = await fetch(`${baseUrl}/update_user_status.php`, {
+      const professorId = getProfessorId();
+      const response = await fetch(`https://tracked.6minds.site/Admin/ProfessorAccountsDB/update_professor_status.php`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           id: professorId, 
-          status: professor?.tracked_Status === 'Active' ? 'Deactivated' : 'Active',
-          userType: 'professor'
+          status: professor?.tracked_Status === 'Active' ? 'Deactivated' : 'Active'
         })
       });
       const data = await response.json();
       if (data.success) {
         alert(`Account ${professor?.tracked_Status === 'Active' ? 'deactivated' : 'activated'} successfully!`);
         setPopupType(null);
-        fetchProfessorDetails();
+        fetchProfessorData(professorId);
       } else {
         alert('Failed to update account status: ' + data.message);
       }
@@ -85,53 +140,41 @@ export default function SuperAdminProfAccountDetails() {
     }
   };
 
-  const getStatusColor = (status) => {
-    return status === 'Active' ? 'text-[#00A15D]' : 'text-[#FF6666]';
-  };
-
-  const getDisplayName = (user) => {
-    return `${user.tracked_firstname} ${user.tracked_middlename ? user.tracked_middlename + ' ' : ''}${user.tracked_lastname}`;
-  };
-
+  // Format date helper function
   const formatDate = (dateString) => {
-    if (!dateString) return 'N/A';
+    if (!dateString) return "N/A";
     const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
+    return date.toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
     });
   };
 
-  const calculateAge = (birthdate) => {
-    if (!birthdate) return 'N/A';
-    const today = new Date();
-    const birthDate = new Date(birthdate);
-    let age = today.getFullYear() - birthDate.getFullYear();
-    const monthDiff = today.getMonth() - birthDate.getMonth();
-    
-    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
-      age--;
-    }
-    return age;
-  };
-
-  if (loading) {
-    return (
-      <div>
-        <Sidebar role="admin" isOpen={isOpen} setIsOpen={setIsOpen} />
-        <div className={`
-          transition-all duration-300
-          ${isOpen ? "lg:ml-[250px] xl:ml-[280px] 2xl:ml-[300px]" : "ml-0"}
-        `}>
-          <Header setIsOpen={setIsOpen} isOpen={isOpen} />
-          <div className="p-8 flex justify-center items-center">
-            <div className="text-[#465746]">Loading...</div>
+  // Format classes for display
+  const formatClassesDisplay = () => {
+    if (classesLoading) {
+      return (
+        <div className="flex items-center text-gray-500">
+          <div className="w-4 h-4 mr-2">
+            <Lottie 
+              {...defaultLottieOptions}
+              style={{ width: '100%', height: '100%' }}
+            />
           </div>
+          Loading classes...
         </div>
-      </div>
-    );
-  }
+      );
+    }
+    
+    if (professorClasses.length === 0) {
+      return "No classes assigned";
+    }
+
+    return professorClasses.map(cls => 
+      `${cls.subject} (${cls.subject_code}) - ${cls.section}`
+    ).join(", ");
+  };
 
   if (!professor) {
     return (
@@ -142,8 +185,16 @@ export default function SuperAdminProfAccountDetails() {
           ${isOpen ? "lg:ml-[250px] xl:ml-[280px] 2xl:ml-[300px]" : "ml-0"}
         `}>
           <Header setIsOpen={setIsOpen} isOpen={isOpen} />
-          <div className="p-8 flex justify-center items-center">
-            <div className="text-[#465746]">Professor not found</div>
+          <div className="p-4 sm:p-5 md:p-6 lg:p-8">
+            <div className="flex flex-col justify-center items-center h-64">
+              <div className="w-24 h-24 mb-4">
+                <Lottie 
+                  {...defaultLottieOptions}
+                  style={{ width: '100%', height: '100%' }}
+                />
+              </div>
+              <p className="text-[#465746] text-lg font-medium">Loading professor details...</p>
+            </div>
           </div>
         </div>
       </div>
@@ -152,7 +203,7 @@ export default function SuperAdminProfAccountDetails() {
 
   return (
     <div>
-      <Sidebar role="admin" isOpen={isOpen} setIsOpen={setIsOpen} />
+      <Sidebar role="superadmin" isOpen={isOpen} setIsOpen={setIsOpen} />
       <div
         className={`
         transition-all duration-300
@@ -162,6 +213,7 @@ export default function SuperAdminProfAccountDetails() {
         <Header setIsOpen={setIsOpen} isOpen={isOpen} />
 
         <div className="p-4 sm:p-5 md:p-6 lg:p-8">
+          {/* Header */}
           <div className="mb-4 sm:mb-6">
             <div className="flex items-center mb-2">
               <img
@@ -175,7 +227,7 @@ export default function SuperAdminProfAccountDetails() {
             </div>
             <div className="flex items-center justify-between text-sm sm:text-base lg:text-lg text-[#465746]">
               <span>Professor Account Details - {professor.tracked_ID}</span>
-              <Link to="/SuperAdminImport">
+              <Link to="/SuperAdminProfAccount">
                 <img
                   src={BackButton}
                   alt="BackButton"
@@ -187,158 +239,223 @@ export default function SuperAdminProfAccountDetails() {
 
           <hr className="border-[#465746]/30 mb-5 sm:mb-6" />
 
-          <div className="bg-white p-4 sm:p-5 lg:p-6 rounded-lg sm:rounded-xl space-y-5 sm:space-y-6 shadow-md text-[#465746]">
-            {/* Professor Information Section */}
-            <div>
-              <h2 className="text-base sm:text-lg lg:text-xl font-bold mb-3 sm:mb-4 text-[#465746]">
-                Professor Information
-              </h2>
-              <div className="space-y-3 sm:space-y-2.5">
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-1 sm:gap-4 text-sm sm:text-base">
-                  <span className="font-semibold text-gray-600 sm:text-[#465746] sm:font-normal">
-                    Professor Name:
-                  </span>
-                  <span className="sm:col-span-2 text-[#465746]">
-                    {getDisplayName(professor)}
-                  </span>
-                </div>
-                
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-1 sm:gap-4 text-sm sm:text-base">
-                  <span className="font-semibold text-gray-600 sm:text-[#465746] sm:font-normal">
-                    Faculty ID:
-                  </span>
-                  <span className="sm:col-span-2 text-[#465746]">{professor.tracked_ID}</span>
-                </div>
-                
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-1 sm:gap-4 text-sm sm:text-base">
-                  <span className="font-semibold text-gray-600 sm:text-[#465746] sm:font-normal">
-                    CVSU Email Address:
-                  </span>
-                  <span className="sm:col-span-2 text-[#465746] break-all sm:break-normal">
-                    {professor.tracked_email}
-                  </span>
-                </div>
-                
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-1 sm:gap-4 text-sm sm:text-base">
-                  <span className="font-semibold text-gray-600 sm:text-[#465746] sm:font-normal">
-                    Phone Number:
-                  </span>
-                  <span className="sm:col-span-2 text-[#465746]">
-                    {professor.tracked_phone || 'N/A'}
-                  </span>
-                </div>
-                
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-1 sm:gap-4 text-sm sm:text-base">
-                  <span className="font-semibold text-gray-600 sm:text-[#465746] sm:font-normal">
-                    Age:
-                  </span>
-                  <span className="sm:col-span-2 text-[#465746]">
-                    {calculateAge(professor.tracked_bday)}
-                  </span>
+          {/* Loading State for Professor Data */}
+          {isLoading && (
+            <div className="flex flex-col justify-center items-center py-12 bg-white rounded-lg shadow-md">
+              <div className="w-20 h-20 mb-4">
+                <Lottie 
+                  {...defaultLottieOptions}
+                  style={{ width: '100%', height: '100%' }}
+                />
+              </div>
+              <p className="text-[#465746] text-lg font-medium">Loading professor information...</p>
+            </div>
+          )}
+
+          {/* Content */}
+          {!isLoading && (
+            <div className="bg-white p-4 sm:p-5 lg:p-6 rounded-lg sm:rounded-xl space-y-5 sm:space-y-6 shadow-md text-[#465746]">
+              {/* Professor Information Section */}
+              <div>
+                <h2 className="text-base sm:text-lg lg:text-xl font-bold mb-3 sm:mb-4 text-[#465746]">
+                  Professor Information
+                </h2>
+                <div className="space-y-3 sm:space-y-2">
+                  {/* First Name */}
+                  <div className="flex flex-col sm:grid sm:grid-cols-2 gap-1 text-sm sm:text-base md:text-lg">
+                    <span className="font-medium text-gray-600">
+                      First Name :
+                    </span>
+                    <span>{professor.tracked_firstname || "N/A"}</span>
+                  </div>
+
+                  {/* Middle Name */}
+                  <div className="flex flex-col sm:grid sm:grid-cols-2 gap-1 text-sm sm:text-base md:text-lg">
+                    <span className="font-medium text-gray-600">
+                      Middle Name :
+                    </span>
+                    <span>{professor.tracked_middlename || "N/A"}</span>
+                  </div>
+
+                  {/* Last Name */}
+                  <div className="flex flex-col sm:grid sm:grid-cols-2 gap-1 text-sm sm:text-base md:text-lg">
+                    <span className="font-medium text-gray-600">Last Name :</span>
+                    <span>{professor.tracked_lastname || "N/A"}</span>
+                  </div>
+
+                  {/* Sex */}
+                  <div className="flex flex-col sm:grid sm:grid-cols-2 gap-1 text-sm sm:text-base md:text-lg">
+                    <span className="font-medium text-gray-600">Sex :</span>
+                    <span>{professor.tracked_gender || "N/A"}</span>
+                  </div>
+
+                  {/* Date of Birth */}
+                  <div className="flex flex-col sm:grid sm:grid-cols-2 gap-1 text-sm sm:text-base md:text-lg">
+                    <span className="font-medium text-gray-600">
+                      Date of Birth :
+                    </span>
+                    <span>{formatDate(professor.tracked_bday)}</span>
+                  </div>
+
+                  {/* Professor ID */}
+                  <div className="flex flex-col sm:grid sm:grid-cols-2 gap-1 text-sm sm:text-base md:text-lg">
+                    <span className="font-medium text-gray-600">
+                      Professor ID :
+                    </span>
+                    <span>{professor.tracked_ID || "N/A"}</span>
+                  </div>
+
+                  {/* CVSU Email Address */}
+                  <div className="flex flex-col sm:grid sm:grid-cols-2 gap-1 text-sm sm:text-base md:text-lg">
+                    <span className="font-medium text-gray-600">
+                      CVSU Email Address :
+                    </span>
+                    <span className="break-all">
+                      {professor.tracked_email || "N/A"}
+                    </span>
+                  </div>
+
+                  {/* Phone Number */}
+                  <div className="flex flex-col sm:grid sm:grid-cols-2 gap-1 text-sm sm:text-base md:text-lg">
+                    <span className="font-medium text-gray-600">
+                      Phone Number :
+                    </span>
+                    <span>{professor.tracked_phone || "N/A"}</span>
+                  </div>
+
+                  <div className="flex flex-col sm:grid sm:grid-cols-2 gap-1 text-sm sm:text-base md:text-lg">
+                    <span className="font-medium text-gray-600">
+                      Temporary Password :
+                    </span>
+                    <span className="font-semibold">{professor.temporary_password || "N/A"}</span>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            {/* Professional Information Section */}
-            <div>
-              <h2 className="text-base sm:text-lg lg:text-xl font-bold mb-3 sm:mb-4 text-[#465746]">
-                Professional Information
-              </h2>
-              <div className="space-y-3 sm:space-y-2.5">
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-1 sm:gap-4 text-sm sm:text-base">
-                  <span className="font-semibold text-gray-600 sm:text-[#465746] sm:font-normal">
-                    Department:
-                  </span>
-                  <span className="sm:col-span-2 text-[#465746]">
-                    {professor.tracked_program || 'N/A'}
-                  </span>
+              <hr className="opacity-10 border-[#465746] rounded border-1 mb-6" />
+
+              {/* Professional Information Section */}
+              <div>
+                <h2 className="text-base sm:text-lg lg:text-xl font-bold mb-3 sm:mb-4 text-[#465746]">
+                  Professional Information
+                </h2>
+                <div className="space-y-3 sm:space-y-2">
+                  <div className="flex flex-col sm:grid sm:grid-cols-2 gap-1 text-sm sm:text-base md:text-lg">
+                    <span className="font-medium text-gray-600">
+                      Department :
+                    </span>
+                    <span>{professor.tracked_program || "N/A"}</span>
+                  </div>
+
+                  <div className="flex flex-col sm:grid sm:grid-cols-2 gap-1 text-sm sm:text-base md:text-lg">
+                    <span className="font-medium text-gray-600">
+                      Subject Handled :
+                    </span>
+                    <span className={classesLoading ? "text-gray-400 italic" : ""}>
+                      {formatClassesDisplay()}
+                    </span>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            {/* Account Information Section */}
-            <div>
-              <h2 className="text-base sm:text-lg lg:text-xl font-bold mb-3 sm:mb-4 text-[#465746]">
-                Account Information
-              </h2>
-              <div className="space-y-3 sm:space-y-2.5">
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-1 sm:gap-4 text-sm sm:text-base">
-                  <span className="font-semibold text-gray-600 sm:text-[#465746] sm:font-normal">
-                    Date Created:
-                  </span>
-                  <span className="sm:col-span-2 text-[#465746]">
-                    {formatDate(professor.created_at)}
-                  </span>
-                </div>
-                
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-1 sm:gap-4 text-sm sm:text-base">
-                  <span className="font-semibold text-gray-600 sm:text-[#465746] sm:font-normal">
-                    Last Updated:
-                  </span>
-                  <span className="sm:col-span-2 text-[#465746]">
-                    {formatDate(professor.updated_at)}
-                  </span>
-                </div>
-                
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-1 sm:gap-4 text-sm sm:text-base">
-                  <span className="font-semibold text-gray-600 sm:text-[#465746] sm:font-normal">
-                    Account Status:
-                  </span>
-                  <span className={`sm:col-span-2 font-bold ${getStatusColor(professor.tracked_Status)}`}>
-                    {professor.tracked_Status}
-                  </span>
+              <hr className="opacity-10 border-[#465746] rounded border-1 mb-6" />
+
+              {/* Account Information Section */}
+              <div>
+                <h2 className="text-base sm:text-lg lg:text-xl font-bold mb-3 sm:mb-4 text-[#465746]">
+                  Account Information
+                </h2>
+                <div className="space-y-3 sm:space-y-2">
+                  <div className="flex flex-col sm:grid sm:grid-cols-2 gap-1 text-sm sm:text-base md:text-lg">
+                    <span className="font-medium text-gray-600">
+                      Date Created :
+                    </span>
+                    <span>{formatDate(professor.created_at)}</span>
+                  </div>
+
+                  <div className="flex flex-col sm:grid sm:grid-cols-2 gap-1 text-sm sm:text-base md:text-lg">
+                    <span className="font-medium text-gray-600">
+                      Last Login :
+                    </span>
+                    <span>{formatDate(professor.updated_at)}</span>
+                  </div>
+
+                  <div className="flex flex-col sm:grid sm:grid-cols-2 gap-1 text-sm sm:text-base md:text-lg">
+                    <span className="font-medium text-gray-600">
+                      Account Status :
+                    </span>
+                    <span
+                      className={`font-semibold ${
+                        professor.tracked_Status === "Active"
+                          ? "text-green-600"
+                          : "text-red-600"
+                      }`}
+                    >
+                      {professor.tracked_Status || "N/A"}
+                    </span>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            {/* Action Buttons */}
-            <div className="pt-4 sm:pt-5 border-t border-gray-200">
-              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
-                {/* Reset Password */}
-                <button 
-                  onClick={() => setPopupType("reset")} 
-                  className="font-bold text-white py-2.5 px-4 sm:px-6 bg-[#00874E] rounded-md shadow-md text-center hover:bg-[#006F3A] text-sm sm:text-base w-full sm:w-auto transition-colors duration-200 cursor-pointer"
-                >
-                  Reset Password
-                </button>
+              {/* Action Buttons */}
+              <div className="pt-4 sm:pt-5 border-t border-gray-200">
+                <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+                  {/* Reset Password */}
+                  <button 
+                    onClick={() => setPopupType("reset")} 
+                    className="font-bold text-white py-2.5 px-4 sm:px-6 bg-[#00874E] rounded-md shadow-md text-center hover:bg-[#006F3A] text-sm sm:text-base w-full sm:w-auto transition-colors duration-200 cursor-pointer"
+                  >
+                    Reset Password
+                  </button>
 
-                {/* Toggle Account Status */}
-                <button 
-                  onClick={() => setPopupType("toggle")}  
-                  className={`font-bold text-white py-2.5 px-4 sm:px-6 rounded-md shadow-md text-center text-sm sm:text-base w-full sm:w-auto transition-colors duration-200 cursor-pointer ${
-                    professor.tracked_Status === 'Active' 
-                      ? 'bg-[#FF6666] hover:bg-[#E55555]' 
-                      : 'bg-[#00874E] hover:bg-[#006F3A]'
-                  }`}
-                >
-                  {professor.tracked_Status === 'Active' ? 'Disable Account' : 'Enable Account'}
-                </button>
+                  {/* Toggle Account Status */}
+                  <button 
+                    onClick={() => setPopupType("toggle")}  
+                    className={`font-bold text-white py-2.5 px-4 sm:px-6 rounded-md shadow-md text-center text-sm sm:text-base w-full sm:w-auto transition-colors duration-200 cursor-pointer ${
+                      professor.tracked_Status === 'Active' 
+                        ? 'bg-[#FF6666] hover:bg-[#E55555]' 
+                        : 'bg-[#00874E] hover:bg-[#006F3A]'
+                    }`}
+                  >
+                    {professor.tracked_Status === 'Active' ? 'Disable Account' : 'Enable Account'}
+                  </button>
+                </div>
               </div>
+
+              {/* Popup */}
+              {popupType === "reset" && (
+                <Popup 
+                  setOpen={() => setPopupType(null)} 
+                  message="Do you really want to reset this password? The default password will be 'password123'." 
+                  confirmText="Reset" 
+                  buttonColor="#00874E" 
+                  hoverColor="#006F3A"
+                  onConfirm={handleResetPassword}
+                />
+              )}
+
+              {popupType === "toggle" && (
+                <Popup 
+                  setOpen={() => setPopupType(null)} 
+                  message={`Are you sure you want to ${professor.tracked_Status === 'Active' ? 'disable' : 'enable'} this account?`} 
+                  confirmText={professor.tracked_Status === 'Active' ? 'Disable' : 'Enable'} 
+                  buttonColor={professor.tracked_Status === 'Active' ? '#FF6666' : '#00874E'} 
+                  hoverColor={professor.tracked_Status === 'Active' ? '#C23535' : '#006F3A'}
+                  onConfirm={handleToggleAccount}
+                />
+              )}
+
+              {popupType === "error" && (
+                <Popup
+                  setOpen={() => setPopupType(null)}
+                  message="Failed to load professor information. Please try again."
+                  confirmText="OK"
+                  buttonColor="#FF6666"
+                  hoverColor="#C23535"
+                />
+              )}
             </div>
-
-            {/* Popup */}
-            {popupType === "reset" && (
-              <Popup 
-                setOpen={() => setPopupType(null)} 
-                message="Do you really want to reset this password? The default password will be 'password123'." 
-                confirmText="Reset" 
-                buttonColor="#00874E" 
-                hoverColor="#006F3A"
-                onConfirm={handleResetPassword}
-              />
-            )}
-
-            {popupType === "toggle" && (
-              <Popup 
-                setOpen={() => setPopupType(null)} 
-                message={`Are you sure you want to ${professor.tracked_Status === 'Active' ? 'disable' : 'enable'} this account?`} 
-                confirmText={professor.tracked_Status === 'Active' ? 'Disable' : 'Enable'} 
-                buttonColor={professor.tracked_Status === 'Active' ? '#FF6666' : '#00874E'} 
-                hoverColor={professor.tracked_Status === 'Active' ? '#C23535' : '#006F3A'}
-                onConfirm={handleToggleAccount}
-              />
-            )}
-          </div>
+          )}
         </div>
       </div>
     </div>
