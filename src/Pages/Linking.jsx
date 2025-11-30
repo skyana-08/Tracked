@@ -42,7 +42,7 @@ import StudentList from './Professor/StudentList.jsx';
 import DashboardStudent from './Student/DashboardStudent.jsx';
 import Subjects from './Student/Subjects.jsx';
 import ArchiveClassStudent from './Student/ArchiveClassStudent.jsx';
-import AnalyticsStudent from './Student/AnalyticsStudent.jsx';
+// import AnalyticsStudent from './Student/AnalyticsStudent.jsx';
 // import NotificationStudent from './Student/NotificationStudent.jsx';
 import ProfileStudent from './Student/ProfileStudent.jsx';
 import AccountSetting from './Student/AccountSetting.jsx';
@@ -113,7 +113,7 @@ function Linking() {
         <Route path="/DashboardStudent" element={<DashboardStudent />} />
         <Route path="/Subjects" element={<Subjects />} />
         <Route path="/ArchiveClassStudent" element={<ArchiveClassStudent />} />
-        <Route path="/AnalyticsStudent" element={<AnalyticsStudent />} />
+        {/* <Route path="/AnalyticsStudent" element={<AnalyticsStudent />} /> */}
         {/* <Route path="/NotificationStudent" element={<NotificationStudent />} /> */}
         <Route path="/ProfileStudent" element={<ProfileStudent />} />
         <Route path="/AccountSetting" element={<AccountSetting />} />

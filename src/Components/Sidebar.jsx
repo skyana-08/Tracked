@@ -219,7 +219,7 @@ export default function Sidebar({ role = "student", isOpen: isOpenProp, setIsOpe
           path: "/Subjects",
           hasDropdown: true
         },
-        { label: "Reports", icon: Analytics, path: "/AnalyticsStudent" },
+        // { label: "Reports", icon: Analytics, path: "/AnalyticsStudent" },
       ],
       extras: [
         // { label: "Notification", icon: Notification, path: "/NotificationStudent" },
@@ -353,7 +353,7 @@ export default function Sidebar({ role = "student", isOpen: isOpenProp, setIsOpe
                                   to={`/SubjectAnnouncementStudent?code=${subject.subject_code}`}
                                   onClick={handleDropdownClick}
                                   className={`flex items-center px-3 py-2 rounded-lg text-white text-xs sm:text-sm hover:bg-[#00A15D] transition-colors duration-150 mb-1 ${
-                                    isActive ? "bg-[#00A15D] border-l-2 border-white font-semibold" : ""
+                                    isActive ? "bg-[#00A15D] font-semibold" : ""
                                   }`}
                                 >
                                   <div className="min-w-0 flex-1">

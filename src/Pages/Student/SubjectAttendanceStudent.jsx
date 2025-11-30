@@ -552,7 +552,7 @@ export default function SubjectAttendanceStudent() {
                           <thead className="bg-gray-100">
                             <tr>
                               <th className="p-2 sm:p-3 font-bold text-[#FF6666]">Date Absent</th>
-                              <th className="p-2 sm:p-3 font-bold text-[#2196F3]">Date Late</th>
+                              <th className="p-2 sm:p-3 font-bold text-[#F59E0B]">Date Late</th>
                             </tr>
                           </thead>
                           <tbody>
@@ -561,7 +561,7 @@ export default function SubjectAttendanceStudent() {
                                 <td className="p-2 sm:p-3 text-[#FF6666]">
                                   {record.absentDate}
                                 </td>
-                                <td className="p-2 sm:p-3 text-[#2196F3]">
+                                <td className="p-2 sm:p-3 text-[#F59E0B]">
                                   {record.lateDate}
                                 </td>
                               </tr>
@@ -663,7 +663,7 @@ export default function SubjectAttendanceStudent() {
                           <th className="px-2 sm:px-4 py-2 sm:py-3 text-left font-bold text-[#F59E0B]">Late</th>
                           <th className="px-2 sm:px-4 py-2 sm:py-3 text-left font-bold text-[#FF6666]">Absent</th>
                           <th className="px-2 sm:px-4 py-2 sm:py-3 text-left font-bold whitespace-nowrap">Effective Absences</th>
-                          <th className="px-2 sm:px-4 py-2 sm:py-3 text-left font-bold whitespace-nowrap">Total Classes</th>
+                          <th className="px-2 sm:px-4 py-2 sm:py-3 text-left font-bold whitespace-nowrap text-[#9C27B0]">Total Classes</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -691,7 +691,7 @@ export default function SubjectAttendanceStudent() {
                                 ({subject.absent} + {subject.equivalentAbsences})
                               </span>
                             </td>
-                            <td className="px-2 sm:px-4 py-2 sm:py-3 whitespace-nowrap">{subject.total_classes}</td>
+                            <td className="px-2 sm:px-4 py-2 sm:py-3 whitespace-nowrap text-[#9C27B0]">{subject.total_classes}</td>
                           </tr>
                         ))}
                       </tbody>
