@@ -121,10 +121,10 @@ const StudentActivityCard = ({ activity, onViewDetails }) => {
       }
     }
     
-    if (isSubmitted && isLate) return { status: "Late", color: "bg-yellow-100 text-yellow-800" };
-    if (isSubmitted) return { status: "Submitted", color: "bg-green-100 text-green-800" };
-    if (isOverdue) return { status: "Missed", color: "bg-red-100 text-red-800" };
-    return { status: "Assigned", color: "bg-blue-100 text-blue-800" };
+    if (isSubmitted && isLate) return { status: "Late", color: "bg-yellow-100 text-yellow-800", type: "submitted" };
+    if (isSubmitted) return { status: "Submitted", color: "bg-green-100 text-green-800", type: "submitted" };
+    if (isOverdue) return { status: "Missed", color: "bg-red-100 text-red-800", type: "missed" };
+    return { status: "Assigned", color: "bg-blue-100 text-blue-800", type: "active" };
   };
 
   // Check if professor has submitted (static for now - you can replace this with actual data from backend)
@@ -374,6 +374,29 @@ export default function SubjectSchoolWorksStudent() {
     setDetailsModalOpen(true);
   };
 
+  // Get activity status for filtering
+  const getActivityStatus = (activity) => {
+    const isSubmitted = activity.submitted === 1 || activity.submitted === true || activity.submitted === '1';
+    const isLate = activity.late === 1 || activity.late === true || activity.late === '1';
+    
+    // Check if deadline is overdue and not submitted - using UTC
+    let isOverdue = false;
+    if (activity.deadline && activity.deadline !== "No deadline") {
+      try {
+        const deadlineDate = new Date(activity.deadline);
+        const now = new Date();
+        isOverdue = deadlineDate.getTime() < now.getTime() && !isSubmitted;
+      } catch {
+        // If date parsing fails, skip overdue check
+      }
+    }
+    
+    if (isSubmitted && isLate) return "submitted";
+    if (isSubmitted) return "submitted";
+    if (isOverdue) return "missed";
+    return "active";
+  };
+
   // Filter activities based on filter option and search query
   const filteredActivities = activities.filter(activity => {
     const matchesSearch = activity.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -381,12 +404,24 @@ export default function SubjectSchoolWorksStudent() {
     
     let matchesFilter = true;
     if (filterOption !== "All") {
-      // Filter by activity type instead of status
-      matchesFilter = activity.activity_type === filterOption;
+      if (filterOption === "Missed" || filterOption === "Submitted" || filterOption === "Active") {
+        // Filter by status
+        matchesFilter = getActivityStatus(activity) === filterOption.toLowerCase();
+      } else {
+        // Filter by activity type
+        matchesFilter = activity.activity_type === filterOption;
+      }
     }
     
     return matchesSearch && matchesFilter;
   });
+
+  // Group activities by status
+  const groupedActivities = {
+    active: filteredActivities.filter(activity => getActivityStatus(activity) === "active"),
+    submitted: filteredActivities.filter(activity => getActivityStatus(activity) === "submitted"),
+    missed: filteredActivities.filter(activity => getActivityStatus(activity) === "missed")
+  };
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -563,77 +598,144 @@ export default function SubjectSchoolWorksStudent() {
           </div>
 
           {/* Filter and Search Section */}
-            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mt-4 sm:mt-5">
-              {/* Filter dropdown */}
-              <div className="relative sm:flex-initial filter-dropdown">
-                <button
-                  onClick={() => setFilterDropdownOpen(!filterDropdownOpen)}
-                  className="flex items-center justify-between w-full sm:w-auto font-bold px-4 py-2.5 bg-white rounded-md shadow-md border-2 border-transparent hover:border-[#00874E] active:border-[#00874E] transition-all duration-200 text-sm sm:text-base sm:min-w-[160px] cursor-pointer touch-manipulation"
-                >
-                  <span>{filterOption}</span>
-                  <img
-                    src={ArrowDown}
-                    alt=""
-                    className={`ml-3 h-4 w-4 sm:h-5 sm:w-5 transition-transform duration-200 ${filterDropdownOpen ? 'rotate-180' : ''}`}
-                  />
-                </button>
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mt-4 sm:mt-5">
+            {/* Filter dropdown */}
+            <div className="relative sm:flex-initial filter-dropdown">
+              <button
+                onClick={() => setFilterDropdownOpen(!filterDropdownOpen)}
+                className="flex items-center justify-between w-full sm:w-auto font-bold px-4 py-2.5 bg-white rounded-md shadow-md border-2 border-transparent hover:border-[#00874E] active:border-[#00874E] transition-all duration-200 text-sm sm:text-base sm:min-w-[160px] cursor-pointer touch-manipulation"
+              >
+                <span>{filterOption}</span>
+                <img
+                  src={ArrowDown}
+                  alt=""
+                  className={`ml-3 h-4 w-4 sm:h-5 sm:w-5 transition-transform duration-200 ${filterDropdownOpen ? 'rotate-180' : ''}`}
+                />
+              </button>
 
-                {/* Dropdown options */}
-                {filterDropdownOpen && (
-                  <div className="absolute top-full mt-2 bg-white rounded-md w-full sm:min-w-[200px] shadow-xl border border-gray-200 z-20 overflow-hidden">
-                    {["All", "Assignment", "Quiz", "Activity", "Project", "Laboratory"].map((option) => (
-                      <button
-                        key={option}
-                        className={`block px-4 py-2.5 w-full text-left hover:bg-gray-100 active:bg-gray-200 text-sm sm:text-base transition-colors duration-150 cursor-pointer touch-manipulation ${
-                          filterOption === option ? 'bg-gray-50 font-semibold' : ''
-                        }`}
-                        onClick={() => {
-                          setFilterOption(option);
-                          setFilterDropdownOpen(false);
-                        }}
-                      >
-                        {option}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Search bar */}
-              <div className="flex-1">
-                <div className="relative">
-                  <input
-                    type="text"
-                    placeholder="Search activities..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full h-11 sm:h-12 rounded-md px-4 py-2.5 pr-12 shadow-md outline-none bg-white text-sm sm:text-base border-2 border-transparent focus:border-[#00874E] transition-colors"
-                  />
-                  <button className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500">
-                    <img
-                      src={Search}
-                      alt="Search"
-                      className="h-5 w-5 sm:h-6 sm:w-6"
-                    />
-                  </button>
+              {/* Dropdown options */}
+              {filterDropdownOpen && (
+                <div className="absolute top-full mt-2 bg-white rounded-md w-full sm:min-w-[200px] shadow-xl border border-gray-200 z-20 overflow-hidden">
+                  {["All", "Active", "Submitted", "Missed", "Assignment", "Quiz", "Activity", "Project", "Laboratory"].map((option) => (
+                    <button
+                      key={option}
+                      className={`block px-4 py-2.5 w-full text-left hover:bg-gray-100 active:bg-gray-200 text-sm sm:text-base transition-colors duration-150 cursor-pointer touch-manipulation ${
+                        filterOption === option ? 'bg-gray-50 font-semibold' : ''
+                      }`}
+                      onClick={() => {
+                        setFilterOption(option);
+                        setFilterDropdownOpen(false);
+                      }}
+                    >
+                      {option}
+                    </button>
+                  ))}
                 </div>
-              </div>
+              )}
             </div>
 
-          {/* ACTIVITY CARDS - Updated with new design */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4 mt-4 sm:mt-5">
-            {filteredActivities.length === 0 ? (
-              renderEmptyState()
-            ) : (
-              filteredActivities.map((activity) => (
-                <StudentActivityCard
-                  key={activity.id}
-                  activity={activity}
-                  onViewDetails={handleViewDetails}
-                  studentImages={studentImages}
+            {/* Search bar */}
+            <div className="flex-1">
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="Search activities..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full h-11 sm:h-12 rounded-md px-4 py-2.5 pr-12 shadow-md outline-none bg-white text-sm sm:text-base border-2 border-transparent focus:border-[#00874E] transition-colors"
                 />
-              ))
+                <button className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500">
+                  <img
+                    src={Search}
+                    alt="Search"
+                    className="h-5 w-5 sm:h-6 sm:w-6"
+                  />
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* ACTIVITY CARDS - Grouped by status */}
+          <div className="mt-4 sm:mt-5">
+            {/* Active Activities Section */}
+            {groupedActivities.active.length > 0 && (
+              <>
+                <div className="mb-4 mt-4">
+                  <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                    <span className="w-3 h-3 bg-blue-500 rounded-full"></span>
+                    Active Activities
+                    <span className="text-sm font-normal text-gray-500 ml-2">
+                      ({groupedActivities.active.length})
+                    </span>
+                  </h3>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+                  {groupedActivities.active.map((activity) => (
+                    <StudentActivityCard
+                      key={activity.id}
+                      activity={activity}
+                      onViewDetails={handleViewDetails}
+                      studentImages={studentImages}
+                    />
+                  ))}
+                </div>
+                <hr className="my-6 border-gray-300" />
+              </>
             )}
+
+            {/* Submitted Activities Section */}
+            {groupedActivities.submitted.length > 0 && (
+              <>
+                <div className="mb-4 mt-4">
+                  <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                    <span className="w-3 h-3 bg-green-500 rounded-full"></span>
+                    Submitted Activities
+                    <span className="text-sm font-normal text-gray-500 ml-2">
+                      ({groupedActivities.submitted.length})
+                    </span>
+                  </h3>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+                  {groupedActivities.submitted.map((activity) => (
+                    <StudentActivityCard
+                      key={activity.id}
+                      activity={activity}
+                      onViewDetails={handleViewDetails}
+                      studentImages={studentImages}
+                    />
+                  ))}
+                </div>
+                <hr className="my-6 border-gray-300" />
+              </>
+            )}
+
+            {/* Missed Activities Section */}
+            {groupedActivities.missed.length > 0 && (
+              <>
+                <div className="mb-4 mt-4">
+                  <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                    <span className="w-3 h-3 bg-red-500 rounded-full"></span>
+                    Missed Activities
+                    <span className="text-sm font-normal text-gray-500 ml-2">
+                      ({groupedActivities.missed.length})
+                    </span>
+                  </h3>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+                  {groupedActivities.missed.map((activity) => (
+                    <StudentActivityCard
+                      key={activity.id}
+                      activity={activity}
+                      onViewDetails={handleViewDetails}
+                      studentImages={studentImages}
+                    />
+                  ))}
+                </div>
+              </>
+            )}
+
+            {/* Empty State - Only show if there are no activities at all */}
+            {filteredActivities.length === 0 && renderEmptyState()}
           </div>
         </div>
       </div>

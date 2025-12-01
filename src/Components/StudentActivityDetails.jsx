@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import Close from "../assets/Close.svg";
 import Add from "../assets/Add(Light).svg";
+import FileIcon from "../assets/File(Light).svg";
 
 const StudentActivityDetails = ({ activity, isOpen, onClose, onImageUpload, studentImages }) => {
   const [selectedImage, setSelectedImage] = useState(null);
@@ -222,26 +223,33 @@ const StudentActivityDetails = ({ activity, isOpen, onClose, onImageUpload, stud
                     
                     {hasTeacherImage ? (
                       <div className="space-y-3">
-                        <div className="flex items-center gap-3 p-3 bg-white rounded-lg border border-green-300">
-                          <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                            <img src={Add} alt="File" className="w-5 h-5 text-green-600" />
-                          </div>
+                        <div 
+                          className="w-full h-40 bg-gray-100 rounded-lg overflow-hidden cursor-pointer border-2 border-green-500"
+                          onClick={() => handleViewImage({url: hasTeacherImage, name: "Professor's Reference"})}
+                        >
+                          <img 
+                            src={hasTeacherImage} 
+                            alt="Professor's submission" 
+                            className="w-full h-full object-contain"
+                          />
+                        </div>
+                        <div className="flex flex-col xs:flex-row xs:justify-between xs:items-center gap-2">
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-medium text-gray-900 truncate">professor_reference.pdf</p>
                             <p className="text-xs text-gray-500">Uploaded by Professor • 2.5 MB</p>
                           </div>
-                          <button className="text-green-600 hover:text-green-800 text-sm font-medium cursor-pointer bg-green-100 hover:bg-green-200 px-3 py-1 rounded transition-colors">
+                          <button
+                            onClick={() => handleViewImage({url: hasTeacherImage, name: "Professor's Reference"})}
+                            className="px-3 py-1 bg-green-600 text-white text-sm rounded hover:bg-green-700 cursor-pointer transition-colors w-fit"
+                          >
                             View
                           </button>
                         </div>
-                        <p className="text-xs text-green-700">
-                          Your professor has provided this reference of your work to help with your submission.
-                        </p>
                       </div>
                     ) : (
-                      <div className="text-center py-4">
+                      <div className="text-center py-6">
                         <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-2">
-                          <img src={Add} alt="No file" className="w-6 h-6 text-green-400" />
+                          <img src={FileIcon} alt="No file" className="w-6 h-6 text-green-400" />
                         </div>
                         <p className="text-green-700 text-sm font-medium">No professor submission of your work yet</p>
                         <p className="text-green-600 text-xs mt-1">
@@ -274,12 +282,20 @@ const StudentActivityDetails = ({ activity, isOpen, onClose, onImageUpload, stud
                               Uploaded on {new Date(currentStudentImage.uploadDate).toLocaleDateString()}
                             </p>
                           </div>
-                          <button
-                            onClick={handleFileUpload}
-                            className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 cursor-pointer transition-colors w-fit"
-                          >
-                            Change File
-                          </button>
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => handleViewImage(currentStudentImage)}
+                              className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 cursor-pointer transition-colors w-fit"
+                            >
+                              View
+                            </button>
+                            <button
+                              onClick={handleFileUpload}
+                              className="px-3 py-1 bg-white text-blue-600 text-sm rounded border border-blue-600 hover:bg-blue-50 cursor-pointer transition-colors w-fit"
+                            >
+                              Change
+                            </button>
+                          </div>
                         </div>
                       </div>
                     ) : (
@@ -289,7 +305,7 @@ const StudentActivityDetails = ({ activity, isOpen, onClose, onImageUpload, stud
                       >
                         <img src={Add} alt="Add" className="w-10 h-10 text-blue-400 mb-3" />
                         <p className="text-blue-700 font-medium text-sm text-center">Click to upload your work</p>
-                        <p className="text-blue-600 text-xs mt-1 text-center">JPG, PNG, PDF files supported</p>
+                        <p className="text-blue-600 text-xs mt-1 text-center">JPG, PNG files supported</p>
                       </div>
                     )}
                   </div>

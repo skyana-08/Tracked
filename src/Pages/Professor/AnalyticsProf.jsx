@@ -14,11 +14,25 @@ import ArrowLeft from '../../assets/ArrowLeft.svg';
 import ArrowRight from '../../assets/ArrowRight.svg';
 import Award from '../../assets/Award.svg';
 import LeastActivities from '../../assets/Least.svg';
+import ClassManagementIcon from "../../assets/ClassManagement(Light).svg";
+import Announcement from "../../assets/Announcement(Light).svg";
+import Classwork from '../../assets/Classwork(Light).svg';
+import GradeIcon from "../../assets/Grade(Light).svg";
+import AttendanceIcon from '../../assets/Attendance(Light).svg';
+import BackButton from '../../assets/BackButton(Light).svg';
+import OverviewIcon from '../../assets/Overview(Light).svg';
+import PerformanceIcon from '../../assets/Ranking(Light).svg';
+import ActivitiesIcon from '../../assets/Classwork(Light).svg';
+import AttendanceTabIcon from '../../assets/Record(Light).svg';
+import ClassworkTabIcon from '../../assets/Classwork(Light).svg';
+import AttendanceNavIcon from '../../assets/Attendance(Light).svg';
+import NoDataIcon from '../../assets/NoData.svg';
 
 export default function AnalyticsProf() {
   const [isOpen, setIsOpen] = useState(true);
   const [openSubject, setOpenSubject] = useState(false);
   const [openSection, setOpenSection] = useState(false);
+  const [activeTab, setActiveTab] = useState('Overview'); // Default tab
 
   const [selectedFilter, setSelectedFilter] = useState("");
   const [selectedSubject, setSelectedSubject] = useState("");
@@ -39,6 +53,46 @@ export default function AnalyticsProf() {
   // Updated colors for charts with proper color coding
   const ATTENDANCE_COLORS = ['#00C853', '#FFD600', '#FF3D00']; // Green (Submitted/Present), Yellow (Late), Red (Absent)
   const ACTIVITIES_COLORS = ['#00C853', '#FFD600', '#2962FF', '#FF3D00']; // Green (Submitted), Yellow (Late), Blue (Pending), Red (Missing)
+
+  // Updated Tab color schemes with darker hover/selected colors
+  const TAB_COLORS = {
+    'Overview': { 
+      bg: '#e6f4ea', 
+      hover: '#d4ebda',
+      selected: '#c8e6c9',
+      border: '#4CAF50',
+      icon: OverviewIcon
+    },
+    'Performance & Ranking': { 
+      bg: '#fff3e0', 
+      hover: '#ffe8cc',
+      selected: '#ffe0b2',
+      border: '#FF9800',
+      icon: PerformanceIcon
+    },
+    'Activities': { 
+      bg: '#e3f2fd', 
+      hover: '#d1e7fd',
+      selected: '#bbdefb',
+      border: '#2196F3',
+      icon: ActivitiesIcon
+    },
+    'Student Attendance': { 
+      bg: '#f3e5f5', 
+      hover: '#ead6ee',
+      selected: '#e1bee7',
+      border: '#9C27B0',
+      icon: AttendanceTabIcon
+    }
+  };
+
+  // Tab configuration with type (internal or navigation)
+  const internalTabs = [
+    { id: 'Overview', name: 'Overview', type: 'internal' },
+    { id: 'Performance & Ranking', name: 'Performance & Ranking', type: 'internal' },
+    { id: 'Activities', name: 'Activities', type: 'internal' },
+    { id: 'Student Attendance', name: 'Student Attendance', type: 'internal' }
+  ];
 
   // Get professor ID from localStorage
   useEffect(() => {
@@ -223,7 +277,7 @@ export default function AnalyticsProf() {
     let totalSubmitted = 0;
     let totalMissing = 0;
     let totalLate = 0;
-    let totalPending = 0; // Add this for pending count
+    let totalPending = 0;
     let totalEntries = 0;
 
     activities.forEach(activity => {
@@ -244,11 +298,10 @@ export default function AnalyticsProf() {
             totalLate++;
           }
         } else {
-          // FIX: Only count as missing if past deadline, otherwise count as pending
           if (isPastDeadline) {
             totalMissing++;
           } else {
-            totalPending++; // Count as pending if not past deadline
+            totalPending++;
           }
         }
       });
@@ -257,7 +310,7 @@ export default function AnalyticsProf() {
     return {
       submitted: totalSubmitted,
       missing: totalMissing,
-      pending: totalPending, // Include pending in the summary
+      pending: totalPending,
       late: totalLate,
       total: totalEntries,
       submissionRate: totalEntries > 0 ? ((totalSubmitted / totalEntries) * 100).toFixed(1) : 0
@@ -297,7 +350,7 @@ export default function AnalyticsProf() {
       });
     }
 
-    // Count attendance (keep existing code)
+    // Count attendance
     attendanceHistory.forEach(day => {
       if (!Array.isArray(day.students)) return;
       day.students.forEach(student => {
@@ -333,7 +386,7 @@ export default function AnalyticsProf() {
       });
     });
 
-    // Count activity submissions - UPDATED
+    // Count activity submissions
     activities.forEach(activity => {
       if (!Array.isArray(activity.students)) return;
       
@@ -373,7 +426,6 @@ export default function AnalyticsProf() {
             studentData.lateSubmissionCount++;
           }
         } else {
-          // FIX: Only count as missing if past deadline
           if (isPastDeadline) {
             studentData.missingCount++;
           } else {
@@ -383,7 +435,7 @@ export default function AnalyticsProf() {
       });
     });
 
-    // Convert to array and calculate rates (keep existing code)
+    // Convert to array and calculate rates
     const studentArray = Array.from(studentMap.values());
 
     studentArray.forEach(s => {
@@ -415,6 +467,21 @@ export default function AnalyticsProf() {
     return subject ? `${subject.subject_code} - ${getSubjectName(subject)}` : selectedSubject;
   };
 
+  // Get short subject name (code only)
+  const getShortSubjectName = () => {
+    if (!selectedSubject) return '';
+    return selectedSubject;
+  };
+
+  // Get full subject name
+  const getFullSubjectName = () => {
+    if (!selectedSubject || !selectedSection) return '';
+    const subject = classes.find(cls => 
+      cls.subject_code === selectedSubject && cls.section === selectedSection
+    );
+    return subject ? getSubjectName(subject) : '';
+  };
+
   // Get activities data for ActivityOverview
   const getActivitiesData = () => {
     if (!analyticsData || !Array.isArray(analyticsData.rawActivities)) {
@@ -443,13 +510,10 @@ export default function AnalyticsProf() {
       
       const totalStudents = activity.students?.length || 0;
       
-      // FIX: Calculate pending and missing correctly
       const currentDate = new Date();
       const deadlineDate = activity.deadline ? new Date(activity.deadline) : null;
       const isPastDeadline = deadlineDate && deadlineDate < currentDate;
       
-      // If past deadline, unsubmitted = missing
-      // If not past deadline, unsubmitted = pending
       const missing = isPastDeadline ? (totalStudents - submitted) : 0;
       const pending = !isPastDeadline ? (totalStudents - submitted) : 0;
       
@@ -459,7 +523,6 @@ export default function AnalyticsProf() {
         day: 'numeric'
       }) : 'No deadline';
 
-      // FIX: Include activity type in task display like the student version
       const activityType = activity.activity_type?.toLowerCase();
       const taskDisplay = activityType && activity.task_number 
         ? `${activityType.charAt(0).toUpperCase() + activityType.slice(1)} ${activity.task_number}`
@@ -467,14 +530,14 @@ export default function AnalyticsProf() {
 
       const activityItem = {
         id: activity.id,
-        task: taskDisplay, // FIXED: Now shows "Quiz 1" instead of just "1"
+        task: taskDisplay,
         title: activity.title || 'Untitled',
         submitted: submitted,
-        missing: missing, // Only count as missing if past deadline
-        pending: pending, // Count as pending if not past deadline
+        missing: missing,
+        pending: pending,
         late: late,
         deadline: deadline,
-        isPastDeadline: isPastDeadline // Add this for reference
+        isPastDeadline: isPastDeadline
       };
 
       switch (activityType) {
@@ -578,6 +641,13 @@ export default function AnalyticsProf() {
     { name: 'Missing', value: analyticsData.activitiesSummary.missing }
   ] : [];
 
+  // Check if charts have data
+  const hasAttendanceData = analyticsData?.attendanceSummary?.total > 0;
+  const hasActivitiesData = analyticsData?.activitiesSummary?.total > 0;
+  const hasPerformanceData = performanceChartData.length > 0;
+  const hasRankingData = sortedRankingData.length > 0;
+  const hasStudentAttendanceData = currentAttendance.length > 0;
+
   // Enhanced CustomPieLabel with better styling
   const CustomPieLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent, name }) => {
     const RADIAN = Math.PI / 180;
@@ -585,7 +655,7 @@ export default function AnalyticsProf() {
     const x = cx + radius * Math.cos(-midAngle * RADIAN);
     const y = cy + radius * Math.sin(-midAngle * RADIAN);
 
-    if (percent < 0.05) return null; // Don't show labels for very small segments
+    if (percent < 0.05) return null;
 
     return (
       <text 
@@ -692,7 +762,7 @@ export default function AnalyticsProf() {
       actions.push("Excellent submission rate! Consider providing positive feedback to the class");
     }
 
-    return actions.slice(0, 3); // Limit to 3 most relevant actions
+    return actions.slice(0, 3);
   };
 
   const getPerformanceActions = () => {
@@ -712,7 +782,7 @@ export default function AnalyticsProf() {
   // Simple Chart Indicator Component with Teacher Actions
   const ChartIndicator = ({ title, rate, teacherActions }) => (
     <div className="mb-4">
-      <div className="flex items-center justify-between mb-2">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-2 gap-2">
         <h4 className="font-bold text-lg text-[#465746]">{title}</h4>
         <div className={`px-3 py-1 rounded-full text-sm font-semibold ${
           parseFloat(rate) >= 80 ? 'bg-green-100 text-green-800' : 
@@ -744,6 +814,17 @@ export default function AnalyticsProf() {
           <span>{entry.value}</span>
         </div>
       ))}
+    </div>
+  );
+
+  // No Data Message Component - UPDATED to use image instead of emoji
+  const NoDataMessage = ({ message, icon }) => (
+    <div className="flex flex-col items-center justify-center h-64 sm:h-80 text-gray-500 p-4">
+      <img src={NoDataIcon} alt="No data" className="w-30 h-30 mb-3 opacity-50" />
+      <p className="text-lg font-medium text-center">{message}</p>
+      <p className="text-sm text-gray-400 text-center mt-2">
+        Data will appear here once students start attending classes and submitting activities
+      </p>
     </div>
   );
 
@@ -817,6 +898,460 @@ export default function AnalyticsProf() {
     );
   };
 
+  // Tab content renderer
+  const renderTabContent = () => {
+    switch(activeTab) {
+      case 'Overview':
+        return (
+          <>
+            {/* Attendance Overview */}
+            <div className="bg-gradient-to-br from-white to-blue-50 p-4 sm:p-6 rounded-xl shadow-lg border border-blue-100 mb-6">
+              <ChartIndicator
+                title="Attendance Overview"
+                rate={analyticsData?.attendanceSummary?.attendanceRate || "0.0"}
+                teacherActions={getAttendanceActions()}
+              />
+              <div className="h-64 sm:h-80 min-h-0">
+                {hasAttendanceData ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart style={{ outline: 'none' }}>
+                      <Pie
+                        data={attendanceChartData}
+                        cx="50%"
+                        cy="50%"
+                        labelLine={false}
+                        label={({ name, percent }) => <CustomPieLabel name={name} percent={percent} />}
+                        outerRadius="80%"
+                        innerRadius="45%"
+                        fill="#8884d8"
+                        dataKey="value"
+                        activeShape={false}
+                      >
+                        {attendanceChartData.map((entry, index) => (
+                          <Cell 
+                            key={`cell-${index}`} 
+                            fill={ATTENDANCE_COLORS[index % ATTENDANCE_COLORS.length]} 
+                            stroke="#fff"
+                            strokeWidth={2}
+                          />
+                        ))}
+                      </Pie>
+                      <Tooltip content={<CustomPieTooltip />} />
+                      <Legend content={<CustomLegend />} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <NoDataMessage message="No attendance data available" />
+                )}
+              </div>
+            </div>
+
+            {/* Activities Submission */}
+            <div className="bg-gradient-to-br from-white to-green-50 p-4 sm:p-6 rounded-xl shadow-lg border border-green-100 mb-6">
+              <ChartIndicator
+                title="Activities Submission"
+                rate={analyticsData?.activitiesSummary?.submissionRate || "0.0"}
+                teacherActions={getActivitiesActions()}
+              />
+              <div className="h-64 sm:h-80 min-h-0">
+                {hasActivitiesData ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart style={{ outline: 'none' }}>
+                      <Pie
+                        data={activitiesChartData}
+                        cx="50%"
+                        cy="50%"
+                        labelLine={false}
+                        label={({ name, percent }) => <CustomPieLabel name={name} percent={percent} />}
+                        outerRadius="80%"
+                        innerRadius="45%"
+                        fill="#8884d8"
+                        dataKey="value"
+                        activeShape={false}
+                      >
+                        {activitiesChartData.map((entry, index) => (
+                          <Cell 
+                            key={`cell-${index}`} 
+                            fill={ACTIVITIES_COLORS[index % ACTIVITIES_COLORS.length]} 
+                            stroke="#fff"
+                            strokeWidth={2}
+                          />
+                        ))}
+                      </Pie>
+                      <Tooltip content={<CustomPieTooltip />} />
+                      <Legend content={<CustomLegend />} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <NoDataMessage message="No activities data available" />
+                )}
+              </div>
+            </div>
+          </>
+        );
+      
+      case 'Performance & Ranking':
+        return (
+          <>
+            {/* Student Performance */}
+            <div className="bg-gradient-to-br from-white to-purple-50 p-4 sm:p-6 rounded-xl shadow-lg border border-purple-100 mb-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4">
+                <div>
+                  <h3 className="font-bold text-lg text-[#465746] mb-2">
+                    Student Performance - Section {selectedSection}
+                  </h3>
+                  <div className="bg-purple-50 border border-purple-200 rounded-lg p-3 max-w-2xl">
+                    <ul className="text-sm text-purple-700 list-disc list-inside space-y-1">
+                      {getPerformanceActions().map((action, index) => (
+                        <li key={index}>{action}</li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+                <button
+                  onClick={togglePerformanceFilter}
+                  className="flex items-center gap-2 px-4 py-2.5 bg-gray-50 hover:bg-gray-100 rounded-lg border border-gray-200 text-base font-medium transition-all duration-200 cursor-pointer mt-2 sm:mt-0"
+                >
+                  {performanceFilter === 'top' ? (
+                    <>
+                      <img src={Award} alt="Top Performers" className="w-5 h-5" />
+                      <span>Top Performers</span>
+                    </>
+                  ) : (
+                    <>
+                      <img src={LeastActivities} alt="Least Performers" className="w-5 h-5" />
+                      <span>Least Performers</span>
+                    </>
+                  )}
+                  <img 
+                    src={ArrowDown} 
+                    alt="Sort" 
+                    className={`h-4 w-4 transition-transform ${performanceFilter === 'bottom' ? 'rotate-180' : ''}`} 
+                  />
+                </button>
+              </div>
+              <div className="h-60 sm:h-80 min-h-0">
+                {hasPerformanceData ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart
+                      data={performanceChartData}
+                      margin={{ 
+                        top: 10, 
+                        right: 10, 
+                        left: 0, 
+                        bottom: 20
+                      }}
+                      className="text-sm sm:text-lg"
+                      style={{ outline: 'none' }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                      <XAxis 
+                        dataKey="name" 
+                        angle={-45} 
+                        textAnchor="end" 
+                        height={60} 
+                        interval={0}
+                        tick={{ fontSize: 12 }}
+                        tickMargin={5} 
+                      />
+                      <YAxis 
+                        label={{ 
+                          value: 'Percentage (%)', 
+                          angle: -90, 
+                          style: { fontSize: 12 } 
+                        }} 
+                        domain={[0, 100]}
+                        tick={{ fontSize: 12 }}
+                      />
+                      <Tooltip 
+                        content={<CustomBarTooltip />}
+                        wrapperStyle={{ zIndex: 1000 }}
+                        cursor={{ fill: 'rgba(0, 161, 93, 0.1)' }}
+                      />
+                      <Legend 
+                        wrapperStyle={{ paddingTop: '10px' }}
+                        iconSize={15}
+                        className="text-sm sm:text-lg"
+                      />
+                      <Bar 
+                        dataKey="Attendance" 
+                        fill="#00C853" 
+                        name="Attendance Rate" 
+                        barSize={40} 
+                        maxBarSize={60}
+                        radius={[4, 4, 0, 0]}
+                      />
+                      <Bar 
+                        dataKey="Submission" 
+                        fill="#2962FF" 
+                        name="Submission Rate" 
+                        barSize={40} 
+                        maxBarSize={60}
+                        radius={[4, 4, 0, 0]}
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <NoDataMessage message="No performance data available" />
+                )}
+              </div>
+            </div>
+
+            {/* Class Ranking */}
+            <div className="bg-[#fff] rounded-lg sm:rounded-xl shadow-md p-4 sm:p-5 text-[#465746] mb-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-3 sm:mb-4">
+                <p className="text-base sm:text-lg lg:text-xl font-bold">
+                  Class Ranking - {getCurrentSubjectName()} (Section {selectedSection})
+                </p>
+                <button
+                  onClick={toggleRankingSort}
+                  className="flex items-center gap-2 px-4 py-2.5 bg-gray-50 hover:bg-gray-100 rounded-lg border border-gray-200 text-base font-medium transition-all duration-200 cursor-pointer mt-2 sm:mt-0"
+                >
+                  {rankingSort === 'highest' ? (
+                    <>
+                      <img src={Award} alt="Most Activities" className="w-5 h-5" />
+                      <span>Most Activities</span>
+                    </>
+                  ) : (
+                    <>
+                      <img src={LeastActivities} alt="Least Activities" className="w-5 h-5" />
+                      <span>Least Activities</span>
+                    </>
+                  )}
+                  <img 
+                    src={ArrowDown} 
+                    alt="Sort" 
+                    className={`h-4 w-4 transition-transform ${rankingSort === 'lowest' ? 'rotate-180' : ''}`} 
+                  />
+                </button>
+              </div>
+
+              {hasRankingData ? (
+                <>
+                  <div className="overflow-x-auto -mx-4 sm:mx-0">
+                    <div className="inline-block min-w-full align-middle px-4 sm:px-0">
+                      <table className="min-w-full border-collapse">
+                        <thead>
+                          <tr className="border-b-2 border-gray-200">
+                            <th className="px-3 py-3 text-left font-bold text-gray-700 bg-gray-50 rounded-tl-lg text-base">Rank</th>
+                            <th className="px-3 py-3 text-left font-bold text-gray-700 bg-gray-50 text-base">Student</th>
+                            <th className="px-3 py-3 text-left font-bold text-gray-700 bg-gray-50 text-base">Submitted</th>
+                            <th className="px-3 py-3 text-left font-bold text-gray-700 bg-gray-50 text-base">Present</th>
+                            <th className="px-3 py-3 text-left font-bold text-gray-700 bg-gray-50 text-base">Late</th>
+                            <th className="px-3 py-3 text-left font-bold text-gray-700 bg-gray-50 text-base">Absent</th>
+                            <th className="px-3 py-3 text-left font-bold text-gray-700 bg-gray-50 text-base">Late Sub</th>
+                            <th className="px-3 py-3 text-left font-bold text-gray-700 bg-gray-50 text-base">Pending</th>
+                            <th className="px-3 py-3 text-left font-bold text-gray-700 bg-gray-50 text-base">Missed</th>
+                            <th className="px-3 py-3 text-left font-bold text-gray-700 bg-gray-50 rounded-tr-lg text-base">Total Score</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100">
+                          {currentRanking.map((student, index) => {
+                            const totalScore = (student.submittedCount || 0) + (student.presentCount || 0);
+                            
+                            return (
+                              <tr 
+                                key={student.id} 
+                                className="group transition-colors hover:bg-gray-50"
+                              >
+                                <td className="px-3 py-3.5 whitespace-nowrap">
+                                  <div className="flex items-center gap-2">
+                                    {index === 0 && rankingSort === 'highest' && (
+                                      <img src={Award} alt="Gold Medal" className="w-6 h-6" />
+                                    )}
+                                    {index === 1 && rankingSort === 'highest' && (
+                                      <img src={Award} alt="Silver Medal" className="w-6 h-6" />
+                                    )}
+                                    {index === 2 && rankingSort === 'highest' && (
+                                      <img src={Award} alt="Bronze Medal" className="w-6 h-6" />
+                                    )}
+                                    {index === 0 && rankingSort === 'lowest' && (
+                                      <img src={LeastActivities} alt="Least Activities" className="w-6 h-6" />
+                                    )}
+                                    <span className={`font-semibold text-base ${
+                                      index === 0 && rankingSort === 'highest' ? 'text-yellow-600' :
+                                      index === 1 && rankingSort === 'highest' ? 'text-gray-600' :
+                                      index === 2 && rankingSort === 'highest' ? 'text-orange-600' :
+                                      index === 0 && rankingSort === 'lowest' ? 'text-red-500' :
+                                      'text-gray-700'
+                                    }`}>
+                                      {rankingStartIndex + index + 1}
+                                    </span>
+                                  </div>
+                                </td>
+                                <td className="px-3 py-3.5">
+                                  <div className="flex flex-col">
+                                    <span className="font-medium text-base text-gray-900">
+                                      {student.name}
+                                    </span>
+                                    <span className="text-sm text-gray-500 mt-0.5">{student.id}</span>
+                                  </div>
+                                </td>
+                                <td className="px-3 py-3.5">
+                                  <span className="font-medium text-base text-[#00A15D]">
+                                    {student.submittedCount || 0}
+                                  </span>
+                                </td>
+                                <td className="px-3 py-3.5">
+                                  <span className="font-medium text-base text-[#00A15D]">
+                                    {student.presentCount || 0}
+                                  </span>
+                                </td>
+                                <td className="px-3 py-3.5">
+                                  <span className="font-medium text-base text-[#2196F3]">
+                                    {student.lateCount || 0}
+                                  </span>
+                                </td>
+                                <td className="px-3 py-3.5">
+                                  <span className="font-medium text-base text-[#FF6666]">
+                                    {student.absentCount || 0}
+                                  </span>
+                                </td>
+                                <td className="px-3 py-3.5">
+                                  <span className="font-medium text-base text-[#2196F3]">
+                                    {student.lateSubmissionCount || 0}
+                                  </span>
+                                </td>
+                                <td className="px-3 py-3.5">
+                                  <span className="font-medium text-base text-[#F59E0B]">
+                                    {student.pendingCount || 0}
+                                  </span>
+                                </td>
+                                <td className="px-3 py-3.5">
+                                  <span className="font-medium text-base text-[#FF6666]">
+                                    {student.missingCount || 0}
+                                  </span>
+                                </td>
+                                <td className="px-3 py-3.5">
+                                  <span className="font-bold text-base" style={{ color: '#2c5530' }}>
+                                    {totalScore}
+                                  </span>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  {/* Ranking Pagination */}
+                  <Pagination
+                    currentPage={rankingCurrentPage}
+                    totalPages={rankingTotalPages}
+                    onPageChange={handleRankingPageChange}
+                    dataType="ranking"
+                    totalItems={sortedRankingData.length}
+                  />
+                </>
+              ) : (
+                <div className="py-10 text-center">
+                  <NoDataMessage message="No ranking data available" />
+                </div>
+              )}
+            </div>
+          </>
+        );
+      
+      case 'Activities':
+        return (
+          <div className="mb-6">
+            <ActivityOverview
+              quizzesList={activitiesData.quizzes}
+              assignmentsList={activitiesData.assignments}
+              activitiesList={activitiesData.activities}
+              projectsList={activitiesData.projects}
+              selectedFilter={selectedFilter}
+              setSelectedFilter={setSelectedFilter}
+              selectedSubject={selectedSubject}
+              selectedSection={selectedSection}
+              getCurrentSubjectName={getCurrentSubjectName}
+            />
+          </div>
+        );
+      
+      case 'Student Attendance':
+        return (
+          <div className="bg-[#fff] rounded-lg sm:rounded-xl shadow-md p-4 sm:p-5 text-[#465746]">
+            <p className="text-base sm:text-lg lg:text-xl font-bold">
+              Student Attendance Tracking - {getCurrentSubjectName()} (Section {selectedSection})
+            </p>
+            <hr className="border-[#465746]/30 my-3 sm:my-4" />
+            
+            {hasStudentAttendanceData ? (
+              <>
+                <div className="overflow-x-auto -mx-4 sm:mx-0">
+                  <div className="inline-block min-w-full align-middle px-4 sm:px-0">
+                    <table className="min-w-full border-collapse text-xs sm:text-sm lg:text-base">
+                      <thead>
+                        <tr className="border-b border-gray-200">
+                          <th className="px-2 sm:px-4 py-2 sm:py-3 text-left font-bold">No.</th>
+                          <th className="px-2 sm:px-4 py-2 sm:py-3 text-left font-bold whitespace-nowrap">Student No.</th>
+                          <th className="px-2 sm:px-4 py-2 sm:py-3 text-left font-bold whitespace-nowrap">Student Name</th>
+                          <th className="px-2 sm:px-4 py-2 sm:py-3 text-left font-bold text-[#00A15D]">Submitted</th>
+                          <th className="px-2 sm:px-4 py-2 sm:py-3 text-left font-bold text-[#00A15D]">Present</th>
+                          <th className="px-2 sm:px-4 py-2 sm:py-3 text-left font-bold text-[#2196F3]">Late</th>
+                          <th className="px-2 sm:px-4 py-2 sm:py-3 text-left font-bold text-[#FF6666]">Absent</th>
+                          <th className="px-2 sm:px-4 py-2 sm:py-3 text-left font-bold text-[#2196F3]">Late Sub</th>
+                          <th className="px-2 sm:px-4 py-2 sm:py-3 text-left font-bold text-[#F59E0B]">Pending</th>
+                          <th className="px-2 sm:px-4 py-2 sm:py-3 text-left font-bold text-[#FF6666]">Missed</th>
+                          <th className="px-2 sm:px-4 py-2 sm:py-3 text-left font-bold">Details</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {currentAttendance.map((student, index) => (
+                          <tr key={student.id} className="border-b border-gray-100 hover:bg-gray-50">
+                            <td className="px-2 sm:px-4 py-2 sm:py-3">{attendanceStartIndex + index + 1}</td>
+                            <td className="px-2 sm:px-4 py-2 sm:py-3 whitespace-nowrap">{student.id}</td>
+                            <td className="px-2 sm:px-4 py-2 sm:py-3 whitespace-nowrap">{student.name}</td>
+                            <td className="px-2 sm:px-4 py-2 sm:py-3 text-[#00A15D]">{student.submittedCount}</td>
+                            <td className="px-2 sm:px-4 py-2 sm:py-3 text-[#00A15D]">{student.presentCount}</td>
+                            <td className="px-2 sm:px-4 py-2 sm:py-3 text-[#2196F3]">{student.lateCount}</td>
+                            <td className="px-2 sm:px-4 py-2 sm:py-3 text-[#FF6666]">{student.absentCount}</td>
+                            <td className="px-2 sm:px-4 py-2 sm:py-3 text-[#2196F3]">{student.lateSubmissionCount}</td>
+                            <td className="px-2 sm:px-4 py-2 sm:py-3 text-[#F59E0B]">{student.pendingCount}</td>
+                            <td className="px-2 sm:px-4 py-2 sm:py-3 text-[#FF6666]">{student.missingCount}</td>
+                            <td className="px-2 sm:px-4 py-2 sm:py-3">
+                              <Link 
+                                to={`/AnalyticsIndividualInfo?student_id=${student.id}&subject_code=${selectedSubject}&section=${selectedSection}`}
+                                state={{ 
+                                  student: student,
+                                  subjectCode: selectedSubject,
+                                  section: selectedSection
+                                }}
+                              >
+                                <img src={Details} alt="Details" className="w-4 h-4 sm:w-5 sm:h-5 cursor-pointer hover:opacity-70" />
+                              </Link>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                {/* Attendance Tracking Pagination */}
+                <Pagination
+                  currentPage={attendanceCurrentPage}
+                  totalPages={attendanceTotalPages}
+                  onPageChange={handleAttendancePageChange}
+                  dataType="attendance"
+                  totalItems={analyticsData?.studentPerformance?.length || 0}
+                />
+              </>
+            ) : (
+              <div className="py-10 text-center">
+                <NoDataMessage message="No student attendance data available" />
+              </div>
+            )}
+          </div>
+        );
+      
+      default:
+        return null;
+    }
+  };
+
   return (
     <div>
       <Sidebar role="teacher" isOpen={isOpen} setIsOpen={setIsOpen} />
@@ -827,7 +1362,7 @@ export default function AnalyticsProf() {
         <Header setIsOpen={setIsOpen} isOpen={isOpen}/>
 
         <div className="p-4 sm:p-5 md:p-6 lg:p-8">
-          {/* Header Section */}
+          {/* Header Section - Updated for mobile view */}
           <div className="mb-4 sm:mb-6">
             <div className="flex items-center mb-2">
               <img 
@@ -840,18 +1375,110 @@ export default function AnalyticsProf() {
               </h1>
             </div>
             <div className="text-sm sm:text-base lg:text-lg text-[#465746]">
-              <span>
-                Student Performance
+              <div className="block">
+                <span className="font-medium block mb-1">Student Performance</span>
                 {selectedSection && selectedSubject && (
-                  <span className="text-gray-600 ml-2">
-                    - Section {selectedSection} - {getCurrentSubjectName()}
-                  </span>
+                  <>
+                    <div className="text-gray-600 block mb-1">
+                      Section {selectedSection}
+                    </div>
+                    <div className="text-gray-600 block">
+                      {getCurrentSubjectName()}
+                    </div>
+                  </>
                 )}
-              </span>
+              </div>
             </div>
           </div>
 
           <hr className="border-[#465746]/30 mb-4 sm:mb-5" />
+
+          {/* Tab Navigation - Split into internal tabs and action buttons */}
+          <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 justify-between items-stretch mb-4 sm:mb-5">
+            {/* Internal Tabs - Left side */}
+            <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:gap-2">
+              {internalTabs.map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`
+                    flex items-center justify-center gap-2 px-3 sm:px-4 py-2.5 sm:py-3 
+                    font-semibold text-xs sm:text-sm rounded-md shadow-md border-2 
+                    transition-all duration-300 cursor-pointer min-h-[44px]
+                    ${activeTab === tab.id ? 'border-opacity-100' : 'border-opacity-0'}
+                  `}
+                  style={{
+                    backgroundColor: activeTab === tab.id ? TAB_COLORS[tab.id].selected : TAB_COLORS[tab.id].bg,
+                    borderColor: TAB_COLORS[tab.id].border,
+                  }}
+                  onMouseEnter={(e) => {
+                    if (activeTab !== tab.id) {
+                      e.currentTarget.style.backgroundColor = TAB_COLORS[tab.id].hover;
+                      e.currentTarget.style.borderColor = TAB_COLORS[tab.id].border;
+                      e.currentTarget.style.borderOpacity = '1';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (activeTab !== tab.id) {
+                      e.currentTarget.style.backgroundColor = TAB_COLORS[tab.id].bg;
+                      e.currentTarget.style.borderColor = TAB_COLORS[tab.id].border;
+                      e.currentTarget.style.borderOpacity = '0';
+                    }
+                  }}
+                >
+                  <img 
+                    src={TAB_COLORS[tab.id].icon} 
+                    alt={`${tab.name} icon`} 
+                    className="w-4 h-4 sm:w-5 sm:h-5" 
+                  />
+                  <span className="text-center">{tab.name}</span>
+                </button>
+              ))}
+            </div>
+
+            {/* Action Buttons - Right side (Classwork and Attendance) - UPDATED ATTENDANCE LINK */}
+            <div className="flex items-center justify-end gap-2 w-full sm:w-auto">
+              {/* Classwork Button */}
+              <Link
+                to={{
+                  pathname: '/ClassworkTab',
+                  state: {
+                    subjectCode: selectedSubject,
+                    section: selectedSection,
+                    subjectName: getFullSubjectName(),
+                    shortSubjectName: getShortSubjectName()
+                  }
+                }}
+                className="p-2 bg-[#fff] rounded-md shadow-md border-2 border-transparent hover:border-[#00874E] transition-all duration-200 flex-shrink-0 cursor-pointer"
+                title="Classwork"
+              >
+                <img 
+                  src={ClassworkTabIcon} 
+                  alt="Classwork" 
+                  className="h-5 w-5 sm:h-6 sm:w-6" 
+                />
+              </Link>
+              
+              {/* Attendance Button - FIXED LINK with query parameter */}
+              <Link
+                to={`/Attendance?code=${selectedSubject}`}
+                state={{
+                  subjectCode: selectedSubject,
+                  section: selectedSection,
+                  subjectName: getFullSubjectName(),
+                  shortSubjectName: getShortSubjectName()
+                }}
+                className="p-2 bg-[#fff] rounded-md shadow-md border-2 border-transparent hover:border-[#00874E] transition-all duration-200 flex-shrink-0 cursor-pointer"
+                title="Attendance"
+              >
+                <img 
+                  src={AttendanceNavIcon} 
+                  alt="Attendance" 
+                  className="h-5 w-5 sm:h-6 sm:w-6" 
+                />
+              </Link>
+            </div>
+          </div>
 
           {/* Filter and Search Section */}
           <div className="flex flex-col lg:flex-row gap-3 sm:gap-4 justify-between items-stretch lg:items-center mb-4 sm:mb-5">
@@ -969,183 +1596,7 @@ export default function AnalyticsProf() {
             </div>
           ) : analyticsData && selectedSubject && selectedSection ? (
             <>
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-6">
-                {/* Attendance Pie Chart - UPDATED DESIGN */}
-                <div className="bg-gradient-to-br from-white to-blue-50 p-4 sm:p-6 rounded-xl shadow-lg border border-blue-100">
-                  <ChartIndicator
-                    title="Attendance Overview"
-                    rate={analyticsData.attendanceSummary.attendanceRate}
-                    teacherActions={getAttendanceActions()}
-                  />
-                  <div className="h-64 sm:h-80 min-h-0">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart style={{ outline: 'none' }}>
-                        <Pie
-                          data={attendanceChartData}
-                          cx="50%"
-                          cy="50%"
-                          labelLine={false}
-                          label={({ name, percent }) => <CustomPieLabel name={name} percent={percent} />}
-                          outerRadius="80%"
-                          innerRadius="45%" // Donut chart effect
-                          fill="#8884d8"
-                          dataKey="value"
-                          activeShape={false}
-                        >
-                          {attendanceChartData.map((entry, index) => (
-                            <Cell 
-                              key={`cell-${index}`} 
-                              fill={ATTENDANCE_COLORS[index % ATTENDANCE_COLORS.length]} 
-                              stroke="#fff"
-                              strokeWidth={2}
-                            />
-                          ))}
-                        </Pie>
-                        <Tooltip content={<CustomPieTooltip />} />
-                        <Legend content={<CustomLegend />} />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  </div>
-                </div>
-
-                {/* Activities Pie Chart - UPDATED DESIGN */}
-                <div className="bg-gradient-to-br from-white to-green-50 p-4 sm:p-6 rounded-xl shadow-lg border border-green-100">
-                  <ChartIndicator
-                    title="Activities Submission"
-                    rate={analyticsData.activitiesSummary.submissionRate}
-                    teacherActions={getActivitiesActions()}
-                  />
-                  <div className="h-64 sm:h-80 min-h-0">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart style={{ outline: 'none' }}>
-                        <Pie
-                          data={activitiesChartData}
-                          cx="50%"
-                          cy="50%"
-                          labelLine={false}
-                          label={({ name, percent }) => <CustomPieLabel name={name} percent={percent} />}
-                          outerRadius="80%"
-                          innerRadius="45%" // Donut chart effect
-                          fill="#8884d8"
-                          dataKey="value"
-                          activeShape={false}
-                        >
-                          {activitiesChartData.map((entry, index) => (
-                            <Cell 
-                              key={`cell-${index}`} 
-                              fill={ACTIVITIES_COLORS[index % ACTIVITIES_COLORS.length]} 
-                              stroke="#fff"
-                              strokeWidth={2}
-                            />
-                          ))}
-                        </Pie>
-                        <Tooltip content={<CustomPieTooltip />} />
-                        <Legend content={<CustomLegend />} />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  </div>
-                </div>
-
-                {/* Student Performance Bar Chart */}
-                <div className="bg-gradient-to-br from-white to-purple-50 p-4 sm:p-6 rounded-xl shadow-lg border border-purple-100 lg:col-span-2">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4">
-                    <div>
-                      <h3 className="font-bold text-lg text-[#465746] mb-2">
-                        Student Performance - Section {selectedSection}
-                      </h3>
-                      <div className="bg-purple-50 border border-purple-200 rounded-lg p-3 max-w-2xl">
-                        <ul className="text-sm text-purple-700 list-disc list-inside space-y-1">
-                          {getPerformanceActions().map((action, index) => (
-                            <li key={index}>{action}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    </div>
-                    <button
-                      onClick={togglePerformanceFilter}
-                      className="flex items-center gap-2 px-4 py-2.5 bg-gray-50 hover:bg-gray-100 rounded-lg border border-gray-200 text-base font-medium transition-all duration-200 cursor-pointer mt-2 sm:mt-0"
-                    >
-                      {performanceFilter === 'top' ? (
-                        <>
-                          <img src={Award} alt="Top Performers" className="w-5 h-5" />
-                          <span>Top Performers</span>
-                        </>
-                      ) : (
-                        <>
-                          <img src={LeastActivities} alt="Least Performers" className="w-5 h-5" />
-                          <span>Least Performers</span>
-                        </>
-                      )}
-                      <img 
-                        src={ArrowDown} 
-                        alt="Sort" 
-                        className={`h-4 w-4 transition-transform ${performanceFilter === 'bottom' ? 'rotate-180' : ''}`} 
-                      />
-                    </button>
-                  </div>
-                  <div className="h-60 sm:h-80 min-h-0">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart
-                        data={performanceChartData}
-                        margin={{ 
-                          top: 10, 
-                          right: 10, 
-                          left: 0, 
-                          bottom: 20
-                        }}
-                        className="text-sm sm:text-lg"
-                        style={{ outline: 'none' }}
-                      >
-                        <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                        <XAxis 
-                          dataKey="name" 
-                          angle={-45} 
-                          textAnchor="end" 
-                          height={60} 
-                          interval={0}
-                          tick={{ fontSize: 12 }}
-                          tickMargin={5} 
-                        />
-                        <YAxis 
-                          label={{ 
-                            value: 'Percentage (%)', 
-                            angle: -90, 
-                            style: { fontSize: 12 } 
-                          }} 
-                          domain={[0, 100]}
-                          tick={{ fontSize: 12 }}
-                        />
-                        <Tooltip 
-                          content={<CustomBarTooltip />}
-                          wrapperStyle={{ zIndex: 1000 }}
-                          cursor={{ fill: 'rgba(0, 161, 93, 0.1)' }}
-                        />
-                        <Legend 
-                          wrapperStyle={{ paddingTop: '10px' }}
-                          iconSize={15}
-                          className="text-sm sm:text-lg"
-                        />
-                        <Bar 
-                          dataKey="Attendance" 
-                          fill="#00C853" 
-                          name="Attendance Rate" 
-                          barSize={40} 
-                          maxBarSize={60}
-                          radius={[4, 4, 0, 0]}
-                        />
-                        <Bar 
-                          dataKey="Submission" 
-                          fill="#2962FF" 
-                          name="Submission Rate" 
-                          barSize={40} 
-                          maxBarSize={60}
-                          radius={[4, 4, 0, 0]}
-                        />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
-                </div>
-              </div>
+              {renderTabContent()}
             </>
           ) : !classesLoading && classes.length > 0 ? (
             <div className="bg-[#fff] p-6 rounded-lg shadow-md text-center">
@@ -1154,245 +1605,6 @@ export default function AnalyticsProf() {
               </p>
             </div>
           ) : null}
-
-          {/* ActivityOverview component - Only show if we have classes and both selections made */}
-          {!classesLoading && selectedSubject && selectedSection && (
-            <ActivityOverview
-              quizzesList={activitiesData.quizzes}
-              assignmentsList={activitiesData.assignments}
-              activitiesList={activitiesData.activities}
-              projectsList={activitiesData.projects}
-              selectedFilter={selectedFilter}
-              setSelectedFilter={setSelectedFilter}
-              selectedSubject={selectedSubject}
-              selectedSection={selectedSection}
-              getCurrentSubjectName={getCurrentSubjectName}
-            />
-          )}
-
-          {/* STUDENT RANKING SECTION - Only show if we have classes and analytics data */}
-          {!classesLoading && selectedSubject && selectedSection && (
-            <div className="bg-[#fff] rounded-lg sm:rounded-xl shadow-md mt-4 sm:mt-5 p-4 sm:p-5 text-[#465746] mb-4 sm:mb-5">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-3 sm:mb-4">
-                <p className="text-base sm:text-lg lg:text-xl font-bold">
-                  Class Ranking - {getCurrentSubjectName()} (Section {selectedSection})
-                </p>
-                <button
-                  onClick={toggleRankingSort}
-                  className="flex items-center gap-2 px-4 py-2.5 bg-gray-50 hover:bg-gray-100 rounded-lg border border-gray-200 text-base font-medium transition-all duration-200 cursor-pointer mt-2 sm:mt-0"
-                >
-                  {rankingSort === 'highest' ? (
-                    <>
-                      <img src={Award} alt="Most Activities" className="w-5 h-5" />
-                      <span>Most Activities</span>
-                    </>
-                  ) : (
-                    <>
-                      <img src={LeastActivities} alt="Least Activities" className="w-5 h-5" />
-                      <span>Least Activities</span>
-                    </>
-                  )}
-                  <img 
-                    src={ArrowDown} 
-                    alt="Sort" 
-                    className={`h-4 w-4 transition-transform ${rankingSort === 'lowest' ? 'rotate-180' : ''}`} 
-                  />
-                </button>
-              </div>
-
-              <div className="overflow-x-auto -mx-4 sm:mx-0">
-                <div className="inline-block min-w-full align-middle px-4 sm:px-0">
-                  <table className="min-w-full border-collapse">
-                    <thead>
-                      <tr className="border-b-2 border-gray-200">
-                        <th className="px-3 py-3 text-left font-bold text-gray-700 bg-gray-50 rounded-tl-lg text-base">Rank</th>
-                        <th className="px-3 py-3 text-left font-bold text-gray-700 bg-gray-50 text-base">Student</th>
-                        <th className="px-3 py-3 text-left font-bold text-gray-700 bg-gray-50 text-base">Submitted</th>
-                        <th className="px-3 py-3 text-left font-bold text-gray-700 bg-gray-50 text-base">Present</th>
-                        <th className="px-3 py-3 text-left font-bold text-gray-700 bg-gray-50 text-base">Late</th>
-                        <th className="px-3 py-3 text-left font-bold text-gray-700 bg-gray-50 text-base">Absent</th>
-                        <th className="px-3 py-3 text-left font-bold text-gray-700 bg-gray-50 text-base">Late Sub</th>
-                        <th className="px-3 py-3 text-left font-bold text-gray-700 bg-gray-50 text-base">Pending</th>
-                        <th className="px-3 py-3 text-left font-bold text-gray-700 bg-gray-50 text-base">Missed</th>
-                        <th className="px-3 py-3 text-left font-bold text-gray-700 bg-gray-50 rounded-tr-lg text-base">Total Score</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-100">
-                      {currentRanking.map((student, index) => {
-                        const totalScore = (student.submittedCount || 0) + (student.presentCount || 0);
-                        
-                        return (
-                          <tr 
-                            key={student.id} 
-                            className="group transition-colors hover:bg-gray-50"
-                          >
-                            <td className="px-3 py-3.5 whitespace-nowrap">
-                              <div className="flex items-center gap-2">
-                                {index === 0 && rankingSort === 'highest' && (
-                                  <img src={Award} alt="Gold Medal" className="w-6 h-6" />
-                                )}
-                                {index === 1 && rankingSort === 'highest' && (
-                                  <img src={Award} alt="Silver Medal" className="w-6 h-6" />
-                                )}
-                                {index === 2 && rankingSort === 'highest' && (
-                                  <img src={Award} alt="Bronze Medal" className="w-6 h-6" />
-                                )}
-                                {index === 0 && rankingSort === 'lowest' && (
-                                  <img src={LeastActivities} alt="Least Activities" className="w-6 h-6" />
-                                )}
-                                <span className={`font-semibold text-base ${
-                                  index === 0 && rankingSort === 'highest' ? 'text-yellow-600' :
-                                  index === 1 && rankingSort === 'highest' ? 'text-gray-600' :
-                                  index === 2 && rankingSort === 'highest' ? 'text-orange-600' :
-                                  index === 0 && rankingSort === 'lowest' ? 'text-red-500' :
-                                  'text-gray-700'
-                                }`}>
-                                  {rankingStartIndex + index + 1}
-                                </span>
-                              </div>
-                            </td>
-                            <td className="px-3 py-3.5">
-                              <div className="flex flex-col">
-                                <span className="font-medium text-base text-gray-900">
-                                  {student.name}
-                                </span>
-                                <span className="text-sm text-gray-500 mt-0.5">{student.id}</span>
-                              </div>
-                            </td>
-                            <td className="px-3 py-3.5">
-                              <span className="font-medium text-base text-[#00A15D]">
-                                {student.submittedCount || 0}
-                              </span>
-                            </td>
-                            <td className="px-3 py-3.5">
-                              <span className="font-medium text-base text-[#00A15D]">
-                                {student.presentCount || 0}
-                              </span>
-                            </td>
-                            <td className="px-3 py-3.5">
-                              <span className="font-medium text-base text-[#2196F3]">
-                                {student.lateCount || 0}
-                              </span>
-                            </td>
-                            <td className="px-3 py-3.5">
-                              <span className="font-medium text-base text-[#FF6666]">
-                                {student.absentCount || 0}
-                              </span>
-                            </td>
-                            <td className="px-3 py-3.5">
-                              <span className="font-medium text-base text-[#2196F3]">
-                                {student.lateSubmissionCount || 0}
-                              </span>
-                            </td>
-                            <td className="px-3 py-3.5">
-                              <span className="font-medium text-base text-[#F59E0B]">
-                                {student.pendingCount || 0}
-                              </span>
-                            </td>
-                            <td className="px-3 py-3.5">
-                              <span className="font-medium text-base text-[#FF6666]">
-                                {student.missingCount || 0}
-                              </span>
-                            </td>
-                            <td className="px-3 py-3.5">
-                              <span className="font-bold text-base" style={{ color: '#2c5530' }}>
-                                {totalScore}
-                              </span>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-
-              {/* Ranking Pagination */}
-              <Pagination
-                currentPage={rankingCurrentPage}
-                totalPages={rankingTotalPages}
-                onPageChange={handleRankingPageChange}
-                dataType="ranking"
-                totalItems={sortedRankingData.length}
-              />
-            </div>
-          )}
-
-          {/* Student Attendance Tracking - Only show if we have classes and analytics data */}
-          {!classesLoading && selectedSubject && selectedSection && (
-            <div className="bg-[#fff] rounded-lg sm:rounded-xl shadow-md mt-4 sm:mt-5 p-4 sm:p-5 text-[#465746]">
-              <p className="text-base sm:text-lg lg:text-xl font-bold">
-                Student Attendance Tracking - {getCurrentSubjectName()} (Section {selectedSection})
-              </p>
-              <hr className="border-[#465746]/30 my-3 sm:my-4" />
-              <div className="overflow-x-auto -mx-4 sm:mx-0">
-                <div className="inline-block min-w-full align-middle px-4 sm:px-0">
-                  <table className="min-w-full border-collapse text-xs sm:text-sm lg:text-base">
-                    <thead>
-                      <tr className="border-b border-gray-200">
-                        <th className="px-2 sm:px-4 py-2 sm:py-3 text-left font-bold">No.</th>
-                        <th className="px-2 sm:px-4 py-2 sm:py-3 text-left font-bold whitespace-nowrap">Student No.</th>
-                        <th className="px-2 sm:px-4 py-2 sm:py-3 text-left font-bold whitespace-nowrap">Student Name</th>
-                        <th className="px-2 sm:px-4 py-2 sm:py-3 text-left font-bold text-[#00A15D]">Submitted</th>
-                        <th className="px-2 sm:px-4 py-2 sm:py-3 text-left font-bold text-[#00A15D]">Present</th>
-                        <th className="px-2 sm:px-4 py-2 sm:py-3 text-left font-bold text-[#2196F3]">Late</th>
-                        <th className="px-2 sm:px-4 py-2 sm:py-3 text-left font-bold text-[#FF6666]">Absent</th>
-                        <th className="px-2 sm:px-4 py-2 sm:py-3 text-left font-bold text-[#2196F3]">Late Sub</th>
-                        <th className="px-2 sm:px-4 py-2 sm:py-3 text-left font-bold text-[#F59E0B]">Pending</th>
-                        <th className="px-2 sm:px-4 py-2 sm:py-3 text-left font-bold text-[#FF6666]">Missed</th>
-                        <th className="px-2 sm:px-4 py-2 sm:py-3 text-left font-bold">Details</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {currentAttendance.length > 0 ? (
-                        currentAttendance.map((student, index) => (
-                          <tr key={student.id} className="border-b border-gray-100 hover:bg-gray-50">
-                            <td className="px-2 sm:px-4 py-2 sm:py-3">{attendanceStartIndex + index + 1}</td>
-                            <td className="px-2 sm:px-4 py-2 sm:py-3 whitespace-nowrap">{student.id}</td>
-                            <td className="px-2 sm:px-4 py-2 sm:py-3 whitespace-nowrap">{student.name}</td>
-                            <td className="px-2 sm:px-4 py-2 sm:py-3 text-[#00A15D]">{student.submittedCount}</td>
-                            <td className="px-2 sm:px-4 py-2 sm:py-3 text-[#00A15D]">{student.presentCount}</td>
-                            <td className="px-2 sm:px-4 py-2 sm:py-3 text-[#2196F3]">{student.lateCount}</td>
-                            <td className="px-2 sm:px-4 py-2 sm:py-3 text-[#FF6666]">{student.absentCount}</td>
-                            <td className="px-2 sm:px-4 py-2 sm:py-3 text-[#2196F3]">{student.lateSubmissionCount}</td>
-                            <td className="px-2 sm:px-4 py-2 sm:py-3 text-[#F59E0B]">{student.pendingCount}</td>
-                            <td className="px-2 sm:px-4 py-2 sm:py-3 text-[#FF6666]">{student.missingCount}</td>
-                            <td className="px-2 sm:px-4 py-2 sm:py-3">
-                              <Link 
-                                to={`/AnalyticsIndividualInfo?student_id=${student.id}&subject_code=${selectedSubject}&section=${selectedSection}`}
-                                state={{ 
-                                  student: student,
-                                  subjectCode: selectedSubject,
-                                  section: selectedSection
-                                }}
-                              >
-                                <img src={Details} alt="Details" className="w-4 h-4 sm:w-5 sm:h-5 cursor-pointer hover:opacity-70" />
-                              </Link>
-                            </td>
-                          </tr>
-                        ))
-                      ) : (
-                        <tr>
-                          <td colSpan="11" className="px-2 sm:px-4 py-2 sm:py-3 text-center text-gray-500">
-                            No student data available
-                          </td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-
-              {/* Attendance Tracking Pagination */}
-              <Pagination
-                currentPage={attendanceCurrentPage}
-                totalPages={attendanceTotalPages}
-                onPageChange={handleAttendancePageChange}
-                dataType="attendance"
-                totalItems={analyticsData?.studentPerformance?.length || 0}
-              />
-            </div>
-          )}
         </div>
       </div>
     </div>

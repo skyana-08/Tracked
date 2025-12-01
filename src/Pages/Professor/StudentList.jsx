@@ -12,6 +12,7 @@ import StudentIcon from '../../assets/Student(Light).svg';
 import Details from '../../assets/Details(Light).svg';
 import PersonIcon from '../../assets/Person.svg';
 import ClassManagementIcon from "../../assets/ClassManagement(Light).svg";
+import Copy from "../../assets/Copy(Light).svg"; // Added import
 
 export default function StudentList() {
   const location = useLocation();
@@ -63,6 +64,26 @@ export default function StudentList() {
     } catch (error) {
       console.error('Error fetching professor details:', error);
       return null;
+    }
+  };
+
+  // Copy subject code to clipboard
+  const copySubjectCode = () => {
+    if (classInfo?.subject_code) {
+      navigator.clipboard.writeText(classInfo.subject_code)
+        .then(() => {
+          // Show temporary feedback
+          const originalText = document.querySelector('.copy-text');
+          if (originalText) {
+            originalText.textContent = 'Copied!';
+            setTimeout(() => {
+              originalText.textContent = 'Copy';
+            }, 2000);
+          }
+        })
+        .catch(err => {
+          console.error('Failed to copy: ', err);
+        });
     }
   };
 
@@ -314,11 +335,26 @@ export default function StudentList() {
             </p>
           </div>
 
-          {/* Subject Information */}
+          {/* Subject Information with Copy Button */}
           <div className="flex flex-col gap-2 text-sm sm:text-base lg:text-[1.125rem] text-[#465746] mb-4 sm:mb-5">
-            <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-1 sm:gap-3">
+            <div className="flex flex-wrap items-center gap-1 sm:gap-3">
               <span className="font-semibold">SUBJECT CODE:</span>
-              <span className="break-all">{classInfo?.subject_code || 'N/A'}</span>
+              <div className="flex items-center gap-2">
+                <span className="break-all">{classInfo?.subject_code || 'N/A'}</span>
+                {classInfo?.subject_code && (
+                  <button
+                    onClick={copySubjectCode}
+                    className="p-1 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded transition-colors cursor-pointer flex items-center gap-1"
+                    title="Copy subject code"
+                  >
+                    <img 
+                      src={Copy} 
+                      alt="Copy" 
+                      className="w-4 h-4" 
+                    />
+                  </button>
+                )}
+              </div>
             </div>
 
             <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-1 sm:gap-3">

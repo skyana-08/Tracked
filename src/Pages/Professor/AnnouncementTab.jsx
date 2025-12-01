@@ -19,9 +19,9 @@ import ArrowDown from "../../assets/ArrowDown(Light).svg";
 import SuccessIcon from '../../assets/Success(Green).svg';
 import ArchiveWarningIcon from '../../assets/Warning(Yellow).svg';
 import Search from "../../assets/Search.svg";
-// Import the new icons for Grade and Analytics
 import GradeIcon from "../../assets/Grade(Light).svg";
 import AnalyticsIcon from "../../assets/Analytics(Light).svg";
+import Copy from "../../assets/Copy(Light).svg"; 
 
 export default function AnnouncementTab() {
   const location = useLocation();
@@ -97,6 +97,27 @@ export default function AnnouncementTab() {
   const getCurrentDateTime = () => {
     const now = new Date();
     return now.toISOString().slice(0, 16);
+  };
+
+  // Copy subject code to clipboard function
+  const copySubjectCode = () => {
+    const codeToCopy = classInfo?.subject_code || subjectCode;
+    if (codeToCopy && codeToCopy !== 'N/A') {
+      navigator.clipboard.writeText(codeToCopy)
+        .then(() => {
+          // Show temporary feedback
+          const copyButtons = document.querySelectorAll('.copy-text');
+          copyButtons.forEach(button => {
+            button.textContent = 'Copied!';
+            setTimeout(() => {
+              button.textContent = 'Copy';
+            }, 2000);
+          });
+        })
+        .catch(err => {
+          console.error('Failed to copy: ', err);
+        });
+    }
   };
 
   // Fetch all data independently
@@ -648,11 +669,26 @@ export default function AnnouncementTab() {
             </p>
           </div>
 
-          {/* Subject Information */}
+          {/* Subject Information with Copy Button */}
           <div className="flex flex-col gap-2 text-sm sm:text-base lg:text-[1.125rem] text-[#465746] mb-4 sm:mb-5">
             <div className="flex flex-wrap items-center gap-1 sm:gap-3">
               <span className="font-semibold">SUBJECT CODE:</span>
-              <span>{classInfo?.subject_code || subjectCode || 'N/A'}</span>
+              <div className="flex items-center gap-2">
+                <span>{classInfo?.subject_code || subjectCode || 'N/A'}</span>
+                {(classInfo?.subject_code || subjectCode) && (classInfo?.subject_code !== 'N/A' && subjectCode !== 'N/A') && (
+                  <button
+                    onClick={copySubjectCode}
+                    className="p-1 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded transition-colors cursor-pointer flex items-center gap-1"
+                    title="Copy subject code"
+                  >
+                    <img 
+                      src={Copy} 
+                      alt="Copy" 
+                      className="w-4 h-4" 
+                    />
+                  </button>
+                )}
+              </div>
             </div>
 
             <div className="flex flex-wrap items-center gap-1 sm:gap-3">

@@ -355,7 +355,7 @@ export default function StudentListStudent() {
             </div>
           </div>
 
-          {/* Teachers Section - Matching Professor Version */}
+          {/* Teachers Section - More Compact Cards */}
           <div className="mb-8 sm:mb-10">
             <div className="flex items-center gap-3 mb-4 sm:mb-6">
               <img
@@ -368,18 +368,18 @@ export default function StudentListStudent() {
               </h2>
             </div>
 
-            <div className="space-y-4">
+            <div className="space-y-3">
               {filteredTeachers.length === 0 ? (
                 <div className="text-center py-8 text-gray-500 bg-white rounded-lg shadow-md">
                   No teachers found matching your search
                 </div>
               ) : (
                 filteredTeachers.map((teacher) => (
-                  <div key={teacher.id} className="bg-white p-4 sm:p-5 rounded-lg shadow-md border border-gray-200 hover:shadow-lg transition-shadow">
-                    <div className="flex items-center justify-between">
+                  <div key={teacher.id} className="bg-white p-3 sm:p-4 rounded-lg shadow-md border border-gray-200 hover:shadow-lg transition-shadow min-h-[80px] flex items-center">
+                    <div className="flex items-center justify-between w-full">
                       <div className="flex items-center gap-4 min-w-0 flex-1">
-                        <div className="flex-shrink-0 h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center">
-                          <img src={PersonIcon} alt="Person" className="h-6 w-6 text-blue-600" />
+                        <div className="flex-shrink-0 h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
+                          <img src={PersonIcon} alt="Person" className="h-5 w-5 text-blue-600" />
                         </div>
                         <div className="min-w-0 flex-1">
                           <h3 className="font-semibold text-gray-900 text-base sm:text-lg truncate">
@@ -402,7 +402,7 @@ export default function StudentListStudent() {
             </div>
           </div>
 
-          {/* Students Section - Matching Professor Version */}
+          {/* Students Section - More Compact Cards */}
           <div>
             <div className="flex items-center gap-3 mb-4 sm:mb-6">
               <img
@@ -415,18 +415,18 @@ export default function StudentListStudent() {
               </h2>
             </div>
 
-            <div className="space-y-4">
+            <div className="space-y-3">
               {filteredStudents.length === 0 ? (
                 <div className="text-center py-8 text-gray-500 bg-white rounded-lg shadow-md">
                   {searchQuery ? "No students found matching your search" : "No students enrolled in this class"}
                 </div>
               ) : (
                 filteredStudents.map((student) => (
-                  <div key={student.id} className="bg-white p-4 sm:p-5 rounded-lg shadow-md border border-gray-200 hover:shadow-lg transition-shadow">
-                    <div className="flex items-center justify-between gap-3">
+                  <div key={student.id} className="bg-white p-3 sm:p-4 rounded-lg shadow-md border border-gray-200 hover:shadow-lg transition-shadow min-h-[80px] flex items-center">
+                    <div className="flex items-center justify-between gap-3 w-full">
                       <div className="flex items-center gap-4 min-w-0 flex-1">
-                        <div className="flex-shrink-0 h-12 w-12 rounded-full bg-green-100 flex items-center justify-center">
-                          <img src={PersonIcon} alt="Person" className="h-6 w-6 text-green-600" />
+                        <div className="flex-shrink-0 h-10 w-10 rounded-full bg-green-100 flex items-center justify-center">
+                          <img src={PersonIcon} alt="Person" className="h-5 w-5 text-green-600" />
                         </div>
                         <div className="min-w-0 flex-1">
                           <h3 className="font-semibold text-gray-900 text-base sm:text-lg truncate">

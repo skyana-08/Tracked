@@ -1,13 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import ArrowDown from "../assets/ArrowDown(Light).svg";
+import Photo from "../assets/Photo.svg";
 import FileIcon from "../assets/File(Light).svg";
-import FolderGreen from "../assets/Folder(Green).svg";
+import FolderGreen from "../assets/Photo(Green).svg";
 import EmailIcon from "../assets/Email(Light).svg";
 import Close from "../assets/Close.svg";
 import Cross from "../assets/Cross(Light).svg";
 import Delete from "../assets/Delete.svg";
 import DetailsIcon from "../assets/Details(Light).svg";
+import ClockIcon from "../assets/Deadline.svg";
 import StudentActivitiesDetails from './StudentActivitiesDetails';
+import PhotoManagement from './PhotoManagement';
 
 const ClassWorkSubmission = ({ 
   activity, 
@@ -20,12 +23,18 @@ const ClassWorkSubmission = ({
   const [filterDropdownOpen, setFilterDropdownOpen] = useState(false);
   const [localStudents, setLocalStudents] = useState([]);
   const [selectedStudent, setSelectedStudent] = useState(null);
-  const [imageViewerOpen, setImageViewerOpen] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState({});
+  const [studentUploadedFiles, setStudentUploadedFiles] = useState({});
   const [detailsModalOpen, setDetailsModalOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [instructionExpanded, setInstructionExpanded] = useState(false);
+  const [activeView, setActiveView] = useState('students');
+  const [photoModalOpen, setPhotoModalOpen] = useState(false);
+  const [selectedStudentForPhoto, setSelectedStudentForPhoto] = useState(null);
+  const [viewingPhoto, setViewingPhoto] = useState(null);
+  const [photoViewerOpen, setPhotoViewerOpen] = useState(false);
+  const scrollContainerRef = useRef(null);
 
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 1024);
@@ -37,14 +46,38 @@ const ClassWorkSubmission = ({
   useEffect(() => {
     if (activity && activity.students) {
       setLocalStudents([...activity.students]);
+      
+      const studentFiles = {};
+      activity.students.forEach(student => {
+        if (student.submitted_file) {
+          studentFiles[student.user_ID] = student.submitted_file;
+        }
+      });
+      setStudentUploadedFiles(studentFiles);
+      
       if (isMobile && activity.students.length > 0 && !selectedStudent) {
+        const firstStudent = activity.students[0];
         setSelectedStudent({ 
-          id: activity.students[0].user_ID, 
-          name: activity.students[0].user_Name 
+          id: firstStudent.user_ID, 
+          name: firstStudent.user_Name 
         });
       }
     }
   }, [activity, isMobile]);
+
+  useEffect(() => {
+    if (isMobile && selectedStudent && scrollContainerRef.current) {
+      setActiveView('analytics');
+      setTimeout(() => {
+        if (scrollContainerRef.current) {
+          scrollContainerRef.current.scrollTo({
+            left: scrollContainerRef.current.scrollWidth / 2,
+            behavior: 'smooth'
+          });
+        }
+      }, 100);
+    }
+  }, [selectedStudent, isMobile]);
 
   const filterOptions = [
     "All",
@@ -98,19 +131,65 @@ const ClassWorkSubmission = ({
 
   const handleGradeChange = (studentId, value) => {
     const maxPoints = activity.points || 100;
+    
     let numericValue = value.replace(/[^0-9]/g, '');
     
-    if (numericValue !== '' && parseInt(numericValue) > maxPoints) {
-      numericValue = maxPoints.toString();
+    if (numericValue.length > 1) {
+      numericValue = numericValue.replace(/^0+/, '');
     }
     
-    if (numericValue.length > 3) {
-      numericValue = numericValue.slice(0, 3);
+    if (numericValue === '') {
+      setLocalStudents(prev => prev.map(student =>
+        student.user_ID === studentId
+          ? { ...student, grade: '' }
+          : student
+      ));
+      return;
+    }
+    
+    let intValue = parseInt(numericValue, 10);
+    
+    if (intValue > maxPoints) {
+      intValue = maxPoints;
+    }
+    
+    if (intValue < 0) {
+      intValue = 0;
     }
     
     setLocalStudents(prev => prev.map(student =>
       student.user_ID === studentId
-        ? { ...student, grade: numericValue }
+        ? { ...student, grade: intValue.toString() }
+        : student
+    ));
+  };
+
+  const handleGradeBlur = (studentId, value) => {
+    const maxPoints = activity.points || 100;
+    
+    if (value === '' || value === null || value === undefined) {
+      return;
+    }
+    
+    let numericValue = parseInt(value, 10);
+    
+    if (isNaN(numericValue)) {
+      numericValue = 0;
+    }
+    
+    if (numericValue < 0) {
+      numericValue = 0;
+    }
+    
+    if (numericValue > maxPoints) {
+      numericValue = maxPoints;
+    }
+    
+    numericValue = Math.floor(numericValue);
+    
+    setLocalStudents(prev => prev.map(student =>
+      student.user_ID === studentId
+        ? { ...student, grade: numericValue.toString() }
         : student
     ));
   };
@@ -191,7 +270,15 @@ const ClassWorkSubmission = ({
     }
   };
 
-  const handleFileUpload = (studentId, studentName) => {
+  const handleOpenPhotoModal = (studentId, studentName) => {
+    setSelectedStudentForPhoto({
+      id: studentId,
+      name: studentName
+    });
+    setPhotoModalOpen(true);
+  };
+
+  const handleProfessorPhotoUpload = () => {
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = 'image/*';
@@ -210,36 +297,38 @@ const ClassWorkSubmission = ({
 
         setUploadedFiles(prev => ({
           ...prev,
-          [studentId]: newFile
+          [selectedStudentForPhoto.id]: newFile
         }));
 
-        console.log(`Uploaded photo for student ${studentName}:`, file);
+        console.log(`Uploaded professor photo for student ${selectedStudentForPhoto.name}:`, file);
       }
     };
     input.click();
   };
 
-  const handleViewPhoto = (studentId, studentName) => {
-    setSelectedStudent({ id: studentId, name: studentName });
-    setImageViewerOpen(true);
+  const handleViewProfessorPhoto = () => {
+    const photo = uploadedFiles[selectedStudentForPhoto.id];
+    if (photo) {
+      setViewingPhoto(photo);
+      setPhotoViewerOpen(true);
+    }
   };
 
-  const handleCloseImageViewer = () => {
-    setImageViewerOpen(false);
-    setSelectedStudent(null);
+  const handleViewStudentPhoto = () => {
+    const photo = studentUploadedFiles[selectedStudentForPhoto.id];
+    if (photo) {
+      setViewingPhoto(photo);
+      setPhotoViewerOpen(true);
+    }
   };
 
-  const handleDeletePhoto = (studentId) => {
+  const handleDeleteProfessorPhoto = () => {
     setUploadedFiles(prev => {
       const newFiles = { ...prev };
-      delete newFiles[studentId];
+      delete newFiles[selectedStudentForPhoto.id];
       return newFiles;
     });
-    setImageViewerOpen(false);
-  };
-
-  const getStudentPhoto = (studentId) => {
-    return uploadedFiles[studentId] || null;
+    setPhotoViewerOpen(false);
   };
 
   const formatFileSize = (bytes) => {
@@ -250,7 +339,6 @@ const ClassWorkSubmission = ({
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
-  // Enhanced analytics with performance feedback (emojis removed)
   const getStudentAnalytics = (student) => {
     if (!student) return null;
     
@@ -259,39 +347,38 @@ const ClassWorkSubmission = ({
     const remainingPoints = Math.max(0, totalPoints - studentGrade);
     const percentage = totalPoints > 0 ? Math.round((studentGrade / totalPoints) * 100) : 0;
     
-    // Determine performance level and feedback (emojis removed)
     let performanceLevel, feedback, color;
     
     if (percentage >= 95) {
       performanceLevel = "Perfect Score!";
       feedback = "Outstanding work! Student has mastered this material.";
-      color = "#10B981"; // Green
+      color = "#10B981";
     } else if (percentage >= 85) {
       performanceLevel = "Excellent";
       feedback = "Great job! Minor improvements could make it perfect.";
-      color = "#34D399"; // Light Green
+      color = "#34D399";
     } else if (percentage >= 75) {
       performanceLevel = "Good";
       feedback = "Solid understanding. Focus on details and accuracy.";
-      color = "#F59E0B"; // Yellow
+      color = "#F59E0B";
     } else if (percentage >= 65) {
       performanceLevel = "Average";
       feedback = "Needs improvement. Review key concepts and practice more.";
-      color = "#F97316"; // Orange
+      color = "#F97316";
     } else if (percentage >= 50) {
       performanceLevel = "Below Average";
       feedback = "Requires attention. Consider additional support and review.";
-      color = "#EF4444"; // Red
+      color = "#EF4444";
     } else {
       performanceLevel = "Needs Help";
       feedback = "Significant improvement needed. Schedule a meeting to discuss.";
-      color = "#DC2626"; // Dark Red
+      color = "#DC2626";
     }
     
     return {
       data: [
         { label: 'Earned', value: studentGrade, color: color },
-        { label: 'Remaining', value: remainingPoints, color: '#E5E7EB' } // Light gray for remaining
+        { label: 'Remaining', value: remainingPoints, color: '#E5E7EB' }
       ],
       percentage,
       performanceLevel,
@@ -300,7 +387,6 @@ const ClassWorkSubmission = ({
     };
   };
 
-  // Enhanced pie chart with better design and fixed text placement
   const renderPieChart = (analytics) => {
     if (!analytics) return null;
     
@@ -314,7 +400,6 @@ const ClassWorkSubmission = ({
     return (
       <div className="relative">
         <svg width={chartSize} height={chartSize} viewBox="0 0 42 42" className="mx-auto drop-shadow-sm">
-          {/* Background circle */}
           <circle
             cx="21"
             cy="21"
@@ -324,7 +409,6 @@ const ClassWorkSubmission = ({
             strokeWidth="3"
           />
           
-          {/* Data segments */}
           {data.map((segment, index) => {
             if (segment.value === 0) return null;
             
@@ -351,7 +435,6 @@ const ClassWorkSubmission = ({
             );
           })}
           
-          {/* Center text - Smaller text to prevent overlap */}
           <text 
             x="21" 
             y={isMobile ? "18" : "18"} 
@@ -375,28 +458,61 @@ const ClassWorkSubmission = ({
     );
   };
 
-  // Handle status rectangle clicks
   const handleStatusClick = (status) => {
     setFilter(status);
   };
 
-  // Format deadline with date and time
   const formatDeadline = (deadline) => {
     if (!deadline) return 'No deadline';
     const date = new Date(deadline);
     return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
+  const scrollToStudents = () => {
+    if (isMobile && scrollContainerRef.current) {
+      setActiveView('students');
+      scrollContainerRef.current.scrollTo({
+        left: 0,
+        behavior: 'smooth'
+      });
+    }
+  };
+
+  const scrollToAnalytics = () => {
+    if (isMobile && scrollContainerRef.current) {
+      setActiveView('analytics');
+      scrollContainerRef.current.scrollTo({
+        left: scrollContainerRef.current.scrollWidth / 2,
+        behavior: 'smooth'
+      });
+    }
+  };
+
+  const handleScroll = () => {
+    if (isMobile && scrollContainerRef.current) {
+      const scrollLeft = scrollContainerRef.current.scrollLeft;
+      const containerWidth = scrollContainerRef.current.clientWidth;
+      
+      if (scrollLeft < containerWidth / 2) {
+        setActiveView('students');
+      } else {
+        setActiveView('analytics');
+      }
+    }
+  };
+
   if (!isOpen || !activity) return null;
 
-  const currentStudentPhoto = selectedStudent ? getStudentPhoto(selectedStudent.id) : null;
   const studentAnalytics = selectedStudent ? 
     getStudentAnalytics(localStudents.find(s => s.user_ID === selectedStudent.id)) : null;
+
+  const professorPhoto = selectedStudentForPhoto ? uploadedFiles[selectedStudentForPhoto.id] : null;
+  const studentPhoto = selectedStudentForPhoto ? studentUploadedFiles[selectedStudentForPhoto.id] : null;
 
   return (
     <>
       <div className="fixed inset-0 bg-black/50 flex justify-center items-center z-50 p-2 sm:p-3 md:p-4">
-        <div className="bg-white rounded-lg shadow-2xl w-full max-w-7xl max-h-[95vh] overflow-hidden flex flex-col mx-1 sm:mx-2 md:mx-4">
+        <div className="bg-white rounded-lg shadow-2xl w-full max-w-7xl max-h-[95vh] overflow-hidden flex flex-col mx-1 sm:mx-2 md:mx-4 min-w-0">
           {/* Header */}
           <div className="flex items-center justify-between p-3 sm:p-4 md:p-6 border-b border-gray-200">
             <div className="flex-1 min-w-0">
@@ -406,9 +522,16 @@ const ClassWorkSubmission = ({
               <p className="text-xs sm:text-sm mt-1">
                 {activity.activity_type} #{activity.task_number} 
               </p>
-              <p className="text-xs sm:text-sm text-red-600 font-bold mt-1">
-                • Deadline {formatDeadline(activity.deadline)}
-              </p>
+              <div className="flex items-center gap-2 mt-1">
+                <img 
+                  src={ClockIcon} 
+                  alt="Deadline" 
+                  className="w-3 h-3 sm:w-4 sm:h-4 text-red-600" 
+                />
+                <span className="text-xs sm:text-sm text-red-600 font-bold">
+                  Deadline: {formatDeadline(activity.deadline)}
+                </span>
+              </div>
             </div>
             <button
               onClick={onClose}
@@ -418,351 +541,380 @@ const ClassWorkSubmission = ({
             </button>
           </div>
 
+          {/* Mobile View Tabs */}
+          {isMobile && (
+            <div className="flex border-b border-gray-200">
+              <button
+                onClick={scrollToStudents}
+                className={`flex-1 py-3 text-center text-sm font-medium transition-colors ${
+                  activeView === 'students'
+                    ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50'
+                    : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                Students List
+              </button>
+              <button
+                onClick={scrollToAnalytics}
+                className={`flex-1 py-3 text-center text-sm font-medium transition-colors ${
+                  activeView === 'analytics'
+                    ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50'
+                    : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                }`}
+                disabled={!selectedStudent}
+              >
+                Analytics
+              </button>
+            </div>
+          )}
+
           {/* Main Content */}
-          <div className={`flex ${isMobile ? 'flex-col' : 'flex-row'} flex-1 overflow-hidden`}>
-            {/* Left Panel - Entire content scrolls together */}
-            <div className={`${isMobile ? 'w-full' : 'w-1/2'} ${isMobile ? 'flex-1' : ''} border-r border-gray-200 flex flex-col overflow-y-auto`}>
-              
-              {/* Instructions - With show more/less functionality */}
-              <div className="p-3 sm:p-4 md:p-6 border-b border-gray-200">
-                <h3 className="text-sm sm:text-base md:text-lg font-semibold text-gray-900 mb-2">Instructions</h3>
-                <div className="relative">
-                  <p className={`text-xs sm:text-sm text-gray-600 whitespace-pre-wrap break-words ${
-                    instructionExpanded ? '' : 'max-h-20 overflow-hidden'
-                  }`}>
-                    {activity.instruction || 'No instructions provided for this activity.'}
-                  </p>
-                  {activity.instruction && activity.instruction.length > 150 && (
-                    <button
-                      onClick={() => setInstructionExpanded(!instructionExpanded)}
-                      className="text-xs text-blue-600 hover:text-blue-800 font-medium mt-1 cursor-pointer"
-                    >
-                      {instructionExpanded ? 'Show less' : 'Show more'}
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              {/* Status Rectangles */}
-              <div className="p-3 sm:p-4 md:p-6 border-b border-gray-200">
-                <div className="flex gap-2 sm:gap-3 md:gap-4">
-                  <button
-                    onClick={() => handleStatusClick("Assigned")}
-                    className={`flex-1 border rounded-lg p-2 sm:p-3 md:p-4 text-center transition-all duration-200 cursor-pointer ${
-                      filter === "Assigned" 
-                        ? "bg-yellow-100 border-yellow-300 shadow-md" 
-                        : "bg-yellow-50 border-yellow-200 hover:bg-yellow-100"
-                    }`}
-                  >
-                    <div className="text-lg sm:text-xl md:text-2xl font-bold text-yellow-800">{statusCounts.assigned}</div>
-                    <div className="text-xs sm:text-sm text-yellow-700">Assigned</div>
-                  </button>
-                  <button
-                    onClick={() => handleStatusClick("Submitted")}
-                    className={`flex-1 border rounded-lg p-2 sm:p-3 md:p-4 text-center transition-all duration-200 cursor-pointer ${
-                      filter === "Submitted" 
-                        ? "bg-green-100 border-green-300 shadow-md" 
-                        : "bg-green-50 border-green-200 hover:bg-green-100"
-                    }`}
-                  >
-                    <div className="text-lg sm:text-xl md:text-2xl font-bold text-green-800">{statusCounts.submitted}</div>
-                    <div className="text-xs sm:text-sm text-green-700">Submitted</div>
-                  </button>
-                  <button
-                    onClick={() => handleStatusClick("Missed")}
-                    className={`flex-1 border rounded-lg p-2 sm:p-3 md:p-4 text-center transition-all duration-200 cursor-pointer ${
-                      filter === "Missed" 
-                        ? "bg-red-100 border-red-300 shadow-md" 
-                        : "bg-red-50 border-red-200 hover:bg-red-100"
-                    }`}
-                  >
-                    <div className="text-lg sm:text-xl md:text-2xl font-bold text-red-800">{statusCounts.missed}</div>
-                    <div className="text-xs sm:text-sm text-red-700">Missed</div>
-                  </button>
-                </div>
-              </div>
-
-              {/* Filter Section */}
-              <div className="p-2 sm:p-3 md:p-4 border-b border-gray-200">
-                <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+          <div 
+            ref={scrollContainerRef}
+            className={`flex-1 overflow-hidden ${isMobile ? 'overflow-x-auto snap-x snap-mandatory' : ''}`}
+            onScroll={handleScroll}
+          >
+            <div className={`flex ${isMobile ? 'w-[200%] flex-row' : 'w-full flex-row'} h-full`}>
+              {/* Left Panel - Students List */}
+              <div className={`${isMobile ? 'w-1/2 flex-shrink-0 snap-start' : 'w-1/2'} h-full border-r border-gray-200 flex flex-col overflow-hidden`}>
+                
+                {/* Instructions */}
+                <div className="p-3 sm:p-4 md:p-6 border-b border-gray-200 flex-shrink-0">
+                  <h3 className="text-sm sm:text-base md:text-lg font-semibold text-gray-900 mb-2">Instructions</h3>
                   <div className="relative">
-                    <label className="text-xs sm:text-sm font-medium text-gray-700 mr-2">Filter:</label>
-                    <button
-                      onClick={() => setFilterDropdownOpen(!filterDropdownOpen)}
-                      className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1.5 sm:py-2 border border-gray-300 rounded-md bg-white text-xs sm:text-sm font-medium text-gray-700 hover:bg-gray-50 cursor-pointer"
-                    >
-                      {filter}
-                      <img
-                        src={ArrowDown}
-                        alt=""
-                        className={`w-3 h-3 sm:w-4 sm:h-4 transition-transform ${filterDropdownOpen ? 'rotate-180' : ''}`}
-                      />
-                    </button>
-
-                    {filterDropdownOpen && (
-                      <div className="absolute top-full left-0 mt-1 w-32 sm:w-40 bg-white rounded-md shadow-lg border border-gray-200 z-10">
-                        {filterOptions.map(option => (
-                          <button
-                            key={option}
-                            onClick={() => {
-                              setFilter(option);
-                              setFilterDropdownOpen(false);
-                            }}
-                            className={`block w-full text-left px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm hover:bg-gray-100 cursor-pointer ${
-                              filter === option ? 'bg-gray-50 font-medium' : ''
-                            }`}
-                          >
-                            {option}
-                          </button>
-                        ))}
-                      </div>
+                    <p className={`text-xs sm:text-sm text-gray-600 whitespace-pre-wrap break-words ${
+                      instructionExpanded ? '' : 'max-h-20 overflow-hidden'
+                    }`}>
+                      {activity.instruction || 'No instructions provided for this activity.'}
+                    </p>
+                    {activity.instruction && activity.instruction.length > 150 && (
+                      <button
+                        onClick={() => setInstructionExpanded(!instructionExpanded)}
+                        className="text-xs text-blue-600 hover:text-blue-800 font-medium mt-1 cursor-pointer"
+                      >
+                        {instructionExpanded ? 'Show less' : 'Show more'}
+                      </button>
                     )}
                   </div>
-
-                  <div className="text-xs sm:text-sm text-gray-600">
-                    Showing {filteredStudents.length} of {localStudents.length} students
-                  </div>
-                </div>
-              </div>
-
-              {/* Students List - Now part of the scrollable area */}
-              <div className="flex-1">
-                <div className="w-full">
-                  <table className="w-full">
-                    <thead className="bg-gray-50 sticky top-0">
-                      <tr>
-                        <th className="px-3 sm:px-4 md:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Student
-                        </th>
-                        <th className="px-3 sm:px-4 md:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Status
-                        </th>
-                        <th className="px-3 sm:px-4 md:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Grade
-                        </th>
-                        <th className="px-3 sm:px-4 md:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Actions
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {filteredStudents.map((student) => {
-                        const studentPhoto = getStudentPhoto(student.user_ID);
-                        const hasPhoto = !!studentPhoto;
-                        const isSelected = selectedStudent?.id === student.user_ID;
-                        const status = calculateStudentStatus(student, activity);
-                        const maxPoints = activity.points || 100;
-
-                        return (
-                          <tr 
-                            key={student.user_ID} 
-                            className={`hover:bg-gray-50 cursor-pointer ${isSelected ? 'bg-blue-50' : ''}`}
-                            onClick={() => setSelectedStudent({ id: student.user_ID, name: student.user_Name })}
-                          >
-                            <td className="px-3 sm:px-4 md:px-6 py-2 sm:py-3 md:py-4">
-                              <div className="text-xs sm:text-sm font-medium text-gray-900 break-words">
-                                {student.user_Name}
-                              </div>
-                              <div className="text-xs text-gray-500 break-words">
-                                {student.user_Email || 'No email'}
-                              </div>
-                            </td>
-                            <td className="px-3 sm:px-4 md:px-6 py-2 sm:py-3 md:py-4 whitespace-nowrap">
-                              <span className={`inline-flex px-1.5 sm:px-2 py-0.5 sm:py-1 text-xs font-semibold rounded-full ${
-                                (() => {
-                                  switch (status) {
-                                    case 'Submitted': return 'bg-green-100 text-green-800';
-                                    case 'Missed': return 'bg-red-100 text-red-800';
-                                    default: return 'bg-gray-100 text-gray-800';
-                                  }
-                                })()
-                              }`}>
-                                {status}
-                              </span>
-                            </td>
-                            <td className="px-3 sm:px-4 md:px-6 py-2 sm:py-3 md:py-4 whitespace-nowrap">
-                              <div className="flex items-center">
-                                <input
-                                  type="number"
-                                  min="0"
-                                  max={maxPoints}
-                                  value={student.grade || ''}
-                                  onChange={(e) => handleGradeChange(student.user_ID, e.target.value)}
-                                  className="w-12 sm:w-14 px-1.5 sm:px-2 py-0.5 sm:py-1 border border-gray-300 rounded text-xs focus:border-blue-500 focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                                  onClick={(e) => e.stopPropagation()}
-                                  step="1"
-                                  placeholder="0"
-                                />
-                                {maxPoints && (
-                                  <span className="text-xs text-gray-500 ml-1">/ {maxPoints}</span>
-                                )}
-                              </div>
-                            </td>
-                            <td className="px-3 sm:px-4 md:px-6 py-2 sm:py-3 md:py-4 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
-                              <div className="flex items-center gap-1 sm:gap-2">
-                                {/* Folder Icon with Tooltip */}
-                                <div className="relative group">
-                                  <button
-                                    onClick={() => hasPhoto ? 
-                                      handleViewPhoto(student.user_ID, student.user_Name) : 
-                                      handleFileUpload(student.user_ID, student.user_Name)
-                                    }
-                                    className="p-0.5 sm:p-1 text-gray-400 hover:text-gray-600 cursor-pointer"
-                                  >
-                                    <img 
-                                      src={hasPhoto ? FolderGreen : FileIcon} 
-                                      alt={hasPhoto ? "View Photo" : "Upload Photo"} 
-                                      className="w-4 h-4 sm:w-5 sm:h-5" 
-                                    />
-                                  </button>
-                                  {/* Tooltip */}
-                                  <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-1 px-2 py-1 text-xs text-white bg-gray-800 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-10">
-                                    {hasPhoto ? "View Photo" : "Add Photo"}
-                                  </div>
-                                </div>
-
-                                {/* Email Icon with Tooltip */}
-                                <div className="relative group">
-                                  <button
-                                    onClick={() => handleEmailStudent(student.user_Email, student.user_Name)}
-                                    className="p-0.5 sm:p-1 text-gray-400 hover:text-gray-600 cursor-pointer"
-                                  >
-                                    <img src={EmailIcon} alt="Email" className="w-4 h-4 sm:w-5 sm:h-5" />
-                                  </button>
-                                  {/* Tooltip */}
-                                  <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-1 px-2 py-1 text-xs text-white bg-gray-800 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-10">
-                                    Email Student
-                                  </div>
-                                </div>
-
-                                {/* Details Icon with Tooltip */}
-                                <div className="relative group">
-                                  <button
-                                    onClick={() => setDetailsModalOpen(true)}
-                                    className="p-0.5 sm:p-1 text-gray-400 hover:text-gray-600 cursor-pointer"
-                                  >
-                                    <img src={DetailsIcon} alt="Details" className="w-4 h-4 sm:w-5 sm:h-5" />
-                                  </button>
-                                  {/* Tooltip */}
-                                  <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-1 px-2 py-1 text-xs text-white bg-gray-800 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-10">
-                                    View Details
-                                  </div>
-                                </div>
-                              </div>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
                 </div>
 
-                {filteredStudents.length === 0 && (
-                  <div className="text-center py-6 text-xs sm:text-sm text-gray-500">
-                    No students found for the selected filter.
+                {/* Status Rectangles */}
+                <div className="p-3 sm:p-4 md:p-6 border-b border-gray-200 flex-shrink-0">
+                  <div className="flex gap-2 sm:gap-3 md:gap-4">
+                    <button
+                      onClick={() => handleStatusClick("Assigned")}
+                      className={`flex-1 border rounded-lg p-2 sm:p-3 md:p-4 text-center transition-all duration-200 cursor-pointer ${
+                        filter === "Assigned" 
+                          ? "bg-yellow-100 border-yellow-300 shadow-md" 
+                          : "bg-yellow-50 border-yellow-200 hover:bg-yellow-100"
+                      }`}
+                    >
+                      <div className="text-lg sm:text-xl md:text-2xl font-bold text-yellow-800">{statusCounts.assigned}</div>
+                      <div className="text-xs sm:text-sm text-yellow-700">Assigned</div>
+                    </button>
+                    <button
+                      onClick={() => handleStatusClick("Submitted")}
+                      className={`flex-1 border rounded-lg p-2 sm:p-3 md:p-4 text-center transition-all duration-200 cursor-pointer ${
+                        filter === "Submitted" 
+                          ? "bg-green-100 border-green-300 shadow-md" 
+                          : "bg-green-50 border-green-200 hover:bg-green-100"
+                      }`}
+                    >
+                      <div className="text-lg sm:text-xl md:text-2xl font-bold text-green-800">{statusCounts.submitted}</div>
+                      <div className="text-xs sm:text-sm text-green-700">Submitted</div>
+                    </button>
+                    <button
+                      onClick={() => handleStatusClick("Missed")}
+                      className={`flex-1 border rounded-lg p-2 sm:p-3 md:p-4 text-center transition-all duration-200 cursor-pointer ${
+                        filter === "Missed" 
+                          ? "bg-red-100 border-red-300 shadow-md" 
+                          : "bg-red-50 border-red-200 hover:bg-red-100"
+                      }`}
+                    >
+                      <div className="text-lg sm:text-xl md:text-2xl font-bold text-red-800">{statusCounts.missed}</div>
+                      <div className="text-xs sm:text-sm text-red-700">Missed</div>
+                    </button>
                   </div>
-                )}
-              </div>
-            </div>
+                </div>
 
-            {/* Right Panel - Enhanced Analytics - FIXED: Made scrollable */}
-            <div className={`${isMobile ? 'w-full border-t border-gray-200' : 'w-1/2'} ${isMobile ? 'max-h-96' : ''} flex flex-col overflow-hidden`}>
-              <div className="p-3 sm:p-4 md:p-6 flex-1 overflow-y-auto">
-                {selectedStudent ? (
-                  <div className="h-full flex flex-col">
-                    <h3 className="text-sm sm:text-base md:text-lg font-semibold text-gray-900 mb-3 sm:mb-4">
-                      Performance Analytics - {selectedStudent.name}
-                    </h3>
-                    
-                    {/* Enhanced Pie Chart with Performance Feedback */}
-                    <div className="flex flex-col items-center justify-center mb-4 sm:mb-6">
-                      {studentAnalytics ? (
-                        <>
-                          {renderPieChart(studentAnalytics)}
-                          
-                          {/* Performance Feedback */}
-                          <div className="mt-4 sm:mt-6 text-center">
-                            <div className={`inline-block px-3 py-2 rounded-lg ${
-                              studentAnalytics.percentage >= 85 ? 'bg-green-50 border border-green-200' :
-                              studentAnalytics.percentage >= 70 ? 'bg-yellow-50 border border-yellow-200' :
-                              studentAnalytics.percentage >= 50 ? 'bg-orange-50 border border-orange-200' :
-                              'bg-red-50 border border-red-200'
-                            }`}>
-                              <p className="text-sm font-semibold text-gray-900">
-                                {studentAnalytics.performanceLevel}
-                              </p>
-                              <p className="text-xs text-gray-600 max-w-xs">
-                                {studentAnalytics.feedback}
-                              </p>
-                            </div>
-                          </div>
+                {/* Filter Section */}
+                <div className="p-2 sm:p-3 md:p-4 border-b border-gray-200 flex-shrink-0">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                    <div className="relative">
+                      <label className="text-xs sm:text-sm font-medium text-gray-700 mr-2">Filter:</label>
+                      <button
+                        onClick={() => setFilterDropdownOpen(!filterDropdownOpen)}
+                        className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1.5 sm:py-2 border border-gray-300 rounded-md bg-white text-xs sm:text-sm font-medium text-gray-700 hover:bg-gray-50 cursor-pointer"
+                      >
+                        {filter}
+                        <img
+                          src={ArrowDown}
+                          alt=""
+                          className={`w-3 h-3 sm:w-4 sm:h-4 transition-transform ${filterDropdownOpen ? 'rotate-180' : ''}`}
+                        />
+                      </button>
 
-                          {/* Enhanced Score Breakdown */}
-                          <div className="mt-4 sm:mt-6 w-full max-w-xs">
-                            <div className="grid grid-cols-2 gap-3 text-center">
-                              <div className="bg-blue-50 rounded-lg p-3">
-                                <p className="text-xs text-blue-600 font-medium">Current Score</p>
-                                <p className="text-lg font-bold text-blue-800">
-                                  {studentAnalytics.data[0].value}/{studentAnalytics.totalPoints}
-                                </p>
-                              </div>
-                              <div className="bg-gray-50 rounded-lg p-3">
-                                <p className="text-xs text-gray-600 font-medium">Points Available</p>
-                                <p className="text-lg font-bold text-gray-800">
-                                  {studentAnalytics.data[1].value}
-                                </p>
-                              </div>
-                            </div>
-                          </div>
-
-                          {/* Progress Legend */}
-                          <div className="mt-4 flex justify-center gap-3">
-                            {studentAnalytics.data.map((item, index) => (
-                              <div key={index} className="flex items-center gap-1">
-                                <div 
-                                  className="w-3 h-3 rounded-full" 
-                                  style={{ backgroundColor: item.color }}
-                                ></div>
-                                <span className="text-xs text-gray-600">
-                                  {item.label}: {item.value}
-                                </span>
-                              </div>
-                            ))}
-                          </div>
-                        </>
-                      ) : (
-                        <div className="text-center text-xs sm:text-sm text-gray-500">
-                          No grade data available for this student.
+                      {filterDropdownOpen && (
+                        <div className="absolute top-full left-0 mt-1 w-32 sm:w-40 bg-white rounded-md shadow-lg border border-gray-200 z-10">
+                          {filterOptions.map(option => (
+                            <button
+                              key={option}
+                              onClick={() => {
+                                setFilter(option);
+                                setFilterDropdownOpen(false);
+                              }}
+                              className={`block w-full text-left px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm hover:bg-gray-100 cursor-pointer ${
+                                filter === option ? 'bg-gray-50 font-medium' : ''
+                              }`}
+                            >
+                              {option}
+                            </button>
+                          ))}
                         </div>
                       )}
                     </div>
 
-                    {/* Student Details */}
-                    <div className="mt-3 sm:mt-4 md:mt-6 p-2 sm:p-3 md:p-4 bg-gray-50 rounded-lg">
-                      <h4 className="font-medium text-gray-900 mb-1 sm:mb-2 text-xs sm:text-sm md:text-base">Student Details</h4>
-                      <div className="space-y-1 text-xs sm:text-sm text-gray-600">
-                        <p className="break-words">Email: {localStudents.find(s => s.user_ID === selectedStudent.id)?.user_Email || 'N/A'}</p>
-                        <p>Status: {calculateStudentStatus(
-                          localStudents.find(s => s.user_ID === selectedStudent.id), 
-                          activity
-                        )}</p>
-                        <p>Current Grade: {localStudents.find(s => s.user_ID === selectedStudent.id)?.grade || 'Not graded'}</p>
-                      </div>
+                    <div className="text-xs sm:text-sm text-gray-600">
+                      Showing {filteredStudents.length} of {localStudents.length} students
                     </div>
+                  </div>
+                </div>
 
-                    {isMobile && (
-                      <div className="mt-4 p-3 bg-blue-50 rounded-lg">
-                        <p className="text-xs text-blue-700 text-center">
-                          Scroll to see more analytics information
-                        </p>
+                {/* Students List */}
+                <div className="flex-1 overflow-y-auto">
+                  <div className="w-full">
+                    <table className="w-full">
+                      <thead className="bg-gray-50 sticky top-0">
+                        <tr>
+                          <th className="px-3 sm:px-4 md:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-[45%] sm:w-[40%]">
+                            Student
+                          </th>
+                          <th className="px-3 sm:px-4 md:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-[20%]">
+                            Status
+                          </th>
+                          <th className="px-3 sm:px-4 md:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-[15%]">
+                            Grade
+                          </th>
+                          <th className="px-3 sm:px-4 md:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-[20%]">
+                            Actions
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        {filteredStudents.map((student) => {
+                          const hasProfessorPhoto = !!uploadedFiles[student.user_ID];
+                          const hasStudentPhoto = !!studentUploadedFiles[student.user_ID];
+                          const isSelected = selectedStudent?.id === student.user_ID;
+                          const status = calculateStudentStatus(student, activity);
+                          const maxPoints = activity.points || 100;
+                          const hasGrade = student.grade && student.grade !== '' && student.grade !== '0';
+                          const gradeInputBorderClass = hasGrade 
+                            ? 'border-green-500 focus:border-green-600' 
+                            : 'border-red-400 focus:border-red-500';
+
+                          return (
+                            <tr 
+                              key={student.user_ID} 
+                              className={`hover:bg-gray-50 cursor-pointer ${isSelected ? 'bg-blue-50' : ''}`}
+                              onClick={() => setSelectedStudent({ id: student.user_ID, name: student.user_Name })}
+                            >
+                              <td className="px-3 sm:px-4 md:px-6 py-2 sm:py-3 md:py-4 w-[45%] sm:w-[40%]">
+                                <div className="text-xs sm:text-sm font-medium text-gray-900 break-words">
+                                  {student.user_Name}
+                                </div>
+                                <div className="text-xs text-gray-500 break-words">
+                                  {student.user_Email || 'No email'}
+                                </div>
+                              </td>
+                              <td className="px-3 sm:px-4 md:px-6 py-2 sm:py-3 md:py-4 w-[20%] whitespace-nowrap">
+                                <span className={`inline-flex px-1.5 sm:px-2 py-0.5 sm:py-1 text-xs font-semibold rounded-full ${
+                                  (() => {
+                                    switch (status) {
+                                      case 'Submitted': return 'bg-green-100 text-green-800';
+                                      case 'Missed': return 'bg-red-100 text-red-800';
+                                      default: return 'bg-gray-100 text-gray-800';
+                                    }
+                                  })()
+                                }`}>
+                                  {status}
+                                </span>
+                              </td>
+                              <td className="px-3 sm:px-4 md:px-6 py-2 sm:py-3 md:py-4 w-[15%] whitespace-nowrap">
+                                <div className="flex items-center">
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    max={maxPoints}
+                                    value={student.grade || ''}
+                                    onChange={(e) => handleGradeChange(student.user_ID, e.target.value)}
+                                    onBlur={(e) => handleGradeBlur(student.user_ID, e.target.value)}
+                                    className={`w-12 sm:w-14 px-1.5 sm:px-2 py-0.5 sm:py-1 border rounded text-xs focus:outline-none transition-colors duration-200 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${gradeInputBorderClass}`}
+                                    onClick={(e) => e.stopPropagation()}
+                                    step="1"
+                                    placeholder="0"
+                                  />
+                                  {maxPoints && (
+                                    <span className="text-xs text-gray-500 ml-1">/ {maxPoints}</span>
+                                  )}
+                                </div>
+                              </td>
+                              <td className="px-3 sm:px-4 md:px-6 py-2 sm:py-3 md:py-4 w-[20%]" onClick={(e) => e.stopPropagation()}>
+                                <div className="flex items-center justify-start gap-1 sm:gap-1.5 flex-wrap">
+                                  {/* Folder Icon - Now opens the photo modal */}
+                                  <button
+                                    onClick={() => handleOpenPhotoModal(student.user_ID, student.user_Name)}
+                                    className="text-gray-400 hover:text-gray-600 cursor-pointer p-0.5"
+                                    title={hasProfessorPhoto ? "View/Upload Photos" : "Add/View Photos"}
+                                  >
+                                    <img 
+                                      src={hasProfessorPhoto ? FolderGreen : Photo} 
+                                      alt="Photos" 
+                                      className="w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-4.5 md:h-4.5" 
+                                    />
+                                  </button>
+
+                                  {/* Email Icon */}
+                                  <button
+                                    onClick={() => handleEmailStudent(student.user_Email, student.user_Name)}
+                                    className="text-gray-400 hover:text-gray-600 cursor-pointer p-0.5"
+                                    title="Email Student"
+                                  >
+                                    <img src={EmailIcon} alt="Email" className="w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-4.5 md:h-4.5" />
+                                  </button>
+
+                                  {/* Details Icon */}
+                                  <button
+                                    onClick={() => setDetailsModalOpen(true)}
+                                    className="text-gray-400 hover:text-gray-600 cursor-pointer p-0.5"
+                                    title="View Details"
+                                  >
+                                    <img src={DetailsIcon} alt="Details" className="w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-4.5 md:h-4.5" />
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+
+                    {filteredStudents.length === 0 && (
+                      <div className="text-center py-6 text-xs sm:text-sm text-gray-500">
+                        No students found for the selected filter.
                       </div>
                     )}
                   </div>
-                ) : (
-                  <div className="h-full flex items-center justify-center text-xs sm:text-sm text-gray-500">
-                    {isMobile && localStudents.length > 0 ? "Tap a student to view analytics" : "Select a student to view analytics"}
-                  </div>
-                )}
+                </div>
+              </div>
+
+              {/* Right Panel - Analytics */}
+              <div className={`${isMobile ? 'w-1/2 flex-shrink-0 snap-start' : 'w-1/2'} h-full flex flex-col overflow-hidden`}>
+                <div className="p-3 sm:p-4 md:p-6 flex-1 overflow-y-auto">
+                  {selectedStudent ? (
+                    <div className="h-full flex flex-col">
+                      <div className="flex items-center justify-between mb-3 sm:mb-4">
+                        <h3 className="text-sm sm:text-base md:text-lg font-semibold text-gray-900">
+                          Analytics - {selectedStudent.name}
+                        </h3>
+                        {isMobile && (
+                          <button
+                            onClick={scrollToStudents}
+                            className="text-xs text-blue-600 hover:text-blue-800 font-medium cursor-pointer"
+                          >
+                            ← Back to List
+                          </button>
+                        )}
+                      </div>
+                      
+                      {/* Analytics Content */}
+                      <div className="flex flex-col items-center justify-center mb-4 sm:mb-6">
+                        {studentAnalytics ? (
+                          <>
+                            {renderPieChart(studentAnalytics)}
+                            
+                            <div className="mt-4 sm:mt-6 text-center">
+                              <div className={`inline-block px-3 py-2 rounded-lg ${
+                                studentAnalytics.percentage >= 85 ? 'bg-green-50 border border-green-200' :
+                                studentAnalytics.percentage >= 70 ? 'bg-yellow-50 border border-yellow-200' :
+                                studentAnalytics.percentage >= 50 ? 'bg-orange-50 border border-orange-200' :
+                                'bg-red-50 border border-red-200'
+                              }`}>
+                                <p className="text-sm font-semibold text-gray-900">
+                                  {studentAnalytics.performanceLevel}
+                                </p>
+                                <p className="text-xs text-gray-600 max-w-xs">
+                                  {studentAnalytics.feedback}
+                                </p>
+                              </div>
+                            </div>
+
+                            <div className="mt-4 sm:mt-6 w-full max-w-xs">
+                              <div className="grid grid-cols-2 gap-3 text-center">
+                                <div className="bg-blue-50 rounded-lg p-3">
+                                  <p className="text-xs text-blue-600 font-medium">Current Score</p>
+                                  <p className="text-lg font-bold text-blue-800">
+                                    {studentAnalytics.data[0].value}/{studentAnalytics.totalPoints}
+                                  </p>
+                                </div>
+                                <div className="bg-gray-50 rounded-lg p-3">
+                                  <p className="text-xs text-gray-600 font-medium">Points Available</p>
+                                  <p className="text-lg font-bold text-gray-800">
+                                    {studentAnalytics.data[1].value}
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="mt-4 flex justify-center gap-3">
+                              {studentAnalytics.data.map((item, index) => (
+                                <div key={index} className="flex items-center gap-1">
+                                  <div 
+                                    className="w-3 h-3 rounded-full" 
+                                    style={{ backgroundColor: item.color }}
+                                  ></div>
+                                  <span className="text-xs text-gray-600">
+                                    {item.label}: {item.value}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          </>
+                        ) : (
+                          <div className="text-center text-xs sm:text-sm text-gray-500">
+                            No grade data available for this student.
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Student Details */}
+                      <div className="mt-3 sm:mt-4 md:mt-6 p-2 sm:p-3 md:p-4 bg-gray-50 rounded-lg">
+                        <h4 className="font-medium text-gray-900 mb-1 sm:mb-2 text-xs sm:text-sm md:text-base">Student Details</h4>
+                        <div className="space-y-1 text-xs sm:text-sm text-gray-600">
+                          <p className="break-words">Email: {localStudents.find(s => s.user_ID === selectedStudent.id)?.user_Email || 'N/A'}</p>
+                          <p>Status: {calculateStudentStatus(
+                            localStudents.find(s => s.user_ID === selectedStudent.id), 
+                            activity
+                          )}</p>
+                          <p>Current Grade: {localStudents.find(s => s.user_ID === selectedStudent.id)?.grade || 'Not graded'}</p>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="h-full flex flex-col items-center justify-center text-xs sm:text-sm text-gray-500">
+                      <p className="text-center mb-4">
+                        {isMobile ? "Select a student from the list to view their analytics" : "Select a student to view analytics"}
+                      </p>
+                      {isMobile && (
+                        <button
+                          onClick={scrollToStudents}
+                          className="mt-2 px-4 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 cursor-pointer"
+                        >
+                          Go to Students List
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>
@@ -785,41 +937,51 @@ const ClassWorkSubmission = ({
         </div>
       </div>
 
+      {/* Photo Management Modal */}
+      <PhotoManagement
+        isOpen={photoModalOpen}
+        onClose={() => setPhotoModalOpen(false)}
+        selectedStudent={selectedStudentForPhoto}
+        professorPhoto={professorPhoto}
+        studentPhoto={studentPhoto}
+        onProfessorPhotoUpload={handleProfessorPhotoUpload}
+        onViewProfessorPhoto={handleViewProfessorPhoto}
+        onViewStudentPhoto={handleViewStudentPhoto}
+        activity={activity}
+      />
+
       {/* Photo Viewer Modal */}
-      {imageViewerOpen && selectedStudent && currentStudentPhoto && (
-        <div className="fixed inset-0 bg-black/90 flex justify-center items-center z-[60] p-2 sm:p-3 md:p-4">
+      {photoViewerOpen && viewingPhoto && (
+        <div className="fixed inset-0 bg-black/90 flex justify-center items-center z-[70] p-4">
           <div className="relative w-full h-full flex items-center justify-center">
             <button
-              onClick={handleCloseImageViewer}
-              className="absolute top-2 right-2 sm:top-3 sm:right-3 md:top-4 md:right-4 p-2 sm:p-3 bg-black/50 hover:bg-black/70 rounded-full transition-colors z-10 cursor-pointer"
+              onClick={() => setPhotoViewerOpen(false)}
+              className="absolute top-4 right-4 p-2 sm:p-3 bg-black/50 hover:bg-black/70 rounded-full transition-colors z-10 cursor-pointer"
             >
-              <img src={Close} alt="Close" className="w-4 h-4 sm:w-6 sm:h-6 md:w-8 md:h-8" />
+              <img src={Close} alt="Close" className="w-5 h-5 sm:w-6 sm:h-6" />
             </button>
 
-            <button
-              onClick={() => handleDeletePhoto(selectedStudent.id)}
-              className="absolute top-2 left-2 sm:top-3 sm:left-3 md:top-4 md:left-4 p-2 sm:p-3 transition-colors z-10 cursor-pointer"
-              title="Delete Photo"
-            >
-              <img src={Delete} alt="Delete" className="w-4 h-4 sm:w-6 sm:h-6 md:w-8 md:h-8" />
-            </button>
+            {viewingPhoto.uploadedBy === 'Professor' && (
+              <button
+                onClick={handleDeleteProfessorPhoto}
+                className="absolute top-4 left-4 p-2 sm:p-3 transition-colors z-10 cursor-pointer"
+                title="Delete Photo"
+              >
+                <img src={Delete} alt="Delete" className="w-5 h-5 sm:w-6 sm:h-6" />
+              </button>
+            )}
 
-            <div className="relative max-w-[95vw] max-h-[85vh] w-auto h-auto">
+            <div className="relative max-w-[95vw] max-h-[85vh] w-auto h-auto mx-4">
               <img
-                src={currentStudentPhoto.url}
-                alt={currentStudentPhoto.name}
+                src={viewingPhoto.url}
+                alt={viewingPhoto.name}
                 className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
-                style={{
-                  maxWidth: 'min(95vw, 1200px)',
-                  maxHeight: 'min(85vh, 800px)',
-                  width: 'auto',
-                  height: 'auto'
-                }}
               />
             </div>
 
-            <div className="absolute bottom-2 sm:bottom-3 md:bottom-4 left-1/2 transform -translate-x-1/2 bg-black/70 text-white px-2 sm:px-3 md:px-4 py-1 sm:py-1.5 md:py-2 rounded-md text-xs sm:text-sm backdrop-blur-sm">
-              {currentStudentPhoto.name} • {formatFileSize(currentStudentPhoto.size)} • {selectedStudent.name}
+            <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-black/70 text-white px-3 sm:px-4 py-1 sm:py-2 rounded-md text-xs sm:text-sm backdrop-blur-sm max-w-[90vw] text-center">
+              {viewingPhoto.name} • {formatFileSize(viewingPhoto.size)} • 
+              {viewingPhoto.uploadedBy === 'Professor' ? 'Professor\'s Upload' : 'Student\'s Submission'}
             </div>
           </div>
         </div>

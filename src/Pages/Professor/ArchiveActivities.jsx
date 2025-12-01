@@ -8,7 +8,230 @@ import ArchiveIcon from "../../assets/Archive(Light).svg";
 import BackButton from "../../assets/BackButton(Light).svg";
 import DeleteIcon from "../../assets/Delete.svg";
 import UnarchiveIcon from "../../assets/Unarchive.svg";
-import ActivityIcon from '../../assets/SubjectDetails.svg';
+
+// Archived Activity Card Component - Similar to ClassworkTab's SmallActivityCard
+const ArchivedActivityCard = ({ activity, onDelete, onUnarchive }) => {
+  const formatDate = (dateString) => {
+    if (!dateString || dateString === "No deadline") return "No deadline";
+    
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    } catch {
+      return dateString;
+    }
+  };
+
+  const getPostedTime = (createdAt) => {
+    if (!createdAt) return "Recently";
+    
+    try {
+      const created = new Date(createdAt + 'Z');
+      const now = new Date();
+      
+      if (isNaN(created.getTime())) {
+        return "Recently";
+      }
+      
+      const diffMs = now - created;
+      const diffSecs = Math.floor(diffMs / 1000);
+      
+      if (diffSecs < 60) {
+        return diffSecs <= 1 ? "Just now" : `${diffSecs}s ago`;
+      }
+      
+      const diffMins = Math.floor(diffSecs / 60);
+      if (diffMins < 60) {
+        return diffMins === 1 ? "1m ago" : `${diffMins}m ago`;
+      }
+      
+      const diffHours = Math.floor(diffMins / 60);
+      if (diffHours < 24) {
+        return diffHours === 1 ? "1h ago" : `${diffHours}h ago`;
+      }
+      
+      const diffDays = Math.floor(diffHours / 24);
+      if (diffDays < 7) {
+        return diffDays === 1 ? "1d ago" : `${diffDays}d ago`;
+      }
+      
+      const diffWeeks = Math.floor(diffDays / 7);
+      if (diffWeeks < 4) {
+        return diffWeeks === 1 ? "1w ago" : `${diffWeeks}w ago`;
+      }
+      
+      return created.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric'
+      });
+      
+    } catch (error) {
+      console.error('Error parsing date:', error, 'Input:', createdAt);
+      return "Recently";
+    }
+  };
+
+  // Check if deadline is past deadline
+  const isDeadlinePassed = (deadline) => {
+    if (!deadline || deadline === "No deadline") return false;
+    
+    try {
+      const deadlineDate = new Date(deadline);
+      const now = new Date();
+      return deadlineDate < now;
+    } catch {
+      return false;
+    }
+  };
+
+  // Get activity type color
+  const getActivityTypeColor = (type) => {
+    const colors = {
+      'Assignment': 'bg-blue-100 text-blue-800',
+      'Quiz': 'bg-purple-100 text-purple-800',
+      'Activity': 'bg-green-100 text-green-800',
+      'Project': 'bg-orange-100 text-orange-800',
+      'Laboratory': 'bg-red-100 text-red-800',
+      'Announcement': 'bg-gray-100 text-gray-800'
+    };
+    return colors[type] || 'bg-gray-100 text-gray-800';
+  };
+
+  // Handle card click (can be used for viewing details if needed)
+  const handleCardClick = (e) => {
+    if (e.target.closest('button')) {
+      return;
+    }
+    // You can add functionality to view activity details if needed
+  };
+
+  return (
+    <div 
+      className={`rounded-lg shadow-md border p-4 hover:shadow-lg transition-shadow cursor-pointer bg-gray-50 border-gray-300`}
+      onClick={handleCardClick}
+    >
+      <div className="flex items-start justify-between">
+        {/* Left Section - Activity Info */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-2 flex-wrap">
+            <span className={`px-2 py-1 ${getActivityTypeColor(activity.activity_type)} text-xs font-medium rounded`}>
+              {activity.activity_type}
+            </span>
+            <span className="text-sm text-gray-500">#{activity.task_number}</span>
+            
+            {/* Archived status badge */}
+            <div className="flex items-center gap-1">
+              <span className="px-2 py-1 bg-gray-200 text-gray-800 text-xs font-medium rounded flex items-center gap-1">
+                <img src={ArchiveIcon} alt="Archive" className="w-3 h-3" />
+                Archived
+              </span>
+            </div>
+          </div>
+          
+          <h3 className="font-semibold text-gray-900 text-lg mb-3 truncate">
+            {activity.title}
+          </h3>
+          
+          <div className="space-y-2 text-sm text-gray-600">
+            {/* Deadline with icon */}
+            <div className="flex items-center gap-2">
+              <svg className={`w-4 h-4 ${
+                isDeadlinePassed(activity.deadline) ? 'text-red-600' : 'text-gray-600'
+              }`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span className={`font-medium ${
+                isDeadlinePassed(activity.deadline) ? 'text-red-600 font-bold' : 'text-gray-600'
+              }`}>
+                {formatDate(activity.deadline)}
+              </span>
+            </div>
+
+            {/* Archived time */}
+            <div className="flex items-center gap-2">
+              <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              <span>Archived {getPostedTime(activity.archived_at || activity.created_at)}</span>
+            </div>
+
+            {/* Points */}
+            {activity.points > 0 && (
+              <div className="flex items-center gap-2">
+                <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span className="text-green-600 font-bold">{activity.points} pts</span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Right Section - Stats and Actions */}
+        <div className="flex flex-col items-end gap-3 ml-4" onClick={(e) => e.stopPropagation()}>
+          {/* Action Buttons */}
+          <div className="flex items-center gap-2">
+            {/* Delete Button */}
+            <div className="relative group">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDelete(activity);
+                }}
+                className="p-2 bg-gray-100 hover:bg-red-50 hover:text-red-600 rounded-md transition-colors cursor-pointer"
+              >
+                <img 
+                  src={DeleteIcon} 
+                  alt="Delete" 
+                  className="w-5 h-5"
+                />
+              </button>
+              <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs text-white bg-gray-800 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-10">
+                Delete Permanently
+              </div>
+            </div>
+
+            {/* Restore Button */}
+            <div className="relative group">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onUnarchive(activity);
+                }}
+                className="p-2 bg-gray-100 hover:bg-green-50 hover:text-green-600 rounded-md transition-colors cursor-pointer"
+              >
+                <img 
+                  src={UnarchiveIcon} 
+                  alt="Restore" 
+                  className="w-5 h-5"
+                />
+              </button>
+              <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs text-white bg-gray-800 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-10">
+                Restore Activity
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      {/* Instruction preview (collapsed by default) */}
+      {activity.instruction && (
+        <div className="mt-3 pt-3 border-t border-gray-200">
+          <p className="text-xs text-gray-500 font-medium mb-1">Instruction:</p>
+          <p className="text-sm text-gray-600 line-clamp-2">
+            {activity.instruction}
+          </p>
+        </div>
+      )}
+    </div>
+  );
+};
 
 export default function ArchiveActivities() {
   const [isOpen, setIsOpen] = useState(true);
@@ -94,8 +317,10 @@ export default function ArchiveActivities() {
 
   // Handle unarchive
   const handleUnarchive = async (activity, e) => {
-    e.preventDefault();
-    e.stopPropagation();
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
     
     setActivityToUnarchive(activity);
     setShowUnarchiveModal(true);
@@ -139,8 +364,10 @@ export default function ArchiveActivities() {
 
   // Handle delete
   const handleDelete = async (activity, e) => {
-    e.preventDefault();
-    e.stopPropagation();
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
     
     setActivityToDelete(activity);
     setShowDeleteModal(true);
@@ -182,22 +409,7 @@ export default function ArchiveActivities() {
     }
   };
 
-  // Format date for display
-  const formatDate = (dateString) => {
-    if (!dateString) return 'No deadline';
-    try {
-      const date = new Date(dateString);
-      return date.toLocaleDateString('en-US', { 
-        year: 'numeric', 
-        month: 'long', 
-        day: 'numeric' 
-      });
-    } catch {
-      return dateString;
-    }
-  };
-
-  // Function to render archived activity cards
+  // Render archived activity cards in grid
   const renderArchivedActivityCards = () => {
     if (loading) {
       return (
@@ -228,100 +440,18 @@ export default function ArchiveActivities() {
       );
     }
 
-    return archivedActivities.map((activity) => (
-      <div
-        key={activity.id}
-        className="bg-white rounded-lg shadow-md p-4 sm:p-5 lg:p-6 space-y-3 border-2 border-transparent hover:border-[#00874E] hover:shadow-lg transition-all duration-200"
-      >
-        {/* Header with Title and Buttons */}
-        <div className="flex items-start justify-between gap-2">
-          <div className="flex items-center min-w-0 flex-1">
-            <img
-              src={ActivityIcon}
-              alt="Activity"
-              className="h-6 w-6 sm:h-8 sm:w-8 flex-shrink-0 mr-2"
-            />
-            <div className="min-w-0">
-              <p className="text-xs sm:text-sm text-gray-600">Title:</p>
-              <p className="text-sm sm:text-base lg:text-lg font-bold truncate text-[#465746]">
-                {activity.title || activity.task_number}
-              </p>
-            </div>
-          </div>
-
-          {/* Action Buttons */}
-          <div className="flex gap-2 flex-shrink-0">
-            <button
-              onClick={(e) => handleDelete(activity, e)}
-              className="bg-white rounded-md w-9 h-9 sm:w-10 sm:h-10 lg:w-11 lg:h-11 shadow-md flex items-center justify-center border-2 border-transparent hover:border-red-500 hover:scale-105 transition-all duration-200 cursor-pointer"
-            >
-              <img 
-                src={DeleteIcon} 
-                alt="Delete activity" 
-                className="h-5 w-5 sm:h-5 sm:w-5 lg:h-6 lg:w-6" 
-              />
-            </button>
-
-            <button
-              onClick={(e) => handleUnarchive(activity, e)}
-              className="bg-white rounded-md w-9 h-9 sm:w-10 sm:h-10 lg:w-11 lg:h-11 shadow-md flex items-center justify-center border-2 border-transparent hover:border-[#00874E] hover:scale-105 transition-all duration-200 cursor-pointer"
-            >
-              <img 
-                src={UnarchiveIcon} 
-                alt="Unarchive activity" 
-                className="h-5 w-5 sm:h-5 sm:w-5 lg:h-6 lg:w-6" 
-              />
-            </button>
-          </div>
-        </div>
-
-        {/* Activity Details */}
-        <div className="space-y-2 pt-2 border-t border-gray-200">
-          <div>
-            <p className="text-xs sm:text-sm text-gray-600 mb-0.5">Instruction:</p>
-            <p className="text-sm text-gray-700 break-words line-clamp-2">
-              {activity.instruction || activity.description || 'No instruction provided'}
-            </p>
-          </div>
-          
-          <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs sm:text-sm">
-            <div>
-              <span className="text-gray-600">Type: </span>
-              <span className="font-semibold text-[#465746] capitalize">{activity.activity_type?.toLowerCase()}</span>
-            </div>
-            <div>
-              <span className="text-gray-600">Task: </span>
-              <span className="font-semibold text-[#465746] uppercase">{activity.task_number}</span>
-            </div>
-            {activity.points && (
-              <div>
-                <span className="text-gray-600">Points: </span>
-                <span className="font-semibold text-[#465746]">{activity.points}</span>
-              </div>
-            )}
-          </div>
-
-          <div className="flex items-center gap-2 text-xs sm:text-sm">
-            <span className="font-bold text-[#EF4444]">Deadline:</span>
-            <span className="text-gray-700">{formatDate(activity.deadline)}</span>
-          </div>
-
-          {activity.link && (
-            <div className="flex items-start gap-2 text-xs sm:text-sm">
-              <span className="font-semibold text-gray-600 whitespace-nowrap">Link:</span>
-              <a 
-                href={activity.link} 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="text-blue-600 hover:text-blue-800 underline break-words flex-1"
-              >
-                {activity.link}
-              </a>
-            </div>
-          )}
-        </div>
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {archivedActivities.map((activity) => (
+          <ArchivedActivityCard
+            key={activity.id}
+            activity={activity}
+            onDelete={handleDelete}
+            onUnarchive={handleUnarchive}
+          />
+        ))}
       </div>
-    ));
+    );
   };
 
   return (
@@ -351,7 +481,7 @@ export default function ArchiveActivities() {
               </div>
               
               {/* Mobile Back Button */}
-              <Link to={`/SubjectDetails?code=${subjectCode}`}>
+              <Link to={`/ClassworkTab?code=${subjectCode}`}>
                 <button 
                   className="flex items-center justify-center w-9 h-9 cursor-pointer transition-all duration-200 hover:scale-110"
                   aria-label="Back to Activities"
@@ -372,7 +502,7 @@ export default function ArchiveActivities() {
           <hr className="border-[#465746]/30 mb-5 sm:mb-6" />
 
           {/* Archived Activities Grid */}
-          <div className="grid grid-cols-1 gap-4 sm:gap-5">
+          <div className="mt-4 sm:mt-5">
             {renderArchivedActivityCards()}
           </div>
         </div>
@@ -397,7 +527,7 @@ export default function ArchiveActivities() {
               <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-green-100 mb-4">
                 <img 
                   src={UnarchiveIcon} 
-                  alt="Restore" 
+                  alt="Unarchive" 
                   className="h-8 w-8"
                 />
               </div>

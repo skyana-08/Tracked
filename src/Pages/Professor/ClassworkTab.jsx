@@ -21,9 +21,9 @@ import ArrowDown from "../../assets/ArrowDown(Light).svg";
 import Search from "../../assets/Search.svg";
 import StudentsIcon from "../../assets/Person.svg";
 import ClassManagementIcon from "../../assets/ClassManagement(Light).svg";
-// Import the new icons for Grade and Analytics
 import GradeIcon from "../../assets/Grade(Light).svg";
 import AnalyticsIcon from "../../assets/Analytics(Light).svg";
+import Copy from "../../assets/Copy(Light).svg";
 
 // New Small Activity Card Component
 const SmallActivityCard = ({ activity, onEdit, onArchive, onOpenSubmissions }) => {
@@ -35,7 +35,6 @@ const SmallActivityCard = ({ activity, onEdit, onArchive, onOpenSubmissions }) =
       return date.toLocaleDateString('en-US', {
         month: 'short',
         day: 'numeric',
-        year: 'numeric',
         hour: '2-digit',
         minute: '2-digit'
       });
@@ -48,49 +47,40 @@ const SmallActivityCard = ({ activity, onEdit, onArchive, onOpenSubmissions }) =
     if (!createdAt) return "Recently";
     
     try {
-      // Parse the createdAt string as UTC to avoid timezone issues
-      const created = new Date(createdAt + 'Z'); // Add 'Z' to indicate UTC
+      const created = new Date(createdAt + 'Z');
       const now = new Date();
       
-      // If the date is invalid, return fallback
       if (isNaN(created.getTime())) {
         return "Recently";
       }
       
       const diffMs = now - created;
-      
-      // Convert to seconds
       const diffSecs = Math.floor(diffMs / 1000);
       
       if (diffSecs < 60) {
         return diffSecs <= 1 ? "Just now" : `${diffSecs}s ago`;
       }
       
-      // Convert to minutes
       const diffMins = Math.floor(diffSecs / 60);
       if (diffMins < 60) {
         return diffMins === 1 ? "1m ago" : `${diffMins}m ago`;
       }
       
-      // Convert to hours
       const diffHours = Math.floor(diffMins / 60);
       if (diffHours < 24) {
         return diffHours === 1 ? "1h ago" : `${diffHours}h ago`;
       }
       
-      // Convert to days
       const diffDays = Math.floor(diffHours / 24);
       if (diffDays < 7) {
         return diffDays === 1 ? "1d ago" : `${diffDays}d ago`;
       }
       
-      // Convert to weeks
       const diffWeeks = Math.floor(diffDays / 7);
       if (diffWeeks < 4) {
         return diffWeeks === 1 ? "1w ago" : `${diffWeeks}w ago`;
       }
       
-      // For longer periods, show the actual date
       return created.toLocaleDateString('en-US', {
         month: 'short',
         day: 'numeric',
@@ -113,7 +103,7 @@ const SmallActivityCard = ({ activity, onEdit, onArchive, onOpenSubmissions }) =
       const timeDiff = deadlineDate - now;
       const hoursDiff = timeDiff / (1000 * 60 * 60);
       
-      return hoursDiff <= 24; // Urgent if within 24 hours
+      return hoursDiff <= 24;
     } catch {
       return false;
     }
@@ -132,15 +122,12 @@ const SmallActivityCard = ({ activity, onEdit, onArchive, onOpenSubmissions }) =
     }
   };
 
-  // Updated: Check if activity is fully graded (excluding 0 grades)
+  // Updated: Check if activity is fully graded - ALL students (even those who haven't submitted) must have a grade
   const isFullyGraded = (activity) => {
     if (!activity.students || activity.students.length === 0) return false;
     
-    const submittedStudents = activity.students.filter(student => student.submitted);
-    if (submittedStudents.length === 0) return false;
-    
-    // Check if all submitted students have valid grades that are NOT 0
-    return submittedStudents.every(student => {
+    // Check if ALL students (not just submitted ones) have valid grades that are NOT 0
+    return activity.students.every(student => {
       const grade = student.grade;
       // Consider null, undefined, empty string, and 0 as "not graded"
       return grade != null && 
@@ -151,7 +138,7 @@ const SmallActivityCard = ({ activity, onEdit, onArchive, onOpenSubmissions }) =
     });
   };
 
-  // Updated: Check if activity has any grades (excluding 0 grades)
+  // Check if activity has any grades (excluding 0 grades)
   const hasSomeGrades = (activity) => {
     if (!activity.students || activity.students.length === 0) return false;
     
@@ -164,6 +151,11 @@ const SmallActivityCard = ({ activity, onEdit, onArchive, onOpenSubmissions }) =
              grade !== 0 && 
              grade !== '0';
     });
+  };
+
+  // Check if activity is active (not past deadline and not fully graded)
+  const isActivityActive = (activity) => {
+    return !isDeadlinePassed(activity.deadline) && !isFullyGraded(activity);
   };
 
   const submittedCount = activity.students ? activity.students.filter(s => s.submitted).length : 0;
@@ -185,7 +177,6 @@ const SmallActivityCard = ({ activity, onEdit, onArchive, onOpenSubmissions }) =
 
   // Handle card click to open submissions
   const handleCardClick = (e) => {
-    // Don't trigger if clicking on action buttons
     if (e.target.closest('button')) {
       return;
     }
@@ -212,49 +203,57 @@ const SmallActivityCard = ({ activity, onEdit, onArchive, onOpenSubmissions }) =
       <div className="flex items-start justify-between">
         {/* Left Section - Activity Info */}
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-2">
+          <div className="flex items-center gap-2 mb-2 flex-wrap">
             <span className={`px-2 py-1 ${getActivityTypeColor(activity.activity_type)} text-xs font-medium rounded`}>
               {activity.activity_type}
             </span>
             <span className="text-sm text-gray-500">#{activity.task_number}</span>
             
-            {/* Status badges */}
-            {isFullyGraded(activity) && (
-              <span className="px-2 py-1 bg-green-100 text-green-800 text-xs font-medium rounded flex items-center gap-1">
-                <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                </svg>
-                Graded
-              </span>
-            )}
-            
-            {isDeadlinePassed(activity.deadline) && !isFullyGraded(activity) && (
-              <span className="px-2 py-2 bg-red-100 text-red-800 text-xs font-medium rounded flex items-center gap-1">
-                <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
-                </svg>
-                Past Deadline
-              </span>
-            )}
-            
-            {hasSomeGrades(activity) && !isFullyGraded(activity) && (
-              <span className="px-2 py-2 bg-yellow-100 text-yellow-800 text-xs font-medium rounded flex items-center gap-1">
-                <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                </svg>
-                Partially Graded
-              </span>
-            )}
+            {/* Status badges - Hidden on mobile, shown on md and larger */}
+            <div className="hidden md:flex items-center gap-1">
+              {isFullyGraded(activity) && (
+                <span className="px-2 py-1 bg-green-100 text-green-800 text-xs font-medium rounded flex items-center gap-1">
+                  <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                  </svg>
+                  Graded
+                </span>
+              )}
+              
+              {isDeadlinePassed(activity.deadline) && !isFullyGraded(activity) && (
+                <span className="px-2 py-1 bg-red-100 text-red-800 text-xs font-medium rounded flex items-center gap-1">
+                  <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
+                  </svg>
+                  Past Deadline
+                </span>
+              )}
+              
+              {hasSomeGrades(activity) && !isFullyGraded(activity) && (
+                <span className="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs font-medium rounded flex items-center gap-1">
+                  <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  </svg>
+                  Partially Graded
+                </span>
+              )}
+            </div>
           </div>
           
-          <h3 className="font-semibold text-gray-900 text-lg mb-2 truncate">
+          <h3 className="font-semibold text-gray-900 text-lg mb-3 truncate">
             {activity.title}
           </h3>
           
-          <div className="space-y-1 text-sm text-gray-600">
-            {/* Deadline with simple red text for urgency */}
+          <div className="space-y-2 text-sm text-gray-600">
+            {/* Deadline with icon */}
             <div className="flex items-center gap-2">
-              <span className="font-medium">Deadline:</span>
+              <svg className={`w-4 h-4 ${
+                isDeadlinePassed(activity.deadline) || isDeadlineUrgent(activity.deadline) 
+                  ? 'text-red-600' 
+                  : 'text-gray-600'
+              }`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
               <span className={`font-medium ${
                 isDeadlinePassed(activity.deadline) || isDeadlineUrgent(activity.deadline) 
                   ? 'text-red-600 font-bold' 
@@ -266,14 +265,18 @@ const SmallActivityCard = ({ activity, onEdit, onArchive, onOpenSubmissions }) =
 
             {/* Posted time */}
             <div className="flex items-center gap-2">
-              <span className="font-medium">Posted:</span>
+              <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
               <span>{getPostedTime(activity.created_at)}</span>
             </div>
 
             {/* Points */}
             {activity.points > 0 && (
               <div className="flex items-center gap-2">
-                <span className="font-bold">Points:</span>
+                <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
                 <span className="text-green-600 font-bold">{activity.points} pts</span>
               </div>
             )}
@@ -282,7 +285,7 @@ const SmallActivityCard = ({ activity, onEdit, onArchive, onOpenSubmissions }) =
 
         {/* Right Section - Stats and Actions */}
         <div className="flex flex-col items-end gap-3 ml-4" onClick={(e) => e.stopPropagation()}>
-          {/* Submission Stats */}
+          {/* Submission Stats - Simplified */}
           <div className="text-right">
             <div className="text-lg font-bold text-gray-900 mb-1">
               <span className={submissionRate === 100 ? 'text-green-600' : 'text-gray-900'}>
@@ -290,27 +293,16 @@ const SmallActivityCard = ({ activity, onEdit, onArchive, onOpenSubmissions }) =
               </span>
               <span className="text-gray-400">/{totalCount}</span>
             </div>
-            <div className="text-xs text-gray-500 mb-2">Submitted</div>
-            
-            {/* Progress bar */}
-            <div className="w-20 h-1.5 bg-gray-200 rounded-full overflow-hidden">
-              <div 
-                className={`h-full ${
-                  submissionRate === 100 ? 'bg-green-500' :
-                  submissionRate >= 50 ? 'bg-yellow-500' : 'bg-red-500'
-                }`}
-                style={{ width: `${Math.max(submissionRate, 0)}%` }}
-              ></div>
-            </div>
+            <div className="text-xs text-gray-500">Submitted</div>
           </div>
 
-          {/* Action Buttons with Tooltips */}
+          {/* Action Buttons */}
           <div className="flex items-center gap-2">
-            {/* Edit Button with Tooltip */}
-            <div className="relative group">
+            {/* Edit Button with Tooltip - Hidden on mobile, shown on md+ */}
+            <div className="relative group hidden md:block">
               <button
                 onClick={() => onEdit(activity)}
-                className="p-2.5 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors cursor-pointer"
+                className="p-2 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors cursor-pointer"
               >
                 <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -320,21 +312,68 @@ const SmallActivityCard = ({ activity, onEdit, onArchive, onOpenSubmissions }) =
                 Edit Activity
               </div>
             </div>
+            
+            {/* Edit Button for mobile - No tooltip */}
+            <button
+              onClick={() => onEdit(activity)}
+              className="p-2 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors cursor-pointer md:hidden"
+            >
+              <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+              </svg>
+            </button>
 
-            {/* Archive Button with Tooltip */}
-            <div className="relative group">
-              <button
-                onClick={() => onArchive(activity)}
-                className="p-2.5 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors cursor-pointer"
-              >
-                <img src={Archive} alt="Archive" className="w-5 h-5" />
-              </button>
-              <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs text-white bg-gray-800 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-10">
-                Archive Activity
-              </div>
-            </div>
+            {/* Archive Button - Only show for non-active activities */}
+            {!isActivityActive(activity) && (
+              <>
+                {/* Archive Button with Tooltip - Hidden on mobile, shown on md+ */}
+                <div className="relative group hidden md:block">
+                  <button
+                    onClick={() => onArchive(activity)}
+                    className="p-2 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors cursor-pointer"
+                  >
+                    <img src={Archive} alt="Archive" className="w-5 h-5" />
+                  </button>
+                  <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs text-white bg-gray-800 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-10">
+                    Archive Activity
+                  </div>
+                </div>
+                
+                {/* Archive Button for mobile - No tooltip */}
+                <button
+                  onClick={() => onArchive(activity)}
+                  className="p-2 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors cursor-pointer md:hidden"
+                >
+                  <img src={Archive} alt="Archive" className="w-5 h-5" />
+                </button>
+              </>
+            )}
           </div>
         </div>
+      </div>
+      
+      {/* Mobile-only Status Indicators - Simple dot indicators */}
+      <div className="md:hidden flex items-center gap-2 mt-2">
+        {isFullyGraded(activity) && (
+          <div className="flex items-center gap-1">
+            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+            <span className="text-xs text-green-600 font-medium">Graded</span>
+          </div>
+        )}
+        
+        {isDeadlinePassed(activity.deadline) && !isFullyGraded(activity) && (
+          <div className="flex items-center gap-1">
+            <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+            <span className="text-xs text-red-600 font-medium">Past Deadline</span>
+          </div>
+        )}
+        
+        {hasSomeGrades(activity) && !isFullyGraded(activity) && (
+          <div className="flex items-center gap-1">
+            <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
+            <span className="text-xs text-yellow-600 font-medium">Partially Graded</span>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -392,6 +431,26 @@ export default function ClassworkTab() {
   const getCurrentDateTime = () => {
     const now = new Date();
     return now.toISOString().slice(0, 16);
+  };
+
+  // Copy subject code to clipboard
+  const copySubjectCode = () => {
+    if (classInfo?.subject_code) {
+      navigator.clipboard.writeText(classInfo.subject_code)
+        .then(() => {
+          // Show temporary feedback
+          const originalText = document.querySelector('.copy-text');
+          if (originalText) {
+            originalText.textContent = 'Copied!';
+            setTimeout(() => {
+              originalText.textContent = 'Copy';
+            }, 2000);
+          }
+        })
+        .catch(err => {
+          console.error('Failed to copy: ', err);
+        });
+    }
   };
 
   // Fetch all data in sequence
@@ -468,12 +527,23 @@ export default function ClassworkTab() {
     }
   };
 
-  // Check if activity already exists (duplicate detection)
+  // Check if activity already exists (duplicate detection for activity type + task number)
   const isActivityDuplicate = (activityType, taskNumber) => {
     return activities.some(activity => 
       activity.activity_type === activityType && 
       activity.task_number === taskNumber
     );
+  };
+
+  // Check if activity title already exists (duplicate title detection)
+  const isTitleDuplicate = (title, excludeActivityId = null) => {
+    return activities.some(activity => {
+      // If excludeActivityId is provided, skip that activity when checking for duplicates
+      if (excludeActivityId && activity.id === excludeActivityId) {
+        return false;
+      }
+      return activity.title.toLowerCase() === title.toLowerCase();
+    });
   };
 
   // Get existing task numbers for a specific activity type
@@ -484,15 +554,32 @@ export default function ClassworkTab() {
       .sort((a, b) => a - b);
   };
 
-  // Updated: Check if activity is fully graded (excluding 0 grades)
+  // Get existing activity titles
+  const getExistingTitles = () => {
+    return activities.map(activity => activity.title);
+  };
+
+  // Updated: Check if activity is fully graded (excluding 0 grades) - ALL students must have a grade
   const isFullyGraded = (activity) => {
     if (!activity.students || activity.students.length === 0) return false;
     
-    const submittedStudents = activity.students.filter(student => student.submitted);
-    if (submittedStudents.length === 0) return false;
+    // Check if ALL students (not just submitted ones) have valid grades that are NOT 0
+    return activity.students.every(student => {
+      const grade = student.grade;
+      // Consider null, undefined, empty string, and 0 as "not graded"
+      return grade != null && 
+             grade !== '' && 
+             grade !== undefined && 
+             grade !== 0 && 
+             grade !== '0';
+    });
+  };
+
+  // Check if activity has any grades (excluding 0 grades)
+  const hasSomeGrades = (activity) => {
+    if (!activity.students || activity.students.length === 0) return false;
     
-    // Check if all submitted students have valid grades that are NOT 0
-    return submittedStudents.every(student => {
+    return activity.students.some(student => {
       const grade = student.grade;
       // Consider null, undefined, empty string, and 0 as "not graded"
       return grade != null && 
@@ -516,6 +603,11 @@ export default function ClassworkTab() {
     }
   };
 
+  // Check if activity is active
+  const isActivityActive = (activity) => {
+    return !isDeadlinePassed(activity.deadline) && !isFullyGraded(activity);
+  };
+
   // Handle create activity from modal
   const handleCreateActivity = async (activityData) => {
     // Validate required fields
@@ -524,10 +616,19 @@ export default function ClassworkTab() {
       return;
     }
 
-    // Check for duplicate activity
+    // Check for duplicate activity (activity type + task number)
     if (isActivityDuplicate(activityData.activityType, activityData.taskNumber)) {
       const existingTaskNumbers = getExistingTaskNumbers(activityData.activityType);
-      const message = `"${activityData.activityType} ${activityData.taskNumber}" has already been created.\n\nExisting ${activityData.activityType}s: ${existingTaskNumbers.join(', ')}`;
+      const message = `"${activityData.activityType} ${activityData.taskNumber}" already exists.\n\nExisting ${activityData.activityType}s:\n${existingTaskNumbers.map(num => `${num}`).join('\n')}`;
+      setDuplicateMessage(message);
+      setShowDuplicateModal(true);
+      return;
+    }
+
+    // Check for duplicate title
+    if (isTitleDuplicate(activityData.title)) {
+      const existingTitles = getExistingTitles();
+      const message = `Title "${activityData.title}" is already used.\n\nExisting titles:\n${existingTitles.map((title, index) => `${index + 1}. "${title}"`).join('\n')}`;
       setDuplicateMessage(message);
       setShowDuplicateModal(true);
       return;
@@ -625,6 +726,29 @@ export default function ClassworkTab() {
 
   // Handle edit activity
   const handleEditActivity = async (activityData) => {
+    // Check for duplicate activity (activity type + task number) - excluding current activity
+    if (isActivityDuplicate(activityData.activityType, activityData.taskNumber) && 
+        (editingActivity.activity_type !== activityData.activityType || 
+         editingActivity.task_number !== activityData.taskNumber)) {
+      const existingTaskNumbers = getExistingTaskNumbers(activityData.activityType);
+      const message = `"${activityData.activityType} ${activityData.taskNumber}" already exists.\n\nExisting ${activityData.activityType}s:\n${existingTaskNumbers.map(num => `${num}`).join('\n')}`;
+      setDuplicateMessage(message);
+      setShowDuplicateModal(true);
+      return;
+    }
+
+    // Check for duplicate title - excluding current activity
+    if (isTitleDuplicate(activityData.title, editingActivity.id)) {
+      const existingTitles = getExistingTitles();
+      const filteredTitles = existingTitles.filter(title => 
+        title.toLowerCase() !== editingActivity.title.toLowerCase()
+      );
+      const message = `Title "${activityData.title}" is already used.\n\nExisting titles:\n${filteredTitles.map((title, index) => `${index + 1}. "${title}"`).join('\n')}`;
+      setDuplicateMessage(message);
+      setShowDuplicateModal(true);
+      return;
+    }
+
     try {
       const updatedActivityData = {
         activity_type: activityData.activityType,
@@ -670,8 +794,15 @@ export default function ClassworkTab() {
     }
   };
 
-  // Handle archive activity
+  // Handle archive activity - now checks if activity is active
   const handleArchiveActivity = async (activity) => {
+    // Prevent archiving active activities
+    if (isActivityActive(activity)) {
+      alert("Cannot archive active activities. Please wait until the deadline passes or all submissions are graded.");
+      setShowArchiveModal(false);
+      return;
+    }
+
     try {
       const professorId = getProfessorId();
       if (!professorId) {
@@ -710,6 +841,16 @@ export default function ClassworkTab() {
       alert('Error archiving activity. Please try again.');
       setShowArchiveModal(false);
     }
+  };
+
+  // Handle archive button click - check if activity is active
+  const handleArchiveSchoolWork = (activity) => {
+    if (isActivityActive(activity)) {
+      alert("Cannot archive active activities. Please wait until the deadline passes or all submissions are graded.");
+      return;
+    }
+    setActivityToArchive(activity);
+    setShowArchiveModal(true);
   };
 
   // Handle saving grades from submissions modal
@@ -773,6 +914,9 @@ export default function ClassworkTab() {
         case "Past Deadline":
           matchesFilter = isDeadlinePassed(activity.deadline);
           break;
+        case "Active":
+          matchesFilter = isActivityActive(activity);
+          break;
         default:
           matchesFilter = activity.activity_type === filterOption;
       }
@@ -783,12 +927,10 @@ export default function ClassworkTab() {
 
   // Group activities by status for visual separation
   const groupedActivities = {
+    active: filteredActivities.filter(activity => isActivityActive(activity)),
     graded: filteredActivities.filter(activity => isFullyGraded(activity)),
     pastDeadline: filteredActivities.filter(activity => 
       isDeadlinePassed(activity.deadline) && !isFullyGraded(activity)
-    ),
-    other: filteredActivities.filter(activity => 
-      !isFullyGraded(activity) && !isDeadlinePassed(activity.deadline)
     )
   };
 
@@ -817,12 +959,6 @@ export default function ClassworkTab() {
   const handleEditSchoolWork = (activity) => {
     setEditingActivity(activity);
     setShowEditModal(true);
-  };
-
-  // Handle archive activity
-  const handleArchiveSchoolWork = (activity) => {
-    setActivityToArchive(activity);
-    setShowArchiveModal(true);
   };
 
   // Render empty state when no activities
@@ -888,11 +1024,26 @@ export default function ClassworkTab() {
             </p>
           </div>
 
-          {/* Subject Information */}
+          {/* Subject Information with Copy Button */}
           <div className="flex flex-col gap-2 text-sm sm:text-base lg:text-[1.125rem] text-[#465746] mb-4 sm:mb-5">
             <div className="flex flex-wrap items-center gap-1 sm:gap-3">
               <span className="font-semibold">SUBJECT CODE:</span>
-              <span>{classInfo?.subject_code || 'N/A'}</span>
+              <div className="flex items-center gap-2">
+                <span>{classInfo?.subject_code || 'N/A'}</span>
+                {classInfo?.subject_code && (
+                  <button
+                    onClick={copySubjectCode}
+                    className="p-1 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded transition-colors cursor-pointer flex items-center gap-1"
+                    title="Copy subject code"
+                  >
+                    <img 
+                      src={Copy} 
+                      alt="Copy" 
+                      className="w-4 h-4" 
+                    />
+                  </button>
+                )}
+              </div>
             </div>
 
             <div className="flex flex-wrap items-center gap-1 sm:gap-3">
@@ -1053,7 +1204,7 @@ export default function ClassworkTab() {
               {/* Dropdown options */}
               {filterDropdownOpen && (
                 <div className="absolute top-full mt-2 bg-white rounded-md w-full sm:min-w-[200px] shadow-xl border border-gray-200 z-20 overflow-hidden">
-                  {["All", ...activityTypes, "Graded", "Past Deadline"].map((option) => (
+                  {["All", "Active", ...activityTypes, "Graded", "Past Deadline"].map((option) => (
                     <button
                       key={option}
                       className={`block px-4 py-2.5 w-full text-left hover:bg-gray-100 active:bg-gray-200 text-sm sm:text-base transition-colors duration-150 cursor-pointer touch-manipulation ${
@@ -1094,17 +1245,20 @@ export default function ClassworkTab() {
 
           {/* SMALL ACTIVITY CARDS WITH VISUAL SEPARATION */}
           <div className="mt-4 sm:mt-5">
-            {/* Other Activities Section */}
-            {groupedActivities.other.length > 0 && (
+            {/* Active Activities Section */}
+            {groupedActivities.active.length > 0 && (
               <>
                 <div className="mb-4 mt-4">
                   <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
                     <span className="w-3 h-3 bg-blue-500 rounded-full"></span>
                     Active Activities
+                    <span className="text-sm font-normal text-gray-500 ml-2">
+                      ({groupedActivities.active.length})
+                    </span>
                   </h3>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {groupedActivities.other.map((activity) => (
+                  {groupedActivities.active.map((activity) => (
                     <SmallActivityCard
                       key={activity.id}
                       activity={activity}
@@ -1124,6 +1278,9 @@ export default function ClassworkTab() {
                   <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
                     <span className="w-3 h-3 bg-green-500 rounded-full"></span>
                     Graded Activities
+                    <span className="text-sm font-normal text-gray-500 ml-2">
+                      ({groupedActivities.graded.length})
+                    </span>
                   </h3>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
@@ -1148,6 +1305,9 @@ export default function ClassworkTab() {
                   <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
                     <span className="w-3 h-3 bg-red-500 rounded-full"></span>
                     Past Deadline
+                    <span className="text-sm font-normal text-gray-500 ml-2">
+                      ({groupedActivities.pastDeadline.length})
+                    </span>
                   </h3>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
@@ -1207,6 +1367,71 @@ export default function ClassworkTab() {
         professorName={classInfo?.professor_name}
       />
 
+      {/* Duplicate Activity Modal - Improved Design */}
+      {showDuplicateModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between p-4 border-b">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 bg-yellow-100 rounded-full flex items-center justify-center">
+                  <svg className="w-4 h-4 text-yellow-600" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900">
+                  Duplicate Detected
+                </h3>
+              </div>
+              <button
+                onClick={() => setShowDuplicateModal(false)}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-4">
+              <div className="mb-4">
+                <p className="text-gray-600">
+                  {duplicateMessage.split('\n')[0]}
+                </p>
+                
+                {duplicateMessage.includes('Existing') && (
+                  <div className="mt-3 p-3 bg-gray-50 rounded border">
+                    <h4 className="font-medium text-sm text-gray-700 mb-2">
+                      {duplicateMessage.includes('task numbers') ? 'Existing task numbers:' : 'Existing titles:'}
+                    </h4>
+                    <div className="max-h-48 overflow-y-auto">
+                      {duplicateMessage.split('\n').slice(2).map((line, index) => (
+                        line.trim() && (
+                          <div key={index} className="flex items-start py-1">
+                            <span className="text-gray-400 mr-2">•</span>
+                            <span className="text-sm text-gray-600">{line.trim()}</span>
+                          </div>
+                        )
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex justify-end gap-3">
+                <button
+                  onClick={() => setShowDuplicateModal(false)}
+                  className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-md font-medium transition-colors duration-200"
+                >
+                  OK
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Separate Success Modals for Different Operations */}
       <ClassWorkSuccess
         isOpen={showCreateSuccessModal}
@@ -1234,14 +1459,6 @@ export default function ClassworkTab() {
         onClose={() => setShowArchiveSuccessModal(false)}
         message="Activity archived successfully!"
         type="archive"
-      />
-
-      {/* Duplicate Activity Modal */}
-      <ClassWorkSuccess
-        isOpen={showDuplicateModal}
-        onClose={() => setShowDuplicateModal(false)}
-        message={duplicateMessage}
-        type="duplicate"
       />
     </div>
   );

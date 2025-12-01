@@ -18,6 +18,8 @@ import Classwork from "../../assets/Classwork(Light).svg";
 // Import the new icons for Grade and Analytics
 import GradeIcon from "../../assets/Grade(Light).svg";
 import AnalyticsIcon from "../../assets/Analytics(Light).svg";
+// Import the Copy icon
+import CopyIcon from "../../assets/Copy(Light).svg"; // Add this import
 
 export default function Attendance() {
   const [isOpen, setIsOpen] = useState(true);
@@ -54,6 +56,27 @@ export default function Attendance() {
       console.error("Error parsing user data:", error);
     }
     return null;
+  };
+
+  // Copy subject code to clipboard function
+  const copySubjectCode = () => {
+    const codeToCopy = classInfo?.subject_code;
+    if (codeToCopy && codeToCopy !== 'N/A') {
+      navigator.clipboard.writeText(codeToCopy)
+        .then(() => {
+          // Show temporary feedback
+          const copyButtons = document.querySelectorAll('.copy-text');
+          copyButtons.forEach(button => {
+            button.textContent = 'Copied!';
+            setTimeout(() => {
+              button.textContent = 'Copy';
+            }, 2000);
+          });
+        })
+        .catch(err => {
+          console.error('Failed to copy: ', err);
+        });
+    }
   };
 
   const formatName = (fullName) => {
@@ -273,11 +296,26 @@ export default function Attendance() {
             </p>
           </div>
 
-          {/* Subject Information */}
+          {/* Subject Information with Copy Button */}
           <div className="flex flex-col gap-2 text-sm sm:text-base lg:text-[1.125rem] text-[#465746] mb-4 sm:mb-5">
             <div className="flex flex-wrap items-center gap-1 sm:gap-3">
               <span className="font-semibold">SUBJECT CODE:</span>
-              <span>{classInfo?.subject_code || 'N/A'}</span>
+              <div className="flex items-center gap-2">
+                <span>{classInfo?.subject_code || 'N/A'}</span>
+                {classInfo?.subject_code && classInfo.subject_code !== 'N/A' && (
+                  <button
+                    onClick={copySubjectCode}
+                    className="p-1 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded transition-colors cursor-pointer flex items-center gap-1"
+                    title="Copy subject code"
+                  >
+                    <img 
+                      src={CopyIcon} 
+                      alt="Copy" 
+                      className="w-4 h-4" 
+                    />
+                  </button>
+                )}
+              </div>
             </div>
 
             <div className="flex flex-wrap items-center gap-1 sm:gap-3">
@@ -296,7 +334,7 @@ export default function Attendance() {
                     src={BackButton} 
                     alt="Back" 
                     className="h-6 w-6 cursor-pointer hover:opacity-70 transition-opacity" 
-                    title="Back to Class Managemen"
+                    title="Back to Class Management"
                   />
                 </Link>
               </div>
