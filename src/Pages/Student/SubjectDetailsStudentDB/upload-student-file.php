@@ -24,13 +24,12 @@ $dbname = 'u713320770_tracked';
 $username = 'u713320770_trackedDB';
 $password = 'Tracked@2025';
 
-// Get POST data - CORRECTED parameter names
-$activity_id = $_POST['activity_id'] ?? $_POST['activity_ID'] ?? '';
-$student_id = $_POST['student_id'] ?? $_POST['student_ID'] ?? '';
-$uploaded_by = $_POST['uploaded_by'] ?? 'professor'; // Changed from 'file_type'
+// Get POST data
+$activity_id = $_POST['activity_id'] ?? '';
+$student_id = $_POST['student_id'] ?? '';
 
 // Debug output
-error_log("Activity ID: $activity_id, Student ID: $student_id, Uploaded By: $uploaded_by");
+error_log("Activity ID: $activity_id, Student ID: $student_id");
 
 if (empty($activity_id) || empty($student_id)) {
     echo json_encode([
@@ -45,24 +44,34 @@ if (empty($activity_id) || empty($student_id)) {
     exit();
 }
 
+// First, check if student exists in database
 try {
     $conn = new PDO("mysql:host=$host;dbname=$dbname", $username, $password);
     $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     
-    // Verify student exists
+    // Check student exists
     $checkStudent = $conn->prepare("SELECT tracked_ID FROM tracked_users WHERE tracked_ID = ?");
     $checkStudent->execute([$student_id]);
-    if (!$checkStudent->fetch()) {
-        throw new Exception("Student '$student_id' not found in database");
+    $student = $checkStudent->fetch(PDO::FETCH_ASSOC);
+    
+    if (!$student) {
+        // Check all student IDs to see what's available
+        $allStudents = $conn->query("SELECT tracked_ID FROM tracked_users WHERE tracked_Role = 'Student' LIMIT 10");
+        $availableStudents = $allStudents->fetchAll(PDO::FETCH_COLUMN);
+        
+        throw new Exception("Student '$student_id' not found. Available students: " . implode(', ', $availableStudents));
     }
     
-    // Verify activity exists
+    // Check activity exists
     $checkActivity = $conn->prepare("SELECT id FROM activities WHERE id = ?");
     $checkActivity->execute([$activity_id]);
-    if (!$checkActivity->fetch()) {
+    $activity = $checkActivity->fetch(PDO::FETCH_ASSOC);
+    
+    if (!$activity) {
         throw new Exception("Activity '$activity_id' not found");
     }
     
+    // Rest of your upload code...
     $uploadDir = $_SERVER['DOCUMENT_ROOT'] . '/TrackEd_Uploads/To_Students/';
     
     if (!file_exists($uploadDir)) {
@@ -72,7 +81,7 @@ try {
     }
     
     if (!isset($_FILES['file']) || $_FILES['file']['error'] !== UPLOAD_ERR_OK) {
-        throw new Exception('No file uploaded or upload error: ' . $_FILES['file']['error']);
+        throw new Exception('No file uploaded or upload error');
     }
     
     $file = $_FILES['file'];
@@ -115,7 +124,7 @@ try {
         $fileUrl,
         $fileSize,
         $fileType,
-        $uploaded_by
+        'student'
     ]);
     
     if (!$result) {
@@ -125,31 +134,29 @@ try {
     
     $fileId = $conn->lastInsertId();
     
-    // Update activity_grades only for student uploads
-    if ($uploaded_by === 'student') {
-        $checkGrade = $conn->prepare("SELECT id FROM activity_grades WHERE activity_ID = ? AND student_ID = ?");
-        $checkGrade->execute([$activity_id, $student_id]);
-        $gradeExists = $checkGrade->fetch();
-        
-        if ($gradeExists) {
-            $updateStmt = $conn->prepare("
-                UPDATE activity_grades 
-                SET submitted = 1,
-                    submitted_at = NOW(),
-                    uploaded_file_url = ?,
-                    uploaded_file_name = ?,
-                    updated_at = NOW()
-                WHERE activity_ID = ? AND student_ID = ?
-            ");
-            $updateStmt->execute([$fileUrl, $originalName, $activity_id, $student_id]);
-        } else {
-            $insertStmt = $conn->prepare("
-                INSERT INTO activity_grades 
-                (activity_ID, student_ID, submitted, submitted_at, uploaded_file_url, uploaded_file_name, created_at, updated_at)
-                VALUES (?, ?, 1, NOW(), ?, ?, NOW(), NOW())
-            ");
-            $insertStmt->execute([$activity_id, $student_id, $fileUrl, $originalName]);
-        }
+    // Update activity_grades
+    $checkGrade = $conn->prepare("SELECT id FROM activity_grades WHERE activity_ID = ? AND student_ID = ?");
+    $checkGrade->execute([$activity_id, $student_id]);
+    $gradeExists = $checkGrade->fetch(PDO::FETCH_ASSOC);
+    
+    if ($gradeExists) {
+        $updateStmt = $conn->prepare("
+            UPDATE activity_grades 
+            SET submitted = 1,
+                submitted_at = NOW(),
+                uploaded_file_url = ?,
+                uploaded_file_name = ?,
+                updated_at = NOW()
+            WHERE activity_ID = ? AND student_ID = ?
+        ");
+        $updateStmt->execute([$fileUrl, $originalName, $activity_id, $student_id]);
+    } else {
+        $insertStmt = $conn->prepare("
+            INSERT INTO activity_grades 
+            (activity_ID, student_ID, submitted, submitted_at, uploaded_file_url, uploaded_file_name, created_at, updated_at)
+            VALUES (?, ?, 1, NOW(), ?, ?, NOW(), NOW())
+        ");
+        $insertStmt->execute([$activity_id, $student_id, $fileUrl, $originalName]);
     }
     
     $conn->commit();
@@ -157,15 +164,14 @@ try {
     echo json_encode([
         'success' => true,
         'message' => 'File uploaded successfully',
+        'debug' => [
+            'student_id_used' => $student_id,
+            'activity_id_used' => $activity_id
+        ],
         'file' => [
             'id' => $fileId,
             'original_name' => $originalName,
-            'file_name' => $uniqueFileName,
-            'url' => $fileUrl,
-            'size' => $fileSize,
-            'type' => $fileType,
-            'uploaded_at' => date('Y-m-d H:i:s'),
-            'uploaded_by' => $uploaded_by
+            'file_url' => $fileUrl
         ]
     ]);
     
@@ -183,7 +189,8 @@ try {
     http_response_code(500);
     echo json_encode([
         'success' => false, 
-        'message' => 'Upload failed: ' . $e->getMessage()
+        'message' => 'Upload failed: ' . $e->getMessage(),
+        'error_details' => $e->getMessage()
     ]);
 }
 

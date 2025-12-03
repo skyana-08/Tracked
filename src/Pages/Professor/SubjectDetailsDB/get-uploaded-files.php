@@ -1,54 +1,60 @@
 <?php
 header('Content-Type: application/json');
+header('Access-Control-Allow-Origin: *');
+header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
+header('Access-Control-Allow-Headers: Content-Type');
 
-// Allow from any origin
-if (isset($_SERVER['HTTP_ORIGIN'])) {
-    header("Access-Control-Allow-Origin: {$_SERVER['HTTP_ORIGIN']}");
-    header('Access-Control-Allow-Credentials: true');
-    header('Access-Control-Max-Age: 86400');    // cache for 1 day
+if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
+    http_response_code(200);
+    exit(0);
 }
 
-// Database configuration
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+
 $host = 'localhost';
 $dbname = 'u713320770_tracked';
 $username = 'u713320770_trackedDB';
 $password = 'Tracked@2025';
 
-$activity_id = $_GET['activity_id'] ?? '';
-$student_id = $_GET['student_id'] ?? '';
-
-if (empty($activity_id)) {
-    echo json_encode(['success' => false, 'message' => 'Activity ID required']);
-    exit();
-}
-
 try {
-    $conn = new PDO("mysql:host=$host;dbname=$dbname", $username, $password);
-    $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    $pdo = new PDO("mysql:host=$host;dbname=$dbname", $username, $password);
+    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     
-    if (!empty($student_id)) {
-        // Get files for specific student
-        $stmt = $conn->prepare("
-            SELECT * FROM activity_files 
-            WHERE activity_id = ? AND student_id = ? AND uploaded_by = 'professor'
-            ORDER BY uploaded_at DESC
-        ");
-        $stmt->execute([$activity_id, $student_id]);
-    } else {
-        // Get all files for activity
-        $stmt = $conn->prepare("
-            SELECT * FROM activity_files 
-            WHERE activity_id = ? AND uploaded_by = 'professor'
-            ORDER BY uploaded_at DESC
-        ");
-        $stmt->execute([$activity_id]);
+    // Get parameters
+    $activity_id = $_GET['activity_id'] ?? '';
+    
+    if (empty($activity_id)) {
+        echo json_encode(['success' => false, 'message' => 'Activity ID is required']);
+        exit;
     }
+    
+    // Build query
+    $sql = "SELECT * FROM activity_files WHERE activity_id = :activity_id";
+    $params = [':activity_id' => $activity_id];
+    
+    if (isset($_GET['student_id']) && !empty($_GET['student_id'])) {
+        $sql .= " AND student_id = :student_id";
+        $params[':student_id'] = $_GET['student_id'];
+    }
+    
+    $sql .= " ORDER BY uploaded_at DESC";
+    
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute($params);
     
     $files = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
-    echo json_encode(['success' => true, 'files' => $files]);
+    echo json_encode([
+        'success' => true,
+        'count' => count($files),
+        'files' => $files
+    ]);
     
-} catch (PDOException $e) {
-    echo json_encode(['success' => false, 'message' => 'Database error: ' . $e->getMessage()]);
+} catch (Exception $e) {
+    echo json_encode([
+        'success' => false,
+        'message' => 'Error: ' . $e->getMessage()
+    ]);
 }
 ?>

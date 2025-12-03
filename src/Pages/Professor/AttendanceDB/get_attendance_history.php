@@ -1,11 +1,13 @@
 <?php
-header('Content-Type: application/json');
 header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Methods: GET, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type');
+header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
+header('Access-Control-Allow-Headers: Content-Type, Authorization');
+header('Access-Control-Allow-Credentials: true');
+header('Content-Type: application/json');
 
 if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
-    exit(0);
+    http_response_code(200);
+    exit();
 }
 
 $host = 'localhost';
@@ -17,139 +19,160 @@ try {
     $pdo = new PDO("mysql:host=$host;dbname=$dbname;charset=utf8mb4", $username, $password);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 } catch(PDOException $e) {
-    echo json_encode(["success" => false, "message" => "Database connection failed: " . $e->getMessage()]);
+    echo json_encode(["success" => false, "message" => "Database connection failed"]);
     exit;
 }
 
+// Get parameters
 $subject_code = $_GET['subject_code'] ?? '';
 $professor_ID = $_GET['professor_ID'] ?? '';
+
+// Log for debugging
+error_log("get_attendance_history called: subject_code=$subject_code, professor_ID=$professor_ID");
 
 if (empty($subject_code)) {
     echo json_encode(["success" => false, "message" => "Subject code is required"]);
     exit;
 }
 
-try {
-    // Debug: Log the incoming parameters
-    error_log("Fetching attendance for subject: $subject_code, professor: $professor_ID");
+// If professor ID is not provided, get it from classes table
+if (empty($professor_ID)) {
+    $stmt = $pdo->prepare("SELECT professor_ID FROM classes WHERE subject_code = ?");
+    $stmt->execute([$subject_code]);
+    $class = $stmt->fetch(PDO::FETCH_ASSOC);
     
-    // First, check if there are any attendance records for this subject
-    $checkStmt = $pdo->prepare("
-        SELECT COUNT(*) as count 
-        FROM attendance 
-        WHERE subject_code = ? 
-        AND (? = '' OR professor_ID = ?)
-    ");
-    $checkStmt->execute([$subject_code, $professor_ID, $professor_ID]);
-    $result = $checkStmt->fetch(PDO::FETCH_ASSOC);
-    
-    if ($result['count'] == 0) {
-        error_log("No attendance records found for subject: $subject_code");
+    if ($class && !empty($class['professor_ID'])) {
+        $professor_ID = $class['professor_ID'];
+        error_log("Auto-detected professor_ID: $professor_ID");
+    } else {
         echo json_encode([
             "success" => true,
-            "attendance_history" => [],
-            "message" => "No attendance records found"
+            "message" => "No professor ID found for this subject",
+            "attendance_history" => []
         ]);
         exit;
     }
+}
+
+try {
+    // Get all enrolled students
+    $enrolledStmt = $pdo->prepare("
+        SELECT 
+            t.tracked_ID as user_ID,
+            CONCAT(t.tracked_firstname, ' ', t.tracked_lastname) as user_Name,
+            t.tracked_yearandsec
+        FROM tracked_users t
+        INNER JOIN student_classes sc ON t.tracked_ID = sc.student_ID
+        WHERE sc.subject_code = ? AND sc.archived = 0
+        AND t.tracked_Role = 'Student' AND t.tracked_Status = 'Active'
+        ORDER BY t.tracked_firstname, t.tracked_lastname
+    ");
+    $enrolledStmt->execute([$subject_code]);
+    $allEnrolledStudents = $enrolledStmt->fetchAll(PDO::FETCH_ASSOC);
     
-    // Get distinct attendance dates for this subject
+    if (empty($allEnrolledStudents)) {
+        echo json_encode([
+            "success" => true,
+            "message" => "No students enrolled in this class",
+            "attendance_history" => []
+        ]);
+        exit;
+    }
+
+    // Get distinct attendance dates
     $datesStmt = $pdo->prepare("
         SELECT DISTINCT attendance_date 
         FROM attendance 
-        WHERE subject_code = ? 
-        AND (? = '' OR professor_ID = ?)
+        WHERE subject_code = ? AND professor_ID = ?
         ORDER BY attendance_date DESC
     ");
-    $datesStmt->execute([$subject_code, $professor_ID, $professor_ID]);
+    $datesStmt->execute([$subject_code, $professor_ID]);
     $dates = $datesStmt->fetchAll(PDO::FETCH_ASSOC);
-    
-    error_log("Found " . count($dates) . " attendance dates for subject: $subject_code");
-    
-    // Get all students enrolled in this subject
-    $studentsStmt = $pdo->prepare("
-        SELECT DISTINCT 
-            a.student_ID,
-            CONCAT(t.tracked_firstname, ' ', t.tracked_lastname) as user_Name
-        FROM attendance a
-        JOIN tracked_users t ON a.student_ID = t.tracked_ID
-        WHERE a.subject_code = ?
-        AND (? = '' OR a.professor_ID = ?)
-        ORDER BY user_Name
-    ");
-    $studentsStmt->execute([$subject_code, $professor_ID, $professor_ID]);
-    $allStudents = $studentsStmt->fetchAll(PDO::FETCH_ASSOC);
-    
+
     $attendance_history = [];
+
+    if (empty($dates)) {
+        echo json_encode([
+            "success" => true,
+            "message" => "No attendance records found",
+            "attendance_history" => []
+        ]);
+        exit;
+    }
 
     foreach ($dates as $date_record) {
         $attendance_date = $date_record['attendance_date'];
         
-        // Get attendance records for this specific date
+        // Get attendance for this date
         $attendanceStmt = $pdo->prepare("
             SELECT 
                 a.student_ID, 
                 a.status,
-                CONCAT(t.tracked_firstname, ' ', t.tracked_lastname) as user_Name
+                CONCAT(t.tracked_firstname, ' ', t.tracked_lastname) as user_Name,
+                t.tracked_yearandsec
             FROM attendance a
             JOIN tracked_users t ON a.student_ID = t.tracked_ID
-            WHERE a.subject_code = ?
+            WHERE a.subject_code = ? 
+            AND a.professor_ID = ? 
             AND a.attendance_date = ?
-            AND (? = '' OR a.professor_ID = ?)
-            ORDER BY user_Name
         ");
-        $attendanceStmt->execute([$subject_code, $attendance_date, $professor_ID, $professor_ID]);
+        $attendanceStmt->execute([$subject_code, $professor_ID, $attendance_date]);
         $attendance_records = $attendanceStmt->fetchAll(PDO::FETCH_ASSOC);
         
-        // Format the date for display
-        $formatted_date = date('F j, Y', strtotime($attendance_date));
-        
-        // Prepare the student list for this date
-        $studentsForDate = [];
-        
-        // Add all students with their attendance status
-        foreach ($allStudents as $student) {
-            $studentId = $student['student_ID'];
-            $status = 'absent'; // Default status
-            
-            // Find if this student has attendance record for this date
-            foreach ($attendance_records as $record) {
-                if ($record['student_ID'] == $studentId) {
-                    $status = $record['status'];
-                    break;
-                }
-            }
-            
-            $studentsForDate[] = [
-                'student_ID' => $studentId,
-                'user_Name' => $student['user_Name'],
-                'status' => $status
-            ];
+        // Create map of attendance records
+        $attendanceMap = [];
+        foreach ($attendance_records as $record) {
+            $attendanceMap[$record['student_ID']] = $record;
         }
         
+        // Build complete student list
+        $completeStudentList = [];
+        foreach ($allEnrolledStudents as $enrolledStudent) {
+            $studentId = $enrolledStudent['user_ID'];
+            
+            if (isset($attendanceMap[$studentId])) {
+                $completeStudentList[] = $attendanceMap[$studentId];
+            } else {
+                $completeStudentList[] = [
+                    'student_ID' => $studentId,
+                    'user_Name' => $enrolledStudent['user_Name'],
+                    'tracked_yearandsec' => $enrolledStudent['tracked_yearandsec'],
+                    'status' => 'absent'
+                ];
+            }
+        }
+        
+        // Sort by name
+        usort($completeStudentList, function($a, $b) {
+            return strcmp($a['user_Name'], $b['user_Name']);
+        });
+
+        // Format date
+        $formatted_date = date('F j, Y', strtotime($attendance_date));
+
         $attendance_history[] = [
             "date" => $formatted_date,
             "raw_date" => $attendance_date,
-            "students" => $studentsForDate
+            "students" => $completeStudentList
         ];
     }
-    
-    error_log("Returning " . count($attendance_history) . " attendance records");
 
     echo json_encode([
         "success" => true,
         "attendance_history" => $attendance_history,
-        "total_records" => count($attendance_history),
-        "subject_code" => $subject_code,
-        "professor_ID" => $professor_ID
+        "summary" => [
+            "total_dates" => count($dates),
+            "total_students" => count($allEnrolledStudents),
+            "subject_code" => $subject_code,
+            "professor_ID" => $professor_ID
+        ]
     ]);
 
 } catch (Exception $e) {
-    error_log("Error in get_attendance_history.php: " . $e->getMessage());
+    error_log("Error: " . $e->getMessage());
     echo json_encode([
         "success" => false, 
-        "message" => "Error fetching attendance history: " . $e->getMessage(),
-        "error_details" => $e->getMessage()
+        "message" => "Database error occurred"
     ]);
 }
 ?>

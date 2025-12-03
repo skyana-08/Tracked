@@ -60,7 +60,7 @@ export default function AnalyticsProf() {
 
   // Updated colors for charts with proper color coding
   const ATTENDANCE_COLORS = ['#00C853', '#FFD600', '#FF3D00']; 
-  const ACTIVITIES_COLORS = ['#00C853', '#2962FF', '#2196F3', '#FF3D00']; 
+  const ACTIVITIES_COLORS = ['#00C853', '#2196F3', '#FF3D00']; 
   
   // Colors for section comparison (up to 20 distinct colors for many sections)
   const SECTION_COLORS = [
@@ -1255,7 +1255,6 @@ export default function AnalyticsProf() {
 
   const activitiesChartData = analyticsData ? [
     { name: 'Submitted', value: analyticsData.activitiesSummary.submitted },
-    { name: 'Late', value: analyticsData.activitiesSummary.late },
     { name: 'Assigned', value: analyticsData.activitiesSummary.assigned },
     { name: 'Missed', value: analyticsData.activitiesSummary.missed }
   ] : [];
@@ -1558,7 +1557,22 @@ export default function AnalyticsProf() {
                         ))}
                       </Pie>
                       <Tooltip content={<CustomPieTooltip />} />
-                      <Legend content={<CustomLegend />} />
+                      {/* Custom Legend for Attendance - ORDERED: Present, Late, Absent */}
+                      <Legend 
+                        content={() => (
+                          <div className="flex flex-wrap justify-center gap-4 mt-4">
+                            {attendanceChartData.map((entry, index) => (
+                              <div key={`item-${index}`} className="flex items-center gap-2 text-xs">
+                                <div 
+                                  className="w-3 h-3 rounded-full"
+                                  style={{ backgroundColor: ATTENDANCE_COLORS[index] }}
+                                />
+                                <span>{entry.name}</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      />
                     </PieChart>
                   </ResponsiveContainer>
                 ) : (
@@ -1600,7 +1614,22 @@ export default function AnalyticsProf() {
                         ))}
                       </Pie>
                       <Tooltip content={<CustomPieTooltip />} />
-                      <Legend content={<CustomLegend />} />
+                      {/* Custom Legend for Activities - ORDERED: Submitted, Assigned, Missed */}
+                      <Legend 
+                        content={() => (
+                          <div className="flex flex-wrap justify-center gap-4 mt-4">
+                            {activitiesChartData.map((entry, index) => (
+                              <div key={`item-${index}`} className="flex items-center gap-2 text-xs">
+                                <div 
+                                  className="w-3 h-3 rounded-full"
+                                  style={{ backgroundColor: ACTIVITIES_COLORS[index] }}
+                                />
+                                <span>{entry.name}</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      />
                     </PieChart>
                   </ResponsiveContainer>
                 ) : (
@@ -1756,12 +1785,11 @@ export default function AnalyticsProf() {
                           <tr className="border-b-2 border-gray-200">
                             <th className="px-3 py-3 text-left font-bold text-gray-700 bg-gray-50 rounded-tl-lg text-base">Rank</th>
                             <th className="px-3 py-3 text-left font-bold text-gray-700 bg-gray-50 text-base">Student</th>
-                            <th className="px-3 py-3 text-left font-bold text-gray-700 bg-gray-50 text-base">Submitted</th>
                             <th className="px-3 py-3 text-left font-bold text-gray-700 bg-gray-50 text-base">Present</th>
                             <th className="px-3 py-3 text-left font-bold text-gray-700 bg-gray-50 text-base">Late</th>
                             <th className="px-3 py-3 text-left font-bold text-gray-700 bg-gray-50 text-base">Absent</th>
-                            <th className="px-3 py-3 text-left font-bold text-gray-700 bg-gray-50 text-base">Late Sub</th>
-                            <th className="px-3 py-3 text-left font-bold text-gray-700 bg-gray-50 text-base">Pending</th>
+                            <th className="px-3 py-3 text-left font-bold text-gray-700 bg-gray-50 text-base">Submitted</th>
+                            <th className="px-3 py-3 text-left font-bold text-gray-700 bg-gray-50 text-base">Assigned</th>
                             <th className="px-3 py-3 text-left font-bold text-gray-700 bg-gray-50 text-base">Missed</th>
                             <th className="px-3 py-3 text-left font-bold text-gray-700 bg-gray-50 rounded-tr-lg text-base">Total Score</th>
                           </tr>
@@ -1808,11 +1836,7 @@ export default function AnalyticsProf() {
                                     <span className="text-sm text-gray-500 mt-0.5">{student.id}</span>
                                   </div>
                                 </td>
-                                <td className="px-3 py-3.5">
-                                  <span className="font-medium text-base text-[#00A15D]">
-                                    {student.submittedCount || 0}
-                                  </span>
-                                </td>
+                                {/* Attendance Columns */}
                                 <td className="px-3 py-3.5">
                                   <span className="font-medium text-base text-[#00A15D]">
                                     {student.presentCount || 0}
@@ -1828,19 +1852,20 @@ export default function AnalyticsProf() {
                                     {student.absentCount || 0}
                                   </span>
                                 </td>
+                                {/* Submission Columns */}
                                 <td className="px-3 py-3.5">
-                                  <span className="font-medium text-base text-[#2196F3]">
-                                    {student.lateSubmissionCount || 0}
+                                  <span className="font-medium text-base text-[#00A15D]">
+                                    {student.submittedCount || 0}
                                   </span>
                                 </td>
                                 <td className="px-3 py-3.5">
-                                  <span className="font-medium text-base text-[#F59E0B]">
-                                    {student.pendingCount || 0}
+                                  <span className="font-medium text-base text-[#2196F3]">
+                                    {student.pendingCount || 0} {/* This is now "Assigned" */}
                                   </span>
                                 </td>
                                 <td className="px-3 py-3.5">
                                   <span className="font-medium text-base text-[#FF6666]">
-                                    {student.missingCount || 0}
+                                    {student.missingCount || 0} {/* This is "Missed" */}
                                   </span>
                                 </td>
                                 <td className="px-3 py-3.5">
@@ -2290,7 +2315,7 @@ export default function AnalyticsProf() {
                           name
                         ]}
                       />
-                      <Legend />
+                      {/* REMOVED THE LEGEND COMPONENT */}
                     </PieChart>
                   </ResponsiveContainer>
                 ) : (
@@ -2298,22 +2323,40 @@ export default function AnalyticsProf() {
                 )}
               </div>
 
-              {/* Performance Categories Legend */}
+              {/* Performance Categories Legend - ORGANIZED FROM EXCELLENT TO FAILING */}
               <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2">
-                {studentPerformancePieData.map((category, index) => (
-                  <div key={index} className="flex items-center gap-2 p-2 bg-white rounded border">
-                    <div 
-                      className="w-4 h-4 rounded-full"
-                      style={{ backgroundColor: category.color }}
-                    />
-                    <div>
-                      <p className="text-sm font-medium">{category.name.split(' (')[0]}</p>
-                      <p className="text-xs text-gray-500">
-                        {category.value} student{category.value !== 1 ? 's' : ''}
-                      </p>
+                {/* Define the correct order for performance categories */}
+                {[
+                  { name: 'Excellent (90-100%)', color: '#00C853' },
+                  { name: 'Good (70-89%)', color: '#4CAF50' },
+                  { name: 'Average (50-69%)', color: '#FFC107' },
+                  { name: 'Needs Improvement (30-49%)', color: '#FF9800' },
+                  { name: 'Failing (<30%)', color: '#F44336' }
+                ].map((category, index) => {
+                  // Find the corresponding data in studentPerformancePieData
+                  const dataItem = studentPerformancePieData.find(item => 
+                    item.name.includes(category.name.split(' ')[0]) || 
+                    item.color === category.color
+                  );
+                  
+                  const value = dataItem ? dataItem.value : 0;
+                  const displayName = dataItem ? dataItem.name : category.name;
+                  
+                  return (
+                    <div key={index} className="flex items-center gap-2 p-2 bg-white rounded border">
+                      <div 
+                        className="w-4 h-4 rounded-full"
+                        style={{ backgroundColor: category.color }}
+                      />
+                      <div>
+                        <p className="text-sm font-medium">{displayName}</p>
+                        <p className="text-xs text-gray-500">
+                          {value} student{value !== 1 ? 's' : ''}
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           </>

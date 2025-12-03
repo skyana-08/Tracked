@@ -21,7 +21,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
 
 // Database configuration
 $host = 'localhost';
-$dbname = 'u713320770_tracked';
+$dbname = 'u713320770_tracked'; // Your database name
 $username = 'u713320770_trackedDB';
 $password = 'Tracked@2025';
 
@@ -43,7 +43,7 @@ try {
     
     if ($file) {
         // Delete file from uploads directory
-        $filePath = $_SERVER['DOCUMENT_ROOT'] . '/TrackEd/uploads/' . $file['file_name'];
+        $filePath = $_SERVER['DOCUMENT_ROOT'] . '/TrackEd_Uploads/To_Students/' . $file['file_name'];
         if (file_exists($filePath)) {
             unlink($filePath);
         }

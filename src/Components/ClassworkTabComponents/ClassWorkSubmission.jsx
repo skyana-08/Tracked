@@ -7,6 +7,7 @@ import Close from "../../assets/Close.svg";
 import Cross from "../../assets/Cross(Light).svg";
 import DetailsIcon from "../../assets/Details(Light).svg";
 import ClockIcon from "../../assets/Deadline.svg";
+
 import StudentActivitiesDetails from '../StudentActivitiesDetails';
 import PhotoManagement from '../PhotoManagement';
 
@@ -17,12 +18,17 @@ const ClassWorkSubmission = ({
   onSave,
   professorName
 }) => {
+  console.log('ClassWorkSubmission rendering with:', {
+    activityId: activity?.id,
+    studentsCount: activity?.students?.length,
+    isOpen: isOpen
+  });
+
   const [filter, setFilter] = useState("All");
   const [filterDropdownOpen, setFilterDropdownOpen] = useState(false);
   const [localStudents, setLocalStudents] = useState([]);
   const [selectedStudent, setSelectedStudent] = useState(null);
-  const [uploadedFiles, setUploadedFiles] = useState({});
-  const [studentUploadedFiles, setStudentUploadedFiles] = useState({});
+  const [setStudentUploadedFiles] = useState({});
   const [detailsModalOpen, setDetailsModalOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
@@ -30,16 +36,17 @@ const ClassWorkSubmission = ({
   const [activeView, setActiveView] = useState('students');
   const [photoModalOpen, setPhotoModalOpen] = useState(false);
   const [selectedStudentForPhoto, setSelectedStudentForPhoto] = useState(null);
-  const [viewingPhoto, setViewingPhoto] = useState(null);
+  const [viewingPhoto] = useState(null);
   const [photoViewerOpen, setPhotoViewerOpen] = useState(false);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
   
   // File Upload States
   const [uploadedFilesList, setUploadedFilesList] = useState({});
-  const [setIsUploadingFile] = useState(false);
+  const [isUploadingFile, setIsUploadingFile] = useState(false);
   
   const scrollContainerRef = useRef(null);
 
-  // Localhost configuration - Fixed for your setup
+  // Localhost configuration
   const BACKEND_URL = 'https://tracked.6minds.site/Professor/SubjectDetailsDB';
 
   useEffect(() => {
@@ -50,23 +57,447 @@ const ClassWorkSubmission = ({
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
+  // Clean up dynamically created file inputs
   useEffect(() => {
-    if (activity && activity.students) {
-      setLocalStudents([...activity.students]);
-      
-      const studentFiles = {};
-      activity.students.forEach(student => {
-        if (student.submitted_file) {
-          studentFiles[student.user_ID] = {
-            url: student.submitted_file,
-            name: 'Student Submission',
-            uploadedBy: 'Student'
-          };
+    return () => {
+      const fileInputs = document.querySelectorAll('input[type="file"].dynamic-file-input');
+      fileInputs.forEach(input => {
+        if (input.parentNode) {
+          input.parentNode.removeChild(input);
         }
       });
-      setStudentUploadedFiles(studentFiles);
+    };
+  }, []);
+
+  // ===========================
+  // FETCH SAVED GRADES FUNCTION
+  // ===========================
+  
+  // Fetch saved grades from database
+  const fetchSavedGrades = async () => {
+    if (!activity?.id) return;
+    
+    try {
+      const response = await fetch(
+        `${BACKEND_URL}/get_activity_grades.php?activity_id=${activity.id}`
+      );
       
-      // Load uploaded files
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const result = await response.json();
+      
+      console.log('Fetched grades from database:', result);
+      
+      if (result.success && result.grades && Array.isArray(result.grades)) {
+        const gradeMap = {};
+        result.grades.forEach(grade => {
+          gradeMap[grade.student_ID] = {
+            grade: grade.grade !== null ? grade.grade.toString() : '',
+            submitted: grade.submitted === 1,
+            late: grade.late === 1,
+            submitted_at: grade.submitted_at,
+            uploaded_file_url: grade.uploaded_file_url,
+            uploaded_file_name: grade.uploaded_file_name
+          };
+        });
+        
+        // Update localStudents with saved grades
+        const updatedStudents = activity.students.map(student => {
+          const savedGrade = gradeMap[student.user_ID];
+          
+          if (savedGrade) {
+            return {
+              ...student,
+              grade: savedGrade.grade,
+              submitted: savedGrade.submitted,
+              late: savedGrade.late,
+              submitted_file: savedGrade.uploaded_file_url || student.submitted_file,
+              uploaded_file_url: savedGrade.uploaded_file_url,
+              uploaded_file_name: savedGrade.uploaded_file_name
+            };
+          } else {
+            return student;
+          }
+        });
+        
+        setLocalStudents(updatedStudents);
+        
+      } else {
+        console.log('No saved grades found in database, using initial activity data');
+        setLocalStudents([...activity.students]);
+      }
+    } catch (error) {
+      console.error('Error fetching saved grades:', error);
+      setLocalStudents([...activity.students]);
+    }
+  };
+
+  const uploadFileToServer = async (file, studentId, uploadedBy = 'professor') => {
+    if (!file) {
+      console.error('No file provided');
+      return null;
+    }
+
+    setIsUploadingFile(true);
+    
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('activity_id', activity.id);
+      formData.append('student_id', studentId);
+      formData.append('uploaded_by', uploadedBy);
+
+      console.log('Uploading file:', {
+        name: file.name,
+        size: file.size,
+        type: file.type,
+        activityId: activity.id,
+        studentId: studentId,
+        uploadedBy: uploadedBy
+      });
+
+      const response = await fetch(`${BACKEND_URL}/upload-file.php`, {
+        method: 'POST',
+        body: formData
+      });
+
+      const responseText = await response.text();
+      
+      console.log('Response status:', response.status);
+      console.log('Response text:', responseText);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      let result;
+      try {
+        result = JSON.parse(responseText);
+        console.log('Parsed JSON result:', result);
+      } catch (parseError) {
+        console.error('Failed to parse response as JSON:', parseError);
+        throw new Error('Server returned invalid JSON response');
+      }
+      
+      if (result.success) {
+        // IMPORTANT: Create the file object with all necessary properties
+        const newFile = {
+          id: result.file?.id || Date.now(),
+          name: result.file?.original_name || file.name,
+          fileName: result.file?.file_name || file.name,
+          url: result.file?.file_url || result.file?.url || result.url,
+          size: result.file?.size || file.size,
+          type: result.file?.type || file.type,
+          uploaded_at: result.file?.uploaded_at || new Date().toISOString(),
+          uploadedBy: uploadedBy
+        };
+
+        console.log('Created file object:', newFile);
+
+        // CRITICAL: Update the uploadedFilesList state immediately
+        setUploadedFilesList(prev => {
+          const currentFiles = prev[studentId] || { professor: [], student: [], all: [] };
+          
+          // Create updated files object
+          const updatedFiles = {
+            professor: uploadedBy === 'professor' 
+              ? [...currentFiles.professor, newFile] 
+              : currentFiles.professor,
+            student: uploadedBy === 'student' 
+              ? [...currentFiles.student, newFile] 
+              : currentFiles.student,
+            all: [...currentFiles.all, newFile]
+          };
+          
+          console.log('Updated files for student', studentId, ':', updatedFiles);
+          
+          return {
+            ...prev,
+            [studentId]: updatedFiles
+          };
+        });
+
+        // Also update studentUploadedFiles for backward compatibility
+        if (uploadedBy === 'student') {
+          setStudentUploadedFiles(prev => ({
+            ...prev,
+            [studentId]: newFile
+          }));
+        }
+
+        // Refresh from server to ensure consistency
+        setTimeout(() => {
+          fetchUploadedFiles(studentId);
+        }, 100);
+
+        return newFile;
+      } else {
+        throw new Error(result.message || result.error || 'Upload failed');
+      }
+    } catch (error) {
+      console.error('Error uploading file:', error);
+      alert('Failed to upload file: ' + error.message);
+      return null;
+    } finally {
+      setIsUploadingFile(false);
+    }
+  };
+
+  // Fetch uploaded files for a student
+  const fetchUploadedFiles = async (studentId) => {
+    try {
+      console.log('Fetching files for student', studentId);
+      
+      const response = await fetch(
+        `${BACKEND_URL}/get-uploaded-files.php?activity_id=${activity.id}&student_id=${studentId}`
+      );
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const responseText = await response.text();
+      console.log('Raw response:', responseText);
+      
+      let result;
+      try {
+        result = JSON.parse(responseText);
+      } catch (parseError) {
+        console.error('Failed to parse JSON:', parseError);
+        throw new Error('Invalid JSON response');
+      }
+      
+      console.log('Fetched files for student', studentId, ':', result);
+      
+      if (result.success && result.files) {
+        // Organize files by type
+        const filesMap = {
+          professor: [],
+          student: [],
+          all: []
+        };
+        
+        result.files.forEach(file => {
+          const fileObj = {
+            id: file.id,
+            name: file.original_name || file.file_name,
+            fileName: file.file_name,
+            url: file.file_url || file.url,
+            size: file.file_size,
+            type: file.file_type,
+            uploaded_at: file.uploaded_at,
+            uploadedBy: file.uploaded_by || 'professor'
+          };
+          
+          filesMap.all.push(fileObj);
+          if (file.uploaded_by === 'professor') {
+            filesMap.professor.push(fileObj);
+          } else if (file.uploaded_by === 'student') {
+            filesMap.student.push(fileObj);
+          }
+        });
+        
+        console.log('Setting files for student', studentId, ':', filesMap);
+        
+        // Use functional update to avoid state corruption
+        setUploadedFilesList(prev => {
+          const newState = {
+            ...prev,
+            [studentId]: filesMap
+          };
+          console.log('New uploadedFilesList state:', newState);
+          return newState;
+        });
+        
+        // Also update studentUploadedFiles for backward compatibility
+        if (filesMap.student.length > 0) {
+          setStudentUploadedFiles(prev => {
+            const newState = {
+              ...prev,
+              [studentId]: filesMap.student[0] // Take the latest student file
+            };
+            console.log('New studentUploadedFiles state:', newState);
+            return newState;
+          });
+        }
+      } else {
+        console.log('No files found for student', studentId);
+        // Set empty structure for this student
+        setUploadedFilesList(prev => ({
+          ...prev,
+          [studentId]: {
+            professor: [],
+            student: [],
+            all: []
+          }
+        }));
+      }
+    } catch (error) {
+      console.error('Error fetching uploaded files for student', studentId, ':', error);
+      // Set empty structure on error
+      setUploadedFilesList(prev => ({
+        ...prev,
+        [studentId]: {
+          professor: [],
+          student: [],
+          all: []
+        }
+      }));
+    }
+  };
+
+  // Fetch all uploaded files for this activity
+  const fetchAllUploadedFiles = async () => {
+    try {
+      console.log('Fetching all uploaded files for activity:', activity.id);
+      
+      const response = await fetch(
+        `${BACKEND_URL}/get-uploaded-files.php?activity_id=${activity.id}`
+      );
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const responseText = await response.text();
+      console.log('Raw response for all files:', responseText);
+      
+      let result;
+      try {
+        result = JSON.parse(responseText);
+      } catch (parseError) {
+        console.error('Failed to parse JSON:', parseError);
+        throw new Error('Invalid JSON response');
+      }
+      
+      console.log('All files result:', result);
+      
+      if (result.success && result.files) {
+        const filesMap = {};
+        result.files.forEach(file => {
+          const studentId = file.student_id;
+          if (!filesMap[studentId]) {
+            filesMap[studentId] = {
+              professor: [],
+              student: [],
+              all: []
+            };
+          }
+          
+          const fileObj = {
+            id: file.id,
+            name: file.original_name || file.file_name,
+            fileName: file.file_name,
+            url: file.file_url || file.url,
+            size: file.file_size,
+            type: file.file_type,
+            uploaded_at: file.uploaded_at,
+            uploadedBy: file.uploaded_by || 'professor'
+          };
+          
+          filesMap[studentId].all.push(fileObj);
+          if (file.uploaded_by === 'professor') {
+            filesMap[studentId].professor.push(fileObj);
+          } else if (file.uploaded_by === 'student') {
+            filesMap[studentId].student.push(fileObj);
+          }
+        });
+        
+        console.log('Setting all uploaded files:', filesMap);
+        setUploadedFilesList(filesMap);
+        
+        // Update studentUploadedFiles
+        const studentFiles = {};
+        Object.keys(filesMap).forEach(studentId => {
+          if (filesMap[studentId]?.student?.length > 0) {
+            studentFiles[studentId] = filesMap[studentId].student[0];
+          }
+        });
+        setStudentUploadedFiles(studentFiles);
+      } else {
+        console.log('No files found in database');
+        // Initialize with empty structure if no files
+        setUploadedFilesList({});
+        setStudentUploadedFiles({});
+      }
+    } catch (error) {
+      console.error('Error loading uploaded files:', error);
+      setUploadedFilesList({});
+      setStudentUploadedFiles({});
+    }
+  };
+
+  // Delete uploaded file
+  const handleDeleteFile = async (fileId, studentId) => {
+    if (!window.confirm('Are you sure you want to delete this file?')) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`${BACKEND_URL}/delete-file.php`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ file_id: fileId })
+      });
+
+      const responseText = await response.text();
+      console.log('Delete response:', responseText);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      let result;
+      try {
+        result = JSON.parse(responseText);
+      } catch {
+        if (responseText.toLowerCase().includes('success')) {
+          result = { success: true, message: 'File deleted successfully' };
+        } else {
+          throw new Error('Server returned invalid response');
+        }
+      }
+      
+      if (result.success) {
+        // Remove from local state - FIXED VERSION
+        setUploadedFilesList(prev => {
+          const studentFiles = prev[studentId];
+          if (studentFiles) {
+            const updatedFiles = {
+              professor: studentFiles.professor.filter(file => file.id !== fileId),
+              student: studentFiles.student.filter(file => file.id !== fileId),
+              all: studentFiles.all.filter(file => file.id !== fileId)
+            };
+            
+            return {
+              ...prev,
+              [studentId]: updatedFiles
+            };
+          }
+          return prev;
+        });
+        
+        // Force a refresh
+        fetchUploadedFiles(studentId);
+        
+        alert('File deleted successfully');
+      } else {
+        alert('Error deleting file: ' + (result.message || 'Unknown error'));
+      }
+    } catch (error) {
+      console.error('Error deleting file:', error);
+      alert('Error deleting file. Please try again. Error: ' + error.message);
+    }
+  };
+
+  useEffect(() => {
+    if (activity && activity.students) {
+      console.log('Fetching files for activity:', activity.id);
+      fetchSavedGrades();
       fetchAllUploadedFiles();
       
       if (isMobile && activity.students.length > 0 && !selectedStudent) {
@@ -77,7 +508,7 @@ const ClassWorkSubmission = ({
         });
       }
     }
-  }, [activity, isMobile]);
+  }, [activity, isMobile, refreshTrigger]);
 
   useEffect(() => {
     if (isMobile && selectedStudent && scrollContainerRef.current) {
@@ -94,260 +525,83 @@ const ClassWorkSubmission = ({
   }, [selectedStudent, isMobile]);
 
   // ===========================
-  // FILE UPLOAD FUNCTIONS
+  // PHOTO MANAGEMENT FUNCTIONS
   // ===========================
 
-  // Upload file to server
-  const uploadFileToServer = async (file, studentId) => {
-    if (!file) return null;
+  // Format file size helper function
+  const formatFileSize = (bytes) => {
+    if (bytes === 0 || bytes === undefined || bytes === null) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
 
-    setIsUploadingFile(true);
-    
-    try {
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('activity_id', activity.id);
-      formData.append('student_id', studentId);
-      formData.append('file_type', 'professor');
-
-      const response = await fetch(`${BACKEND_URL}/upload-file.php`, {
-        method: 'POST',
-        body: formData
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const result = await response.json();
-      
-      if (result.success) {
-        // Update local state
-        const newFile = {
-          id: result.file.id || Date.now(),
-          name: result.file.original_name,
-          fileName: result.file.file_name,
-          url: result.file.url,
-          size: result.file.size,
-          type: result.file.type,
-          uploaded_at: result.file.uploaded_at || new Date().toISOString(),
-          uploadedBy: 'Professor'
-        };
-
-        // Add to uploadedFilesList
-        setUploadedFilesList(prev => ({
-          ...prev,
-          [studentId]: [...(prev[studentId] || []), newFile]
-        }));
-
-        // Also update the uploadedFiles state for photo management
-        setUploadedFiles(prev => ({
-          ...prev,
-          [studentId]: {
-            ...prev[studentId],
-            url: result.file.url,
-            name: result.file.original_name,
-            uploadedBy: 'Professor'
-          }
-        }));
-
-        return newFile;
-      } else {
-        throw new Error(result.message || 'Upload failed');
-      }
-    } catch (error) {
-      console.error('Error uploading file:', error);
-      alert('Failed to upload file: ' + error.message);
-      return null;
-    } finally {
-      setIsUploadingFile(false);
+  // Handle view specific file
+  const handleViewFile = (file) => {
+    if (file?.url) {
+      window.open(file.url, '_blank', 'noopener,noreferrer');
+    } else {
+      alert('No file URL available');
     }
   };
 
-  // Handle file upload
-  const handleFileUpload = async (studentId) => {
+  const handleProfessorFileUpload = async (studentId) => {
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = '*/*';
     input.multiple = false;
+    input.className = 'dynamic-file-input';
+    input.style.display = 'none';
     
     input.onchange = async (e) => {
       const file = e.target.files[0];
-      if (!file) return;
+      if (!file) {
+        if (input.parentNode) {
+          input.parentNode.removeChild(input);
+        }
+        return;
+      }
 
-      // Check file size (max 25MB)
       if (file.size > 25 * 1024 * 1024) {
         alert('File size must be less than 25MB');
+        if (input.parentNode) {
+          input.parentNode.removeChild(input);
+        }
         return;
       }
 
       try {
-        const uploadedFile = await uploadFileToServer(file, studentId);
+        console.log('Starting file upload for student:', studentId);
+        const uploadedFile = await uploadFileToServer(file, studentId, 'professor');
         if (uploadedFile) {
+          console.log('File uploaded successfully:', uploadedFile);
+          
+          // Show success message but don't close the modal
           alert('File uploaded successfully!');
-          // Refresh uploaded files list
-          fetchUploadedFiles(studentId);
+          
+          // Force a refresh of the files for this student
+          await fetchUploadedFiles(studentId);
+          
+          // Also refresh all files
+          fetchAllUploadedFiles();
+          
+          // Force a re-render by updating a dummy state
+          setRefreshTrigger(prev => prev + 1);
         }
       } catch (error) {
         console.error('Upload failed:', error);
         alert('Upload failed: ' + error.message);
+      } finally {
+        if (input.parentNode) {
+          input.parentNode.removeChild(input);
+        }
       }
     };
     
+    document.body.appendChild(input);
     input.click();
   };
-
-  // Fetch uploaded files for a student
-  const fetchUploadedFiles = async (studentId) => {
-    try {
-      const response = await fetch(
-        `${BACKEND_URL}/get-uploaded-files.php?activity_id=${activity.id}&student_id=${studentId}`
-      );
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      const result = await response.json();
-      if (result.success) {
-        // Convert database format to local format
-        const filesMap = {};
-        result.files.forEach(file => {
-          if (!filesMap[file.student_id]) {
-            filesMap[file.student_id] = [];
-          }
-          filesMap[file.student_id].push({
-            id: file.id,
-            name: file.original_name || file.file_name,
-            fileName: file.file_name,
-            url: file.file_url,
-            size: file.file_size,
-            type: file.file_type,
-            uploaded_at: file.uploaded_at,
-            uploadedBy: file.uploaded_by || 'professor'
-          });
-        });
-        
-        setUploadedFilesList(prev => ({
-          ...prev,
-          ...filesMap
-        }));
-      }
-    } catch (error) {
-      console.error('Error fetching uploaded files:', error);
-    }
-  };
-
-  // Fetch all uploaded files for this activity
-  const fetchAllUploadedFiles = async () => {
-    try {
-      const response = await fetch(
-        `${BACKEND_URL}/get-uploaded-files.php?activity_id=${activity.id}`
-      );
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      const result = await response.json();
-      if (result.success && result.files) {
-        const filesMap = {};
-        result.files.forEach(file => {
-          if (!filesMap[file.student_id]) {
-            filesMap[file.student_id] = [];
-          }
-          filesMap[file.student_id].push({
-            id: file.id,
-            name: file.original_name || file.file_name,
-            fileName: file.file_name,
-            url: file.file_url,
-            size: file.file_size,
-            type: file.file_type,
-            uploaded_at: file.uploaded_at,
-            uploadedBy: file.uploaded_by || 'professor'
-          });
-        });
-        
-        setUploadedFilesList(filesMap);
-        
-        // Also update the uploadedFiles state for existing photo management
-        Object.keys(filesMap).forEach(studentId => {
-          if (filesMap[studentId].length > 0) {
-            const latestFile = filesMap[studentId][0]; // Get most recent file
-            setUploadedFiles(prev => ({
-              ...prev,
-              [studentId]: {
-                url: latestFile.url,
-                name: latestFile.name,
-                uploadedBy: 'Professor'
-              }
-            }));
-          }
-        });
-      }
-    } catch (error) {
-      console.error('Error loading uploaded files:', error);
-    }
-  };
-
-  // Delete uploaded file
-  const handleDeleteFile = async (fileId, studentId) => {
-    if (!confirm('Are you sure you want to delete this file?')) {
-      return;
-    }
-
-    try {
-      const response = await fetch(`${BACKEND_URL}/delete-file.php`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ file_id: fileId })
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const result = await response.json();
-      
-      if (result.success) {
-        // Remove from local state
-        setUploadedFilesList(prev => ({
-          ...prev,
-          [studentId]: prev[studentId].filter(file => file.id !== fileId)
-        }));
-        
-        // Also update uploadedFiles if this was the only file
-        const remainingFiles = uploadedFilesList[studentId]?.filter(file => file.id !== fileId);
-        if (remainingFiles?.length === 0) {
-          setUploadedFiles(prev => {
-            const newState = { ...prev };
-            delete newState[studentId];
-            return newState;
-          });
-        }
-        
-        alert('File deleted successfully');
-      } else {
-        alert('Error deleting file: ' + result.message);
-      }
-    } catch (error) {
-      console.error('Error deleting file:', error);
-      alert('Error deleting file. Please try again.');
-    }
-  };
-
-  // View uploaded file
-  const handleViewUploadedFile = (fileUrl) => {
-    if (fileUrl) {
-      window.open(fileUrl, '_blank', 'noopener,noreferrer');
-    }
-  };
-
-  // ===========================
-  // EXISTING FUNCTIONS
-  // ===========================
 
   const filterOptions = [
     "All",
@@ -481,6 +735,8 @@ const ClassWorkSubmission = ({
         })
       };
 
+      console.log('Saving grades to database:', saveData);
+
       const response = await fetch(`${BACKEND_URL}/update_activity_grades.php`, {
         method: 'POST',
         headers: {
@@ -508,7 +764,12 @@ const ClassWorkSubmission = ({
         });
         
         setLocalStudents(updatedStudents);
-        onSave(updatedStudents);
+        
+        if (onSave) {
+          onSave(updatedStudents);
+        }
+        
+        fetchSavedGrades();
         
         setShowSuccessModal(true);
         setTimeout(() => {
@@ -543,65 +804,26 @@ const ClassWorkSubmission = ({
       name: studentName
     });
     
-    // Fetch files for this student
+    // Fetch fresh files for this student
     fetchUploadedFiles(studentId);
-    
     setPhotoModalOpen(true);
   };
 
-  const handleProfessorPhotoUpload = () => {
-    // This will now trigger the file upload dialog
-    handleFileUpload(selectedStudentForPhoto?.id);
+  // Get total file count for a student
+  const getFileCount = (studentId) => {
+    if (!uploadedFilesList[studentId]) return 0;
+    return (uploadedFilesList[studentId]?.professor?.length || 0) + 
+          (uploadedFilesList[studentId]?.student?.length || 0);
   };
 
-  const handleDeleteProfessorPhoto = () => {
-    if (selectedStudentForPhoto?.id) {
-      const files = uploadedFilesList[selectedStudentForPhoto.id];
-      if (files && files.length > 0) {
-        const latestFile = files[0]; // Get most recent file
-        handleDeleteFile(latestFile.id, selectedStudentForPhoto.id);
-      } else {
-        alert('No files to delete');
-      }
-    }
+  // Get professor file count
+  const getProfessorFileCount = (studentId) => {
+    return uploadedFilesList[studentId]?.professor?.length || 0;
   };
 
-  const handleViewStudentPhoto = () => {
-    const photo = studentUploadedFiles[selectedStudentForPhoto.id];
-    if (photo) {
-      if (photo.url && typeof photo.url === 'string' && photo.url.startsWith('http')) {
-        window.open(photo.url, '_blank', 'noopener,noreferrer');
-      } else {
-        setViewingPhoto({
-          url: photo.url || photo,
-          name: photo.name || 'Student Submission',
-          uploadedBy: 'Student'
-        });
-        setPhotoViewerOpen(true);
-      }
-    } else {
-      alert('Student has not submitted any file yet');
-    }
-  };
-
-  const handleViewProfessorPhoto = () => {
-    if (selectedStudentForPhoto?.id) {
-      const files = uploadedFilesList[selectedStudentForPhoto.id];
-      if (files && files.length > 0) {
-        const latestFile = files[0]; // Get most recent file
-        handleViewUploadedFile(latestFile.url);
-      } else {
-        alert('No uploaded files found for this student');
-      }
-    }
-  };
-
-  const formatFileSize = (bytes) => {
-    if (!bytes || bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  // Get student file count
+  const getStudentFileCount = (studentId) => {
+    return uploadedFilesList[studentId]?.student?.length || 0;
   };
 
   const getStudentAnalytics = (student) => {
@@ -766,51 +988,41 @@ const ClassWorkSubmission = ({
     }
   };
 
-  // Check if student has uploaded files
-  const hasUploadedFiles = (studentId) => {
-    return uploadedFilesList[studentId] && uploadedFilesList[studentId].length > 0;
-  };
-
-  // Get file count for a student
-  const getFileCount = (studentId) => {
-    return uploadedFilesList[studentId] ? uploadedFilesList[studentId].length : 0;
-  };
-
-  // Get latest file name for display
-  const getLatestFileName = (studentId) => {
-    if (!hasUploadedFiles(studentId)) return '';
-    const files = uploadedFilesList[studentId];
-    const latestFile = files[0]; // Most recent first
-    return latestFile.name.length > 30 
-      ? latestFile.name.substring(0, 27) + '...' 
-      : latestFile.name;
-  };
-
   if (!isOpen || !activity) return null;
 
   const studentAnalytics = selectedStudent ? 
     getStudentAnalytics(localStudents.find(s => s.user_ID === selectedStudent.id)) : null;
 
-  const professorPhoto = selectedStudentForPhoto ? uploadedFiles[selectedStudentForPhoto.id] : null;
-  const studentPhoto = selectedStudentForPhoto ? studentUploadedFiles[selectedStudentForPhoto.id] : null;
-  const professorFiles = selectedStudentForPhoto ? uploadedFilesList[selectedStudentForPhoto.id] || [] : [];
-
-  // PhotoManagement props
   const photoManagementProps = {
     isOpen: photoModalOpen,
-    onClose: () => setPhotoModalOpen(false),
+    onClose: () => {
+      console.log('Closing photo modal');
+      setPhotoModalOpen(false);
+      // Refresh files when modal closes
+      if (selectedStudentForPhoto?.id) {
+        fetchUploadedFiles(selectedStudentForPhoto.id);
+      }
+    },
     selectedStudent: selectedStudentForPhoto,
-    professorPhoto: professorPhoto,
-    studentPhoto: studentPhoto,
-    professorFiles: professorFiles,
-    onProfessorPhotoUpload: handleProfessorPhotoUpload,
-    onViewProfessorPhoto: handleViewProfessorPhoto,
-    onViewProfessorFile: (file) => handleViewUploadedFile(file.url),
-    onDeleteProfessorPhoto: handleDeleteProfessorPhoto,
-    onDeleteProfessorFile: (fileId) => handleDeleteFile(fileId, selectedStudentForPhoto?.id),
-    onViewStudentPhoto: handleViewStudentPhoto,
+    studentFiles: selectedStudentForPhoto?.id ? (uploadedFilesList[selectedStudentForPhoto.id]?.student || []) : [],
+    professorFiles: selectedStudentForPhoto?.id ? (uploadedFilesList[selectedStudentForPhoto.id]?.professor || []) : [],
+    onProfessorPhotoUpload: () => {
+      console.log('Uploading professor file for student:', selectedStudentForPhoto?.id);
+      if (selectedStudentForPhoto?.id) {
+        handleProfessorFileUpload(selectedStudentForPhoto.id);
+      }
+    },
+    onViewProfessorFile: handleViewFile,
+    onDeleteProfessorFile: (fileId) => {
+      console.log('Deleting file:', fileId, 'for student:', selectedStudentForPhoto?.id);
+      if (selectedStudentForPhoto?.id) {
+        handleDeleteFile(fileId, selectedStudentForPhoto.id);
+      }
+    },
+    onViewStudentFile: handleViewFile,
     activity: activity,
-    formatFileSize: formatFileSize
+    formatFileSize: formatFileSize,
+    isUploadingToDrive: isUploadingFile,
   };
 
   return (
@@ -875,7 +1087,7 @@ const ClassWorkSubmission = ({
             </div>
           )}
 
-          {/* Main Content Container - This will be scrollable for both panels */}
+          {/* Main Content Container */}
           <div 
             ref={scrollContainerRef}
             className={`flex-1 overflow-auto ${isMobile ? 'overflow-x-auto snap-x snap-mandatory' : ''}`}
@@ -884,7 +1096,7 @@ const ClassWorkSubmission = ({
             <div className={`flex ${isMobile ? 'w-[200%] flex-row' : 'w-full flex-row'} min-h-0`}>
               {/* Left Panel - Students List */}
               <div className={`${isMobile ? 'w-1/2 flex-shrink-0 snap-start' : 'w-1/2'} h-full border-r border-gray-200 flex flex-col overflow-hidden`}>
-                {/* Instructions Section - Scrollable within left panel */}
+                {/* Instructions Section */}
                 <div className="flex-1 overflow-y-auto">
                   {/* Instructions */}
                   <div className="p-3 sm:p-4 md:p-6">
@@ -988,7 +1200,7 @@ const ClassWorkSubmission = ({
                     </div>
                   </div>
 
-                  {/* Students List - Scrollable within the panel */}
+                  {/* Students List */}
                   <div className="overflow-y-auto flex-1 min-h-0">
                     <div className="w-full">
                       <table className="w-full">
@@ -1003,19 +1215,18 @@ const ClassWorkSubmission = ({
                             <th className="px-3 sm:px-4 md:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-[15%]">
                               Grade
                             </th>
-                            <th className="px-3 sm:px-4 md:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-[20%]">
-                              Uploaded Files
-                            </th>
-                            <th className="px-3 sm:px-4 md:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-[15%]">
+                            <th className="px-3 sm:px-4 md:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-[35%]">
                               Actions
                             </th>
                           </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
                           {filteredStudents.map((student) => {
-                            const hasProfessorFiles = hasUploadedFiles(student.user_ID);
-                            const fileCount = getFileCount(student.user_ID);
-                            const isSelected = selectedStudent?.id === student.user_ID;
+                            const studentId = student.user_ID;
+                            const hasProfessorFiles = getProfessorFileCount(studentId) > 0;
+                            const hasStudentFiles = getStudentFileCount(studentId) > 0;
+                            const totalFiles = getFileCount(studentId);
+                            const isSelected = selectedStudent?.id === studentId;
                             const status = calculateStudentStatus(student, activity);
                             const maxPoints = activity.points || 100;
                             const hasGrade = student.grade && student.grade !== '' && student.grade !== '0';
@@ -1025,9 +1236,9 @@ const ClassWorkSubmission = ({
 
                             return (
                               <tr 
-                                key={student.user_ID} 
+                                key={studentId} 
                                 className={`hover:bg-gray-50 cursor-pointer ${isSelected ? 'bg-blue-50' : ''}`}
-                                onClick={() => setSelectedStudent({ id: student.user_ID, name: student.user_Name })}
+                                onClick={() => setSelectedStudent({ id: studentId, name: student.user_Name })}
                               >
                                 <td className="px-3 sm:px-4 md:px-6 py-2 sm:py-3 md:py-4 w-[35%] sm:w-[30%]">
                                   <div className="text-xs sm:text-sm font-medium text-gray-900 break-words">
@@ -1048,6 +1259,9 @@ const ClassWorkSubmission = ({
                                     })()
                                   }`}>
                                     {status}
+                                    {hasStudentFiles && status === 'Submitted' && (
+                                      <span className="ml-1">✓</span>
+                                    )}
                                   </span>
                                 </td>
                                 <td className="px-3 sm:px-4 md:px-6 py-2 sm:py-3 md:py-4 w-[15%] whitespace-nowrap">
@@ -1057,8 +1271,8 @@ const ClassWorkSubmission = ({
                                       min="0"
                                       max={maxPoints}
                                       value={student.grade || ''}
-                                      onChange={(e) => handleGradeChange(student.user_ID, e.target.value)}
-                                      onBlur={(e) => handleGradeBlur(student.user_ID, e.target.value)}
+                                      onChange={(e) => handleGradeChange(studentId, e.target.value)}
+                                      onBlur={(e) => handleGradeBlur(studentId, e.target.value)}
                                       className={`w-12 sm:w-14 px-1.5 sm:px-2 py-0.5 sm:py-1 border rounded text-xs focus:outline-none transition-colors duration-200 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${gradeInputBorderClass}`}
                                       onClick={(e) => e.stopPropagation()}
                                       step="1"
@@ -1069,39 +1283,16 @@ const ClassWorkSubmission = ({
                                     )}
                                   </div>
                                 </td>
-                                <td className="px-3 sm:px-4 md:px-6 py-2 sm:py-3 md:py-4 w-[20%]" onClick={(e) => e.stopPropagation()}>
-                                  {hasProfessorFiles ? (
-                                    <div className="flex flex-col">
-                                      <div className="text-green-700 text-xs flex items-center gap-1">
-                                        <span className="font-medium">{fileCount} file{fileCount !== 1 ? 's' : ''}</span>
-                                      </div>
-                                      <div className="text-xs text-gray-600 truncate mt-1" title={getLatestFileName(student.user_ID)}>
-                                        📄 {getLatestFileName(student.user_ID)}
-                                      </div>
-                                      <button
-                                        onClick={() => handleOpenPhotoModal(student.user_ID, student.user_Name)}
-                                        className="text-xs text-blue-600 hover:text-blue-800 mt-1 text-left"
-                                      >
-                                        Manage files →
-                                      </button>
-                                    </div>
-                                  ) : (
-                                    <button
-                                      onClick={() => handleFileUpload(student.user_ID)}
-                                      className="text-xs text-gray-500 hover:text-gray-700 flex items-center gap-1"
-                                    >
-                                      <span className="text-gray-400">📤</span>
-                                      Upload file
-                                    </button>
-                                  )}
-                                </td>
-                                <td className="px-3 sm:px-4 md:px-6 py-2 sm:py-3 md:py-4 w-[15%]" onClick={(e) => e.stopPropagation()}>
+                                <td className="px-3 sm:px-4 md:px-6 py-2 sm:py-3 md:py-4 w-[35%]" onClick={(e) => e.stopPropagation()}>
                                   <div className="flex items-center justify-start gap-1 sm:gap-1.5 flex-wrap">
-                                    {/* Folder Icon - Now triggers file upload directly */}
+                                    {/* Folder/Photo Icon */}
                                     <button
-                                      onClick={() => handleFileUpload(student.user_ID)}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleProfessorFileUpload(studentId);
+                                      }}
                                       className="text-gray-400 hover:text-gray-600 cursor-pointer p-0.5"
-                                      title={hasProfessorFiles ? "Upload more files" : "Upload file"}
+                                      title="Upload file for student"
                                     >
                                       <img 
                                         src={hasProfessorFiles ? FolderGreen : Photo} 
@@ -1112,7 +1303,10 @@ const ClassWorkSubmission = ({
 
                                     {/* Email Icon */}
                                     <button
-                                      onClick={() => handleEmailStudent(student.user_Email, student.user_Name)}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleEmailStudent(student.user_Email, student.user_Name);
+                                      }}
                                       className="text-gray-400 hover:text-gray-600 cursor-pointer p-0.5"
                                       title="Email Student"
                                     >
@@ -1121,12 +1315,35 @@ const ClassWorkSubmission = ({
 
                                     {/* Details Icon */}
                                     <button
-                                      onClick={() => setDetailsModalOpen(true)}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setDetailsModalOpen(true);
+                                      }}
                                       className="text-gray-400 hover:text-gray-600 cursor-pointer p-0.5"
                                       title="View Details"
                                     >
                                       <img src={DetailsIcon} alt="Details" className="w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-4.5 md:h-4.5" />
                                     </button>
+                                    
+                                    {/* File Count Badge */}
+                                    {totalFiles > 0 && (
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleOpenPhotoModal(studentId, student.user_Name);
+                                        }}
+                                        className="text-xs text-blue-600 hover:text-blue-800 ml-1 sm:ml-2 cursor-pointer"
+                                        title="Manage uploaded files"
+                                      >
+                                        Files ({totalFiles})
+                                        {hasProfessorFiles && (
+                                          <span className="ml-1 text-green-600">↑{getProfessorFileCount(studentId)}</span>
+                                        )}
+                                        {hasStudentFiles && (
+                                          <span className="ml-1 text-green-600">↓{getStudentFileCount(studentId)}</span>
+                                        )}
+                                      </button>
+                                    )}
                                   </div>
                                 </td>
                               </tr>
@@ -1147,7 +1364,7 @@ const ClassWorkSubmission = ({
 
               {/* Right Panel - Analytics */}
               <div className={`${isMobile ? 'w-1/2 flex-shrink-0 snap-start' : 'w-1/2'} h-full flex flex-col overflow-hidden`}>
-                {/* Analytics Content - Scrollable within right panel */}
+                {/* Analytics Content */}
                 <div className="flex-1 overflow-y-auto">
                   {selectedStudent ? (
                     <div className="h-full flex flex-col p-3 sm:p-4 md:p-6">
@@ -1225,7 +1442,7 @@ const ClassWorkSubmission = ({
                         )}
                       </div>
 
-                      {/* Student Details */}
+                      {/* Student Details with Files */}
                       <div className="mt-3 sm:mt-4 md:mt-6 p-2 sm:p-3 md:p-4 bg-gray-50 rounded-lg">
                         <h4 className="font-medium text-gray-900 mb-1 sm:mb-2 text-xs sm:text-sm md:text-base">Student Details</h4>
                         <div className="space-y-1 text-xs sm:text-sm text-gray-600">
@@ -1235,11 +1452,13 @@ const ClassWorkSubmission = ({
                             activity
                           )}</p>
                           <p>Current Grade: {localStudents.find(s => s.user_ID === selectedStudent.id)?.grade || 'Not graded'}</p>
-                          {hasUploadedFiles(selectedStudent.id) && (
+                          
+                          {/* Professor's Files Section */}
+                          {getProfessorFileCount(selectedStudent.id) > 0 && (
                             <div className="mt-2">
-                              <p className="font-medium">Uploaded Files:</p>
+                              <p className="font-medium">Professor's Files:</p>
                               <ul className="ml-4 list-disc">
-                                {uploadedFilesList[selectedStudent.id].slice(0, 2).map((file, index) => (
+                                {uploadedFilesList[selectedStudent.id]?.professor?.slice(0, 2).map((file, index) => (
                                   <li key={index}>
                                     <a
                                       href={file.url}
@@ -1252,19 +1471,50 @@ const ClassWorkSubmission = ({
                                     </a>
                                   </li>
                                 ))}
-                                {uploadedFilesList[selectedStudent.id].length > 2 && (
+                                {getProfessorFileCount(selectedStudent.id) > 2 && (
                                   <li className="text-gray-500">
-                                    +{uploadedFilesList[selectedStudent.id].length - 2} more files
+                                    +{getProfessorFileCount(selectedStudent.id) - 2} more files
                                   </li>
                                 )}
                               </ul>
-                              <button
-                                onClick={() => handleOpenPhotoModal(selectedStudent.id, selectedStudent.name)}
-                                className="text-xs text-blue-600 hover:text-blue-800 mt-1"
-                              >
-                                Manage all files →
-                              </button>
                             </div>
+                          )}
+
+                          {/* Student's Files Section */}
+                          {getStudentFileCount(selectedStudent.id) > 0 && (
+                            <div className="mt-2">
+                              <p className="font-medium">Student's Submitted Files:</p>
+                              <ul className="ml-4 list-disc">
+                                {uploadedFilesList[selectedStudent.id]?.student?.slice(0, 2).map((file, index) => (
+                                  <li key={index}>
+                                    <a
+                                      href={file.url}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="text-green-600 hover:text-green-800"
+                                      title={file.name}
+                                    >
+                                      {file.name.length > 30 ? file.name.substring(0, 27) + '...' : file.name}
+                                    </a>
+                                  </li>
+                                ))}
+                                {getStudentFileCount(selectedStudent.id) > 2 && (
+                                  <li className="text-gray-500">
+                                    +{getStudentFileCount(selectedStudent.id) - 2} more files
+                                  </li>
+                                )}
+                              </ul>
+                            </div>
+                          )}
+
+                          {/* Manage Files Button */}
+                          {(getProfessorFileCount(selectedStudent.id) > 0 || getStudentFileCount(selectedStudent.id) > 0) && (
+                            <button
+                              onClick={() => handleOpenPhotoModal(selectedStudent.id, selectedStudent.name)}
+                              className="text-xs text-blue-600 hover:text-blue-800 mt-1"
+                            >
+                              Manage all files →
+                            </button>
                           )}
                         </div>
                       </div>

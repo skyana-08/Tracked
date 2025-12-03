@@ -65,28 +65,24 @@ export default function ActivityOverview({
 
   // FIXED: Updated utility function to properly count pending tasks
   const sumStatusCounts = (list) => {
-    let completed = 0, missed = 0, pending = 0, late = 0;
+    let submitted = 0, missed = 0, assigned = 0;
     
     list.forEach(it => {
-      const submitted = it.submitted === 1 || it.submitted === true;
-      const missing = it.missing === 1 || it.missing === true;
-      const lateSubmission = it.late === 1 || it.late === true;
+      const isSubmitted = it.submitted === 1 || it.submitted === true;
+      const isMissing = it.missing === 1 || it.missing === true;
       
-      if (submitted) {
-        if (lateSubmission) {
-          late++; // Count as late if submitted but late
-        } else {
-          completed++; // Count as completed if submitted on time
-        }
-      } else if (missing) {
+      if (isSubmitted) {
+        // All submitted activities (both on-time and late) count as Submitted
+        submitted++;
+      } else if (isMissing) {
         missed++;
       } else {
-        // If not submitted and not missing, it's pending/pending
-        pending++;
+        // If not submitted and not missing, it's assigned
+        assigned++;
       }
     });
     
-    return { completed, pending, missed, late };
+    return { submitted, assigned, missed };
   };
 
   // compute status counts depending on selected filter
@@ -97,10 +93,9 @@ export default function ActivityOverview({
       const act = sumStatusCounts(activitiesList);
       const p = sumStatusCounts(projectsList);
       return {
-        completed: q.completed + a.completed + act.completed + p.completed,
-        pending:   q.pending   + a.pending   + act.pending   + p.pending,
+        submitted: q.submitted + a.submitted + act.submitted + p.submitted,
+        assigned:   q.assigned   + a.assigned   + act.assigned   + p.assigned,
         missed:    q.missed    + a.missed    + act.missed    + p.missed,
-        late:      q.late      + a.late      + act.late      + p.late,
       };
     } else if (selectedFilter === "Quizzes") {
       return sumStatusCounts(quizzesList);
@@ -111,7 +106,7 @@ export default function ActivityOverview({
     } else if (selectedFilter === "Projects") {
       return sumStatusCounts(projectsList);
     } else {
-      return { completed: 0, pending: 0, missed: 0, late: 0 };
+      return { submitted: 0, assigned: 0, missed: 0 };
     }
   }, [selectedFilter, quizzesList, assignmentsList, activitiesList, projectsList]);
 
@@ -205,9 +200,8 @@ export default function ActivityOverview({
 
   // segments for pie: Completed, pending, Missed
   const segments = useMemo(() => [
-    { label: "Completed", value: statusCounts.completed, color: "#00A15D" },
-    { label: "Late", value: statusCounts.late, color: "#F59E0B" }, 
-    { label: "Pending", value: statusCounts.pending, color: "#2196F3" },
+    { label: "Submitted", value: statusCounts.completed},
+    { label: "Assigned", value: statusCounts.pending, color: "#2196F3" },
     { label: "Missed", value: statusCounts.missed, color: "#EF4444" },
   ], [statusCounts]);
 
@@ -536,9 +530,8 @@ export default function ActivityOverview({
                     <th className="text-left p-2 sm:p-3 font-bold">Task</th>
                     <th className="text-left p-2 sm:p-3 font-bold">Title</th>
                     <th className="text-left p-2 sm:p-3 font-bold text-[#00A15D]">Submitted</th>
-                    <th className="text-left p-2 sm:p-3 font-bold text-[#F59E0B]">Late</th> 
-                    <th className="text-left p-2 sm:p-3 font-bold text-[#2196F3]">Pending</th>
-                    <th className="text-left p-2 sm:p-3 font-bold text-[#FF6666]">Missing</th>
+                    <th className="text-left p-2 sm:p-3 font-bold text-[#2196F3]">Assigned</th>
+                    <th className="text-left p-2 sm:p-3 font-bold text-[#FF6666]">Missed</th>
                     <th className="text-left p-2 sm:p-3 font-bold">Deadline</th>
                   </tr>
                 </thead>
@@ -546,9 +539,8 @@ export default function ActivityOverview({
                   {currentActivities.map((item, index) => {
                     // Determine status for each item
                     const isSubmitted = item.submitted === 1 || item.submitted === true;
-                    const isLate = item.late === 1 || item.late === true;
                     const isMissing = item.missing === 1 || item.missing === true;
-                    const isPending = !isSubmitted && !isMissing && !isLate;
+                    const isAssigned = !isSubmitted && !isMissing;
                     
                     return (
                       <tr key={item.id || index} className="border-b border-gray-100 hover:bg-gray-50">
@@ -564,28 +556,19 @@ export default function ActivityOverview({
                           )}
                         </td>
                         
-                        {/* Late Column */}
-                        <td className="p-2 sm:p-3 text-[#F59E0B]">
-                          {isLate ? (
-                            <img src={CheckLate} alt="Late" className="w-4 h-4 sm:w-5 sm:h-5" />
-                          ) : (
-                            <span>-</span>
-                          )}
-                        </td>
-
-                        {/* Pending Column */}
+                        {/* Assigned Column */}
                         <td className="p-2 sm:p-3 text-[#2196F3]">
-                          {isPending ? (
-                            <img src={CheckPending} alt="Pending" className="w-4 h-4 sm:w-5 sm:h-5" />
+                          {isAssigned ? (
+                            <img src={CheckPending} alt="Assigned" className="w-4 h-4 sm:w-5 sm:h-5" />
                           ) : (
                             <span>-</span>
                           )}
                         </td>
                         
-                        {/* Missing Column */}
+                        {/* Missed Column */}
                         <td className="p-2 sm:p-3 text-[#FF6666]">
                           {isMissing ? (
-                            <img src={Cross} alt="Missing" className="w-4 h-4 sm:w-5 sm:h-5" />
+                            <img src={Cross} alt="Missed" className="w-4 h-4 sm:w-5 sm:h-5" />
                           ) : (
                             <span>-</span>
                           )}

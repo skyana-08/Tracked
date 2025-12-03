@@ -2,9 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import Sidebar from "../../Components/Sidebar";
 import Header from "../../Components/Header";
-
 import KickStudentList from "../../Components/StudentListComponents/KickStudentList";
-
 import SubjectDetailsIcon from '../../assets/SubjectDetails.svg';
 import BackButton from '../../assets/BackButton(Light).svg';
 import Search from "../../assets/Search.svg";
@@ -13,7 +11,7 @@ import StudentIcon from '../../assets/Student(Light).svg';
 import Details from '../../assets/Details(Light).svg';
 import PersonIcon from '../../assets/Person.svg';
 import ClassManagementIcon from "../../assets/ClassManagement(Light).svg";
-import Copy from "../../assets/Copy(Light).svg"; // Added import
+import Copy from "../../assets/Copy(Light).svg";
 
 export default function StudentList() {
   const location = useLocation();
@@ -46,21 +44,43 @@ export default function StudentList() {
     return null;
   };
 
+  // Enhanced fetch function with better error handling
+  const fetchData = async (url, options = {}) => {
+    try {
+      const response = await fetch(url, options);
+      
+      // Check if response is empty
+      const text = await response.text();
+      if (!text || text.trim() === '') {
+        throw new Error('Empty response from server');
+      }
+      
+      try {
+        const data = JSON.parse(text);
+        return { ok: response.ok, data };
+      } catch (parseError) {
+        console.error('JSON Parse Error:', parseError);
+        console.error('Response text:', text);
+        throw new Error('Invalid JSON response from server');
+      }
+    } catch (error) {
+      console.error('Fetch Error:', error);
+      throw error;
+    }
+  };
+
   // Fetch professor details by ID
   const fetchProfessorDetails = async (professorId) => {
     try {
-      const response = await fetch(`https://tracked.6minds.site/Professor/SubjectDetailsDB/get_professor_details.php?professor_ID=${professorId}`);
+      const result = await fetchData(
+        `https://tracked.6minds.site/Professor/SubjectDetailsDB/get_professor_details.php?professor_ID=${professorId}`
+      );
       
-      if (response.ok) {
-        const result = await response.json();
-        if (result.success) {
-          return result.professor;
-        } else {
-          console.error('Error fetching professor details:', result.message);
-          return null;
-        }
+      if (result.ok && result.data.success) {
+        return result.data.professor;
       } else {
-        throw new Error('Failed to fetch professor details');
+        console.error('Error fetching professor details:', result.data?.message);
+        return null;
       }
     } catch (error) {
       console.error('Error fetching professor details:', error);
@@ -73,7 +93,6 @@ export default function StudentList() {
     if (classInfo?.subject_code) {
       navigator.clipboard.writeText(classInfo.subject_code)
         .then(() => {
-          // Show temporary feedback
           const originalText = document.querySelector('.copy-text');
           if (originalText) {
             originalText.textContent = 'Copied!';
@@ -101,14 +120,34 @@ export default function StudentList() {
         setLoading(true);
         setError("");
         
-        await Promise.all([
-          fetchClassDetails(),
+        const professorId = getProfessorId();
+        if (!professorId) {
+          throw new Error("Professor ID not found. Please log in again.");
+        }
+
+        // Fetch class details and students in parallel
+        const [classResult, studentsResult] = await Promise.allSettled([
+          fetchClassDetails(professorId),
           fetchStudents()
         ]);
+
+        // Handle class details result
+        if (classResult.status === 'rejected') {
+          console.error('Failed to fetch class details:', classResult.reason);
+          setError("Failed to load class details: " + (classResult.reason.message || 'Unknown error'));
+        }
+
+        // Handle students result
+        if (studentsResult.status === 'rejected') {
+          console.error('Failed to fetch students:', studentsResult.reason);
+          if (!error) { // Only set error if not already set
+            setError("Failed to load students: " + (studentsResult.reason.message || 'Unknown error'));
+          }
+        }
         
       } catch (error) {
         console.error('Error fetching data:', error);
-        setError("Failed to load class data");
+        setError("Failed to load class data: " + (error.message || 'Unknown error'));
       } finally {
         setLoading(false);
       }
@@ -117,84 +156,69 @@ export default function StudentList() {
     fetchAllData();
   }, [subjectCode]);
 
-  const fetchClassDetails = async () => {
+  const fetchClassDetails = async (professorId) => {
     try {
-      const professorId = getProfessorId();
-      if (!professorId) {
-        throw new Error("Professor ID not found");
-      }
-
-      const response = await fetch(`https://tracked.6minds.site/Professor/SubjectDetailsDB/get_class_details.php?subject_code=${subjectCode}&professor_ID=${professorId}`);
+      const result = await fetchData(
+        `https://tracked.6minds.site/Professor/SubjectDetailsDB/get_class_details.php?subject_code=${subjectCode}&professor_ID=${professorId}`
+      );
       
-      if (response.ok) {
-        const result = await response.json();
-        if (result.success) {
-          setClassInfo(result.class_data);
-          
-          // Fetch professor details to get the actual name
-          const professorDetails = await fetchProfessorDetails(result.class_data.professor_ID);
-          
-          if (professorDetails) {
-            // Set teacher information with actual professor name
-            setTeachers([
-              {
-                id: result.class_data.professor_ID,
-                name: professorDetails.tracked_firstname && professorDetails.tracked_lastname 
-                  ? `${professorDetails.tracked_firstname} ${professorDetails.tracked_lastname}`
-                  : `Professor ${result.class_data.professor_ID}`,
-                role: "Head Teacher",
-                email: professorDetails.tracked_email,
-                // Add other professor details if needed
-              }
-            ]);
-          } else {
-            // Fallback if professor details can't be fetched
-            setTeachers([
-              {
-                id: result.class_data.professor_ID,
-                name: `Professor ${result.class_data.professor_ID}`,
-                role: "Head Teacher",
-              }
-            ]);
-          }
+      if (result.ok && result.data.success) {
+        setClassInfo(result.data.class_data);
+        
+        // Fetch professor details to get the actual name
+        const professorDetails = await fetchProfessorDetails(result.data.class_data.professor_ID);
+        
+        if (professorDetails) {
+          setTeachers([
+            {
+              id: result.data.class_data.professor_ID,
+              name: professorDetails.tracked_firstname && professorDetails.tracked_lastname 
+                ? `${professorDetails.tracked_firstname} ${professorDetails.tracked_lastname}`
+                : `Professor ${result.data.class_data.professor_ID}`,
+              role: "Head Teacher",
+              email: professorDetails.tracked_email,
+            }
+          ]);
         } else {
-          throw new Error(result.message || "Failed to fetch class details");
+          setTeachers([
+            {
+              id: result.data.class_data.professor_ID,
+              name: `Professor ${result.data.class_data.professor_ID}`,
+              role: "Head Teacher",
+            }
+          ]);
         }
       } else {
-        throw new Error('Failed to fetch class details');
+        throw new Error(result.data?.message || "Failed to fetch class details");
       }
     } catch (error) {
       console.error('Error fetching class details:', error);
-      setError("Error loading class details: " + error.message);
+      throw error;
     }
   };
 
   const fetchStudents = async () => {
     try {
-      const response = await fetch(`https://tracked.6minds.site/Professor/SubjectDetailsDB/get_students_by_section.php?subject_code=${subjectCode}`);
+      const result = await fetchData(
+        `https://tracked.6minds.site/Professor/SubjectDetailsDB/get_students_by_section.php?subject_code=${subjectCode}`
+      );
       
-      if (response.ok) {
-        const result = await response.json();
-        if (result.success) {
-          // Transform the student data to match the frontend structure
-          const transformedStudents = result.students.map(student => ({
-            id: student.tracked_ID,
-            name: `${student.tracked_firstname} ${student.tracked_lastname}`,
-            email: student.tracked_email,
-            gender: student.tracked_gender,
-            yearSection: student.tracked_yearandsec,
-            enrolledAt: student.enrolled_at
-          }));
-          setStudents(transformedStudents);
-        } else {
-          throw new Error(result.message || "Failed to fetch students");
-        }
+      if (result.ok && result.data.success) {
+        const transformedStudents = result.data.students.map(student => ({
+          id: student.tracked_ID,
+          name: `${student.tracked_firstname} ${student.tracked_lastname}`,
+          email: student.tracked_email,
+          gender: student.tracked_gender,
+          yearSection: student.tracked_yearandsec,
+          enrolledAt: student.enrolled_at
+        }));
+        setStudents(transformedStudents);
       } else {
-        throw new Error('Failed to fetch students');
+        throw new Error(result.data?.message || "Failed to fetch students");
       }
     } catch (error) {
       console.error('Error fetching students:', error);
-      setError("Error loading students: " + error.message);
+      throw error;
     }
   };
 
@@ -209,7 +233,7 @@ export default function StudentList() {
 
   const handleKickStudent = (student) => {
     setKickModal({ isOpen: true, student });
-    setActiveDropdown(null); // Close dropdown when opening modal
+    setActiveDropdown(null);
   };
 
   const confirmKickStudent = async () => {
@@ -222,7 +246,7 @@ export default function StudentList() {
         return;
       }
 
-      const response = await fetch('https://tracked.6minds.site/Professor/AttendanceDB/remove_student.php', {
+      const result = await fetchData('https://tracked.6minds.site/Professor/AttendanceDB/remove_student.php', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -234,15 +258,12 @@ export default function StudentList() {
         })
       });
 
-      const result = await response.json();
-
-      if (result.success) {
+      if (result.ok && result.data.success) {
         console.log(`Successfully removed student: ${kickModal.student.name}`);
-        // Refresh the students list
         await fetchStudents();
         setKickModal({ isOpen: false, student: null });
       } else {
-        alert('Error removing student: ' + result.message);
+        alert('Error removing student: ' + (result.data?.message || 'Unknown error'));
         setKickModal({ isOpen: false, student: null });
       }
     } catch (error) {
@@ -258,15 +279,17 @@ export default function StudentList() {
 
   // Close dropdown when clicking outside
   useEffect(() => {
-    const handleClickOutside = () => {
-      setActiveDropdown(null);
+    const handleClickOutside = (e) => {
+      if (activeDropdown && !e.target.closest('.dropdown-container')) {
+        setActiveDropdown(null);
+      }
     };
 
     document.addEventListener('click', handleClickOutside);
     return () => {
       document.removeEventListener('click', handleClickOutside);
     };
-  }, []);
+  }, [activeDropdown]);
 
   // Loading state
   if (loading) {
@@ -285,7 +308,7 @@ export default function StudentList() {
   }
 
   // Error state
-  if (error) {
+  if (error || !classInfo) {
     return (
       <div>
         <Sidebar role="teacher" isOpen={isOpen} setIsOpen={setIsOpen} />
@@ -294,16 +317,26 @@ export default function StudentList() {
           <div className="p-5 text-center">
             <div className="text-red-600 mb-4">
               <p className="text-lg font-semibold">Error Loading Data</p>
-              <p className="text-sm">{error}</p>
+              <p className="text-sm">{error || "Class not found or access denied"}</p>
+              <p className="text-xs mt-2 text-gray-500">
+                Subject Code: {subjectCode || 'Not provided'}
+              </p>
             </div>
-            <Link to="/ClassManagement">
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <button 
-                className="bg-[#00A15D] hover:bg-[#00874E] text-white font-bold py-2 px-4 rounded transition-colors"
-                title="Return to class management page"
+                onClick={() => window.location.reload()}
+                className="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded transition-colors"
               >
-                Back to Class Management
+                Retry Loading
               </button>
-            </Link>
+              <Link to="/ClassManagement">
+                <button 
+                  className="bg-[#00A15D] hover:bg-[#00874E] text-white font-bold py-2 px-4 rounded transition-colors"
+                >
+                  Back to Class Management
+                </button>
+              </Link>
+            </div>
           </div>
         </div>
       </div>
@@ -341,32 +374,31 @@ export default function StudentList() {
             <div className="flex flex-wrap items-center gap-1 sm:gap-3">
               <span className="font-semibold">SUBJECT CODE:</span>
               <div className="flex items-center gap-2">
-                <span className="break-all">{classInfo?.subject_code || 'N/A'}</span>
-                {classInfo?.subject_code && (
-                  <button
-                    onClick={copySubjectCode}
-                    className="p-1 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded transition-colors cursor-pointer flex items-center gap-1"
-                    title="Copy subject code"
-                  >
-                    <img 
-                      src={Copy} 
-                      alt="Copy" 
-                      className="w-4 h-4" 
-                    />
-                  </button>
-                )}
+                <span className="break-all">{classInfo.subject_code}</span>
+                <button
+                  onClick={copySubjectCode}
+                  className="p-1 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded transition-colors cursor-pointer flex items-center gap-1"
+                  title="Copy subject code"
+                >
+                  <img 
+                    src={Copy} 
+                    alt="Copy" 
+                    className="w-4 h-4" 
+                  />
+                  <span className="copy-text text-xs">Copy</span>
+                </button>
               </div>
             </div>
 
             <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-1 sm:gap-3">
               <span className="font-semibold">SUBJECT:</span>
-              <span className="break-words">{classInfo?.subject || 'N/A'}</span>
+              <span className="break-words">{classInfo.subject || 'N/A'}</span>
             </div>
 
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3">
               <div className="flex items-center gap-2">
                 <span className="font-semibold">Section:</span>
-                <span>{classInfo?.section || 'N/A'}</span>
+                <span>{classInfo.section || 'N/A'}</span>
               </div>
               <div className="w-full sm:w-auto flex justify-end">
                 <Link to={`/Class?code=${subjectCode}`}>
@@ -520,7 +552,7 @@ export default function StudentList() {
                 </div>
               ) : (
                 filteredStudents.map((student) => (
-                  <div key={student.id} className="bg-white p-3 sm:p-4 rounded-lg shadow-md border border-gray-200 hover:shadow-lg transition-shadow">
+                  <div key={student.id} className="bg-white p-3 sm:p-4 rounded-lg shadow-md border border-gray-200 hover:shadow-lg transition-shadow dropdown-container">
                     <div className="flex items-center justify-between gap-3">
                       <div className="flex items-center gap-3 min-w-0 flex-1">
                         <div 
@@ -545,7 +577,7 @@ export default function StudentList() {
                       </div>
                       
                       {/* Fixed Dropdown Menu */}
-                      <div className="relative flex-shrink-0">
+                      <div className="relative flex-shrink-0 dropdown-container">
                         <button 
                           onClick={(e) => {
                             e.stopPropagation();

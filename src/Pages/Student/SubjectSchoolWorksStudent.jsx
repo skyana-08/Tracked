@@ -121,14 +121,32 @@ const StudentActivityCard = ({ activity, onViewDetails }) => {
       }
     }
     
-    if (isSubmitted && isLate) return { status: "Late", color: "bg-yellow-100 text-yellow-800", type: "submitted" };
-    if (isSubmitted) return { status: "Submitted", color: "bg-green-100 text-green-800", type: "submitted" };
-    if (isOverdue) return { status: "Missed", color: "bg-red-100 text-red-800", type: "missed" };
-    return { status: "Assigned", color: "bg-blue-100 text-blue-800", type: "active" };
+    if (isSubmitted && isLate) return { 
+      status: "Late", 
+      color: "bg-yellow-100 text-yellow-800", 
+      type: "submitted" 
+    };
+    if (isSubmitted) return { 
+      status: "Submitted", 
+      color: "bg-green-100 text-green-800", 
+      type: "submitted" 
+    };
+    if (isOverdue) return { 
+      status: "Missed", 
+      color: "bg-red-100 text-red-800", 
+      type: "missed" 
+    };
+    return { 
+      status: "Assigned", 
+      color: "bg-blue-100 text-blue-800", 
+      type: "active" 
+    };
   };
 
-  // Check if professor has submitted (static for now - you can replace this with actual data from backend)
-  const hasProfessorSubmission = activity.id % 2 === 0; // Example: every other activity has professor submission
+
+   // Check if professor has uploaded files (from database)
+  const hasProfessorSubmission = activity.professor_file_count > 0 || 
+                               (activity.professor_file_url && activity.professor_file_url !== null);
 
   const statusInfo = getStudentStatus(activity);
 
@@ -181,6 +199,23 @@ const StudentActivityCard = ({ activity, onViewDetails }) => {
                 <span className="text-green-600 font-bold">{activity.points} pts</span>
               </div>
             )}
+
+            {/* Grade - Show only if graded */}
+            {activity.grade !== null && activity.grade !== undefined && activity.grade !== '' && (
+              <div className="flex items-center gap-2">
+                <span className="font-bold">Your Grade:</span>
+                <span className="text-blue-600 font-bold">{activity.grade}/{activity.points}</span>
+                {activity.grade >= activity.points * 0.7 ? (
+                  <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">
+                    Good Job!
+                  </span>
+                ) : (
+                  <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full">
+                    Room for Improvement
+                  </span>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Professor's Submission Status - Quick Overview */}
@@ -206,6 +241,7 @@ const StudentActivityCard = ({ activity, onViewDetails }) => {
               </div>
               {hasProfessorSubmission && (
                 <span className="text-green-600 text-xs flex items-center gap-1">
+                  {activity.professor_file_count || 1} file{(activity.professor_file_count || 1) > 1 ? 's' : ''}
                 </span>
               )}
             </div>
@@ -252,13 +288,18 @@ export default function SubjectSchoolWorksStudent() {
         const userDataString = localStorage.getItem('user');
         if (userDataString) {
           const userData = JSON.parse(userDataString);
-          setStudentId(userData.id);
-          return userData.id;
+          const id = userData.id || userData.tracked_ID;
+          if (id) {
+            setStudentId(id);
+            return id;
+          }
         }
+        console.error('Student ID not found in localStorage');
+        return null;
       } catch (error) {
         console.error('Error parsing user data:', error);
+        return null;
       }
-      return null;
     };
 
     getStudentId();
@@ -747,6 +788,7 @@ export default function SubjectSchoolWorksStudent() {
         onClose={() => setDetailsModalOpen(false)}
         onImageUpload={handleImageUpload}
         studentImages={studentImages}
+        studentId={studentId} // Add this line!
       />
     </div>
   );

@@ -45,101 +45,126 @@ if (empty($input['activity_ID']) || empty($input['students'])) {
 try {
     $pdo->beginTransaction();
 
-    // Updated SQL to handle submitted_at properly
-    $stmt = $pdo->prepare("
+    // Prepare UPDATE statement
+    $updateStmt = $pdo->prepare("
         UPDATE activity_grades 
         SET grade = ?, 
             submitted = ?, 
             late = ?, 
             submitted_at = CASE 
-                WHEN ? = 1 AND submitted_at IS NULL THEN NOW()  -- Set timestamp when first submitting
-                WHEN ? = 0 THEN NULL  -- Clear timestamp when marking as not submitted (missed)
-                ELSE submitted_at  -- Keep existing timestamp if already set
+                WHEN ? = 1 AND submitted_at IS NULL THEN NOW()
+                WHEN ? = 0 THEN NULL
+                ELSE submitted_at
             END,
             updated_at = NOW() 
         WHERE activity_ID = ? 
         AND student_ID = ?
     ");
     
+    // Prepare INSERT statement for new records
+    $insertStmt = $pdo->prepare("
+        INSERT INTO activity_grades 
+        (activity_ID, student_ID, grade, submitted, late, submitted_at, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, 
+            CASE 
+                WHEN ? = 1 THEN NOW()
+                ELSE NULL
+            END, 
+            NOW(), NOW())
+    ");
+    
     $updatedCount = 0;
+    $insertedCount = 0;
     $errors = [];
     
     foreach ($input['students'] as $student) {
-        // Validate student data
         if (empty($student['user_ID'])) {
             $errors[] = "Skipping student with missing user_ID: " . print_r($student, true);
             continue;
         }
 
-        // Convert empty string to null, and remove .0 from whole numbers
+        // Process grade value
         $grade = (isset($student['grade']) && $student['grade'] !== '' && $student['grade'] !== null) ? $student['grade'] : null;
         if ($grade !== null) {
-            // If it's a whole number, store as integer, otherwise keep as decimal
             $grade = (float)$grade;
             if ($grade == (int)$grade) {
                 $grade = (int)$grade;
             }
         }
         
-        // Handle missing properties safely with proper default values
         $submitted = isset($student['submitted']) ? ($student['submitted'] ? 1 : 0) : 0;
         $late = isset($student['late']) ? ($student['late'] ? 1 : 0) : 0;
         
-        error_log("Updating student {$student['user_ID']}: grade=$grade, submitted=$submitted, late=$late");
+        error_log("Processing student {$student['user_ID']}: grade=$grade, submitted=$submitted, late=$late");
         
-        try {
-            $result = $stmt->execute([
-                $grade,
-                $submitted,
-                $late,
-                $submitted, // First parameter for CASE WHEN condition
-                $submitted, // Second parameter for CASE WHEN condition  
-                $input['activity_ID'],
-                $student['user_ID']
-            ]);
-            
-            if ($result) {
-                $updatedCount++;
-                error_log("Successfully updated student {$student['user_ID']}");
-            } else {
-                $errorInfo = $stmt->errorInfo();
-                $errors[] = "Failed to update student {$student['user_ID']}: " . ($errorInfo[2] ?? 'Unknown error');
-                error_log("Failed to update student {$student['user_ID']}: " . print_r($errorInfo, true));
+        // First try to update existing record
+        $result = $updateStmt->execute([
+            $grade,
+            $submitted,
+            $late,
+            $submitted,
+            $submitted,  
+            $input['activity_ID'],
+            $student['user_ID']
+        ]);
+        
+        $rowsAffected = $updateStmt->rowCount();
+        
+        // If no rows were updated, insert a new record
+        if ($rowsAffected === 0) {
+            try {
+                $insertResult = $insertStmt->execute([
+                    $input['activity_ID'],
+                    $student['user_ID'],
+                    $grade,
+                    $submitted,
+                    $late,
+                    $submitted
+                ]);
+                
+                if ($insertResult) {
+                    $insertedCount++;
+                    error_log("INSERTED new record for student {$student['user_ID']}");
+                } else {
+                    $errorInfo = $insertStmt->errorInfo();
+                    $errors[] = "Failed to insert student {$student['user_ID']}: " . ($errorInfo[2] ?? 'Unknown error');
+                }
+            } catch (Exception $e) {
+                $errors[] = "Error inserting student {$student['user_ID']}: " . $e->getMessage();
             }
-        } catch (Exception $e) {
-            $errors[] = "Error updating student {$student['user_ID']}: " . $e->getMessage();
-            error_log("Exception updating student {$student['user_ID']}: " . $e->getMessage());
+        } else {
+            $updatedCount++;
+            error_log("UPDATED existing record for student {$student['user_ID']}");
         }
     }
 
     $pdo->commit();
     
-    error_log("Successfully updated $updatedCount students");
+    error_log("Successfully updated $updatedCount and inserted $insertedCount students");
     
     $response = [
         "success" => true, 
-        "message" => "Grades updated successfully",
+        "message" => "Grades saved successfully",
         "updated_count" => $updatedCount,
+        "inserted_count" => $insertedCount,
         "total_students" => count($input['students'])
     ];
     
     if (!empty($errors)) {
         $response['errors'] = $errors;
-        $response['warning'] = "Some students could not be updated";
+        $response['warning'] = "Some students could not be saved";
     }
     
     echo json_encode($response);
 
 } catch (Exception $e) {
     $pdo->rollBack();
-    error_log("Error updating grades: " . $e->getMessage());
+    error_log("Error saving grades: " . $e->getMessage());
     error_log("Stack trace: " . $e->getTraceAsString());
     http_response_code(500);
     echo json_encode([
         "success" => false, 
-        "message" => "Error updating grades: " . $e->getMessage(),
-        "error_details" => $e->getMessage(),
-        "stack_trace" => $e->getTraceAsString()
+        "message" => "Error saving grades: " . $e->getMessage()
     ]);
 }
 ?>

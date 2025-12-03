@@ -43,7 +43,7 @@ try {
         exit;
     }
 
-    // Get activities for this subject with UTC formatted timestamps and missing status
+    // Get activities for this subject with UTC formatted timestamps, grade, and professor files info
     $stmt = $pdo->prepare("
         SELECT 
             a.id,
@@ -59,16 +59,28 @@ try {
             DATE_FORMAT(a.updated_at, '%Y-%m-%dT%H:%i:%sZ') as updated_at,
             COALESCE(ag.submitted, 0) as submitted,
             DATE_FORMAT(ag.submitted_at, '%Y-%m-%dT%H:%i:%sZ') as submitted_at,
+            ag.grade,
+            ag.late,
+            ag.uploaded_file_url as professor_file_url,
+            ag.uploaded_file_name as professor_file_name,
             CASE 
                 WHEN COALESCE(ag.submitted, 0) = 0 AND a.deadline IS NOT NULL AND a.deadline < UTC_TIMESTAMP() THEN 1
                 ELSE 0
-            END as missing
+            END as missing,
+            -- Check if professor has uploaded files for this student
+            (
+                SELECT COUNT(*) 
+                FROM activity_files af 
+                WHERE af.activity_id = a.id 
+                AND af.student_id = ? 
+                AND af.uploaded_by = 'professor'
+            ) as professor_file_count
         FROM activities a 
         LEFT JOIN activity_grades ag ON a.id = ag.activity_ID AND ag.student_ID = ?
         WHERE a.subject_code = ? AND (a.archived = 0 OR a.archived IS NULL)
         ORDER BY a.created_at DESC
     ");
-    $stmt->execute([$student_id, $subject_code]);
+    $stmt->execute([$student_id, $student_id, $subject_code]);
     $activities = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     echo json_encode([

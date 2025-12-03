@@ -32,19 +32,77 @@ export default function AnalyticsTab() {
   const [searchTerm, setSearchTerm] = useState("");
   const [analyticsData, setAnalyticsData] = useState(null);
   const [selectedActivityType, setSelectedActivityType] = useState('All');
-  const [error, setError] = useState(null);
+  const [setError] = useState(null);
   const [barChartSort, setBarChartSort] = useState('desc');
   const [failingStudents, setFailingStudents] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(true);
   const [attendanceData, setAttendanceData] = useState(null);
+  const [activitiesData, setActivitiesData] = useState(null);
+  const [studentsData, setStudentsData] = useState(null);
+
+  // Get professor ID from localStorage
+  const getProfessorId = () => {
+    try {
+      const userDataString = localStorage.getItem("user");
+      if (userDataString) {
+        const userData = JSON.parse(userDataString);
+        
+        // Try different possible keys
+        if (userData.tracked_ID) return userData.tracked_ID;
+        if (userData.id) return userData.id;
+        if (userData.userId) return userData.userId;
+        if (userData.professor_ID) return userData.professor_ID;
+      }
+    } catch (error) {
+      console.error("Error parsing user data:", error);
+    }
+    
+    // Default to the professor ID from your database
+    return "202210602";
+  };
 
   useEffect(() => {
+    const loadAllData = async () => {
+      if (!subjectCode) return;
+      
+      setLoading(true);
+      
+      try {
+        // 1. Load class info
+        await fetchClassInfo();
+        
+        // 2. Load all data in parallel but wait for all to complete
+        const [attendanceResult, activitiesResult] = await Promise.all([
+          fetchAttendanceData(),
+          fetchActivitiesData()
+        ]);
+        
+        // 3. Process all data together
+        if (activitiesResult && activitiesResult.success) {
+          await processAllData(activitiesResult.activities, activitiesResult.students, attendanceResult);
+        } else {
+          setAnalyticsData(null);
+        }
+        
+      } catch (error) {
+        console.error("Error loading data:", error);
+        setError("Failed to load analytics data");
+      } finally {
+        setLoading(false);
+      }
+    };
+    
     if (subjectCode) {
-      fetchClassInfo();
-      fetchAnalyticsData();
-      fetchAttendanceData();
+      loadAllData();
     }
   }, [subjectCode]);
+
+  // Process analytics whenever attendance or activities data changes
+  useEffect(() => {
+    if (activitiesData && studentsData) {
+      processAnalyticsData(activitiesData, studentsData);
+    }
+  }, [attendanceData, activitiesData, studentsData]);
 
   const fetchClassInfo = async () => {
     try {
@@ -54,8 +112,6 @@ export default function AnalyticsTab() {
       const result = await response.json();
       if (result.success) {
         setClassInfo(result.class_info);
-      } else {
-        console.warn("Class info warning:", result.message);
       }
     } catch (error) {
       console.error("Error fetching class info:", error);
@@ -63,93 +119,73 @@ export default function AnalyticsTab() {
   };
 
   const fetchAttendanceData = async () => {
-      try {
-          const professor_ID = localStorage.getItem('professor_ID') || '1';
-          
-          console.log("Fetching attendance data for:", {
-              subjectCode,
-              professor_ID
-          });
-          
-          const response = await fetch(
-              `https://tracked.6minds.site/Professor/AttendanceDB/get_attendance_history.php?subject_code=${subjectCode}&professor_ID=${professor_ID}`
-          );
-          
-          const result = await response.json();
-          console.log("Attendance API response:", result);
-          
-          if (result.success && result.attendance_history) {
-              console.log(`Found ${result.attendance_history.length} attendance records`);
-              console.log("Sample attendance record:", result.attendance_history[0]);
-              setAttendanceData(result.attendance_history);
-          } else {
-              console.warn("No attendance data found:", result.message);
-              setAttendanceData(null);
-          }
-      } catch (error) {
-          console.error("Error fetching attendance data:", error);
-          setAttendanceData(null);
+    try {
+      const professorId = getProfessorId();
+      
+      const url = `https://tracked.6minds.site/Professor/AttendanceDB/get_attendance_history.php?subject_code=${subjectCode}&professor_ID=${professorId}`;
+      
+      const response = await fetch(url);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
+      
+      const result = await response.json();
+      
+      if (result.success) {
+        if (result.attendance_history && result.attendance_history.length > 0) {
+          setAttendanceData(result.attendance_history);
+          return result.attendance_history;
+        } else {
+          setAttendanceData([]);
+          return [];
+        }
+      } else {
+        setAttendanceData([]);
+        return [];
+      }
+    } catch (error) {
+      console.error("Error fetching attendance data:", error);
+      setAttendanceData([]);
+      return [];
+    }
   };
 
-  const fetchAnalyticsData = async () => {
-    setLoading(true);
-    setError(null);
+  const fetchActivitiesData = async () => {
     try {
-      console.log("Fetching analytics for subject:", subjectCode);
-      
       const response = await fetch(
         `https://tracked.6minds.site/Professor/SubjectDetailsDB/get_activities.php?subject_code=${subjectCode}`
       );
       
-      // Check if response is HTML instead of JSON
-      const contentType = response.headers.get("content-type");
-      if (!contentType || !contentType.includes("application/json")) {
-        const text = await response.text();
-        console.error("Received HTML instead of JSON:", text.substring(0, 500));
-        throw new Error("Server returned HTML instead of JSON");
-      }
-      
       const result = await response.json();
-      console.log("Analytics API response:", result);
-      
-      if (result.success) {
-        if (result.activities && result.students) {
-          console.log(`Found ${result.activities.length} activities and ${result.students.length} students`);
-          processAnalyticsData(result.activities, result.students);
-        } else {
-          setAnalyticsData(null);
-        }
-      } else {
-        setAnalyticsData(null);
-      }
+      return result;
     } catch (error) {
-      console.error("Error fetching analytics data:", error);
-      setError(error.message);
-      setAnalyticsData(null);
-    } finally {
-      setLoading(false);
+      console.error("Error fetching activities data:", error);
+      return null;
     }
   };
 
-  const processAnalyticsData = (activities, students) => {
-    // Ensure activities and students are arrays
-    const safeActivities = Array.isArray(activities) ? activities : [];
-    const safeStudents = Array.isArray(students) ? students : [];
+  const processAllData = async (activities, students) => {
+    // Store raw data for reprocessing if needed
+    setActivitiesData(activities);
+    setStudentsData(students);
     
-    if ((safeActivities.length === 0) && (!attendanceData || attendanceData.length === 0)) {
+    // Process analytics with all data
+    processAnalyticsData(activities, students);
+  };
+
+  const processAnalyticsData = (activities, students) => {
+    // Check if we have any data at all
+    const hasActivities = activities && activities.length > 0;
+    const hasAttendance = attendanceData && attendanceData.length > 0;
+    
+    if (!hasActivities && !hasAttendance) {
       setAnalyticsData(null);
       setFailingStudents([]);
       return;
     }
 
-    console.log("Processing analytics data...", { 
-      activitiesCount: safeActivities.length, 
-      studentsCount: safeStudents.length,
-      attendanceCount: attendanceData ? attendanceData.length : 0 
-    });
-    
-    const studentPerformance = calculateStudentPerformance(safeActivities, safeStudents);
+    const studentPerformance = calculateStudentPerformance(activities, students);
     
     const failing = studentPerformance
       .filter(student => student.averageGrade < 60)
@@ -166,80 +202,83 @@ export default function AnalyticsTab() {
     
     setFailingStudents(failing);
     
-    const lineChartData = prepareLineChartData(safeActivities, studentPerformance);
+    const lineChartData = prepareLineChartData(activities, studentPerformance);
     const pieChartData = preparePieChartData(studentPerformance);
     const barChartData = prepareBarChartData(studentPerformance, barChartSort);
-    const activityTypeData = prepareActivityTypeData(safeActivities, safeStudents);
-    const assessmentTypeBarData = prepareAssessmentTypeBarData(safeActivities, safeStudents);
+    const activityTypeData = prepareActivityTypeData(activities, students);
+    const assessmentTypeBarData = prepareAssessmentTypeBarData(activities, students);
 
-    setAnalyticsData({
+    const analyticsResult = {
       studentPerformance,
       lineChartData,
       pieChartData,
       barChartData,
       activityTypeData,
       assessmentTypeBarData,
-      activities: safeActivities,
-      students: safeStudents,
-      attendanceData,
-      summary: calculateSummary(studentPerformance, safeActivities, attendanceData)
-    });
+      activities,
+      students,
+      attendanceData: attendanceData || [],
+      summary: calculateSummary(studentPerformance, activities, attendanceData)
+    };
+    
+    setAnalyticsData(analyticsResult);
+    
+    return analyticsResult;
   };
 
   const calculateAttendanceRecord = (studentId) => {
-      if (!attendanceData || attendanceData.length === 0) {
-          console.log("No attendance data available for student:", studentId);
-          return null;
+    if (!attendanceData || attendanceData.length === 0) {
+      return null;
+    }
+    
+    const attendanceSummary = {
+      totalDays: attendanceData.length,
+      present: 0,
+      late: 0,
+      absent: 0,
+      excused: 0,
+      records: []
+    };
+    
+    attendanceData.forEach(dateRecord => {
+      // Find student's attendance record for this date
+      const studentRecord = dateRecord.students.find(s => 
+        s.student_ID == studentId || 
+        s.user_ID == studentId
+      );
+      
+      let status = 'absent'; // Default status
+      
+      if (studentRecord) {
+        status = studentRecord.status ? studentRecord.status.toLowerCase() : 'absent';
       }
       
-      console.log("Calculating attendance for student:", studentId, "Total dates:", attendanceData.length);
-      
-      const attendanceSummary = {
-          totalDays: attendanceData.length,
-          present: 0,
-          late: 0,
-          absent: 0,
-          records: []
-      };
-      
-      attendanceData.forEach(dateRecord => {
-          // Find student's attendance record for this date
-          const studentRecord = dateRecord.students.find(s => 
-              s.student_ID == studentId || 
-              s.user_ID == studentId
-          );
-          
-          let status = 'absent'; // Default status
-          
-          if (studentRecord) {
-              status = studentRecord.status ? studentRecord.status.toLowerCase() : 'absent';
-          }
-          
-          console.log(`Date: ${dateRecord.date}, Student: ${studentId}, Status: ${status}`);
-          
-          attendanceSummary.records.push({
-              date: dateRecord.date,
-              rawDate: dateRecord.raw_date,
-              status: status
-          });
-          
-        switch (status) {
-          case 'present':
-          case 'on-time':
-            attendanceSummary.present++;
-            break;
-          case 'late':
-            attendanceSummary.late++;
-            break;
-          case 'absent':
-          default:
-            attendanceSummary.absent++;
-            break;
-        }
+      attendanceSummary.records.push({
+        date: dateRecord.date,
+        rawDate: dateRecord.raw_date,
+        status: status
       });
       
-      console.log("Attendance summary for student", studentId, ":", attendanceSummary);
-      return attendanceSummary;
+      switch (status) {
+        case 'present':
+        case 'on-time':
+          attendanceSummary.present++;
+          break;
+        case 'late':
+          attendanceSummary.late++;
+          break;
+        case 'absent':
+          attendanceSummary.absent++;
+          break;
+        case 'excused':
+          attendanceSummary.excused++;
+          break;
+        default:
+          attendanceSummary.absent++;
+      }
+    });
+    
+    return attendanceSummary;
   };
 
   const calculateStudentPerformance = (activities, students) => {
@@ -288,17 +327,11 @@ export default function AnalyticsTab() {
       
       let attendanceRate = 0;
       if (attendanceData && attendanceData.length > 0) {
-        const studentAttendance = attendanceData.map(dateRecord => {
-          const studentRecord = dateRecord.students.find(s => s.student_ID === student.user_ID);
-          return studentRecord ? studentRecord.status : 'absent';
-        });
-        
-        const presentCount = studentAttendance.filter(status => 
-          status.toLowerCase() === 'present' || status.toLowerCase() === 'on-time'
-        ).length;
-        
-        attendanceRate = studentAttendance.length > 0 ? 
-          (presentCount / studentAttendance.length) * 100 : 0;
+        const attendanceSummary = calculateAttendanceRecord(student.user_ID);
+        if (attendanceSummary && attendanceSummary.totalDays > 0) {
+          const totalAttended = attendanceSummary.present + attendanceSummary.excused;
+          attendanceRate = (totalAttended / attendanceSummary.totalDays) * 100;
+        }
       }
 
       return {
@@ -327,6 +360,7 @@ export default function AnalyticsTab() {
       };
     });
 
+    // Process regular activities
     activities.forEach(activity => {
       const type = activity.activity_type || 'Other';
       if (!typeData[type]) {
@@ -350,11 +384,13 @@ export default function AnalyticsTab() {
       typeData[type].students = Math.max(typeData[type].students, gradedStudents.length);
     });
 
+    // Process attendance data
     if (attendanceData && attendanceData.length > 0) {
       students.forEach(student => {
         const attendanceSummary = calculateAttendanceRecord(student.user_ID);
         if (attendanceSummary && attendanceSummary.totalDays > 0) {
-          const attendanceRate = (attendanceSummary.present / attendanceSummary.totalDays) * 100;
+          const totalAttended = attendanceSummary.present + attendanceSummary.excused;
+          const attendanceRate = (totalAttended / attendanceSummary.totalDays) * 100;
           typeData['Attendance'].total += attendanceRate;
           typeData['Attendance'].count += 1;
         }
@@ -380,8 +416,11 @@ export default function AnalyticsTab() {
     const avgSubmissionRate = studentPerformance.length > 0 ? 
       studentPerformance.reduce((sum, student) => sum + student.submissionRate, 0) / studentPerformance.length : 0;
 
-    const avgAttendanceRate = studentPerformance.length > 0 ? 
-      studentPerformance.reduce((sum, student) => sum + student.attendanceRate, 0) / studentPerformance.length : 0;
+    let avgAttendanceRate = 0;
+    if (attendanceData && attendanceData.length > 0) {
+      const totalAttendanceRates = studentPerformance.reduce((sum, student) => sum + student.attendanceRate, 0);
+      avgAttendanceRate = totalAttendanceRates / studentPerformance.length;
+    }
 
     const activityTypes = {};
     activities.forEach(activity => {
@@ -494,109 +533,139 @@ export default function AnalyticsTab() {
   };
 
   const prepareActivityTypeData = (activities, students) => {
-      const typeData = {};
-      
-      [...ACTIVITY_TYPES].forEach(type => {
-          typeData[type] = [];
-      });
+    const typeData = {};
+    
+    [...ACTIVITY_TYPES].forEach(type => {
+      typeData[type] = [];
+    });
 
-      // Process regular activities
-      const activitiesByType = {};
-      activities.forEach(activity => {
-          const type = activity.activity_type || 'Other';
-          if (!activitiesByType[type]) {
-              activitiesByType[type] = [];
-          }
-          activitiesByType[type].push(activity);
-      });
-
-      Object.keys(activitiesByType).forEach(type => {
-          const typeActivities = activitiesByType[type];
-          
-          const typePerformance = students.map(student => {
-              const gradedActivities = typeActivities.filter(activity => {
-                  const studentData = activity.students?.find(s => s.user_ID === student.user_ID);
-                  return studentData && studentData.submitted && studentData.grade !== null;
-              });
-
-              if (gradedActivities.length === 0) {
-                  return null; // Skip students with no grades in this type
-              }
-
-              const total = gradedActivities.reduce((sum, activity) => {
-                  const studentData = activity.students?.find(s => s.user_ID === student.user_ID);
-                  return sum + (parseFloat(studentData?.grade) || 0);
-              }, 0);
-
-              const maxPossible = gradedActivities.reduce((sum, activity) => 
-                  sum + (parseFloat(activity.points) || 0), 0);
-
-              const average = maxPossible > 0 ? (total / maxPossible) * 100 : 0;
-
-              return {
-                  studentName: student.user_ID,
-                  fullName: student.user_Name,
-                  average: Math.round(average * 100) / 100,
-                  activityCount: gradedActivities.length
-              };
-          }).filter(student => student !== null && student.average > 0)
-            .sort((a, b) => b.average - a.average)
-            .slice(0, 8);
-
-          typeData[type] = typePerformance;
-      });
-
-      // Process attendance data separately
-      if (attendanceData && students.length > 0) {
-          console.log("Processing attendance data for activity type chart");
-          const attendancePerformance = students.map(student => {
-              const attendanceSummary = calculateAttendanceRecord(student.user_ID);
-              
-              if (!attendanceSummary || attendanceSummary.totalDays === 0) {
-                  return null;
-              }
-              
-              // Calculate attendance rate
-              const totalAttended = attendanceSummary.present + attendanceSummary.excused;
-              const attendanceRate = (totalAttended / attendanceSummary.totalDays) * 100;
-              
-              return {
-                  studentName: student.user_ID,
-                  fullName: student.user_Name,
-                  average: Math.round(attendanceRate * 100) / 100,
-                  activityCount: attendanceSummary.totalDays,
-                  attendanceSummary: attendanceSummary
-              };
-          }).filter(student => student !== null && student.activityCount > 0)
-            .sort((a, b) => b.average - a.average)
-            .slice(0, 8);
-
-          console.log("Attendance performance data:", attendancePerformance);
-          typeData['Attendance'] = attendancePerformance;
+    // Process regular activities
+    const activitiesByType = {};
+    activities.forEach(activity => {
+      const type = activity.activity_type || 'Other';
+      if (!activitiesByType[type]) {
+        activitiesByType[type] = [];
       }
+      activitiesByType[type].push(activity);
+    });
 
-      return typeData;
+    Object.keys(activitiesByType).forEach(type => {
+      const typeActivities = activitiesByType[type];
+      
+      const typePerformance = students.map(student => {
+        const gradedActivities = typeActivities.filter(activity => {
+          const studentData = activity.students?.find(s => s.user_ID === student.user_ID);
+          return studentData && studentData.submitted && studentData.grade !== null;
+        });
+
+        if (gradedActivities.length === 0) {
+          return null;
+        }
+
+        const total = gradedActivities.reduce((sum, activity) => {
+          const studentData = activity.students?.find(s => s.user_ID === student.user_ID);
+          return sum + (parseFloat(studentData?.grade) || 0);
+        }, 0);
+
+        const maxPossible = gradedActivities.reduce((sum, activity) => 
+          sum + (parseFloat(activity.points) || 0), 0);
+
+        const average = maxPossible > 0 ? (total / maxPossible) * 100 : 0;
+
+        return {
+          studentName: student.user_ID,
+          fullName: student.user_Name,
+          average: Math.round(average * 100) / 100,
+          activityCount: gradedActivities.length
+        };
+      }).filter(student => student !== null && student.average > 0)
+        .sort((a, b) => b.average - a.average)
+        .slice(0, 8);
+
+      typeData[type] = typePerformance;
+    });
+
+    // Process attendance data separately
+    if (attendanceData && students.length > 0) {
+      const attendancePerformance = students.map(student => {
+        const attendanceSummary = calculateAttendanceRecord(student.user_ID);
+        
+        if (!attendanceSummary || attendanceSummary.totalDays === 0) {
+          return null;
+        }
+        
+        // Calculate attendance rate
+        const totalAttended = attendanceSummary.present + attendanceSummary.excused;
+        const attendanceRate = (totalAttended / attendanceSummary.totalDays) * 100;
+        
+        return {
+          studentName: student.user_ID,
+          fullName: student.user_Name,
+          average: Math.round(attendanceRate * 100) / 100,
+          activityCount: attendanceSummary.totalDays,
+          attendanceSummary: attendanceSummary
+        };
+      }).filter(student => student !== null && student.activityCount > 0)
+        .sort((a, b) => b.average - a.average)
+        .slice(0, 8);
+
+      typeData['Attendance'] = attendancePerformance;
+    }
+
+    return typeData;
   };
 
   const filteredLineChartData = analyticsData?.lineChartData.filter(item => 
     selectedActivityType === 'All' || item.activityType === selectedActivityType
   ) || [];
 
+  // Helper function to extract surname from full name
+  const getStudentDisplayName = (studentId, studentName) => {
+    if (!studentName) {
+      return `Student ${studentId}`;
+    }
+    
+    // Extract surname (last word) from full name
+    const nameParts = studentName.trim().split(' ');
+    if (nameParts.length === 0) {
+      return `Student ${studentId}`;
+    }
+    
+    const surname = nameParts[nameParts.length - 1];
+    return `${surname} (${studentId})`;
+  };
+
   const CustomTooltip = ({ active, payload, label }) => {
     if (active && payload && payload.length) {
       return (
         <div className="bg-white p-3 border border-gray-300 rounded shadow-lg max-w-xs">
           <p className="font-semibold text-[#465746] mb-1">{label}</p>
-          {payload.map((entry, index) => (
-            <div key={index} className="flex items-center justify-between">
-              <span style={{ color: entry.color }} className="text-sm">
-                {entry.name === 'Class Average' ? 'Class Average' : `Student ${entry.name}`}:
-              </span>
-              <span className="text-sm font-medium ml-2">
-                {entry.value !== null ? `${entry.value}%` : 'Not submitted'}
-              </span>
-            </div>
-          ))}
+          {payload.map((entry, index) => {
+            // Find the student's name for this data point
+            let displayName = entry.name;
+            if (entry.name === 'Class Average') {
+              displayName = 'Class Average';
+            } else {
+              // Find the student in analyticsData to get their name
+              const student = analyticsData?.students?.find(s => s.user_ID === entry.name);
+              if (student) {
+                displayName = getStudentDisplayName(student.user_ID, student.user_Name);
+              } else {
+                displayName = `Student ${entry.name}`;
+              }
+            }
+            
+            return (
+              <div key={index} className="flex items-center justify-between">
+                <span style={{ color: entry.color }} className="text-sm">
+                  {displayName}:
+                </span>
+                <span className="text-sm font-medium ml-2">
+                  {entry.value !== null ? `${entry.value}%` : 'Not submitted'}
+                </span>
+              </div>
+            );
+          })}
         </div>
       );
     }
@@ -605,15 +674,21 @@ export default function AnalyticsTab() {
 
   const BarChartTooltip = ({ active, payload, label }) => {
     if (active && payload && payload.length) {
+      // Find the student's name
+      const student = analyticsData?.studentPerformance?.find(s => s.studentId === label);
+      const displayName = student ? getStudentDisplayName(student.studentId, student.studentName) : `Student ${label}`;
+      
       return (
         <div className="bg-white p-3 border border-gray-300 rounded shadow-lg">
           <p className="font-semibold text-[#465746] mb-1">
-            Student ID: {label}
+            {displayName}
           </p>
           {payload.map((entry, index) => (
             <div key={index} className="flex items-center justify-between">
               <span style={{ color: entry.color }} className="text-sm">
-                {entry.name}:
+                {entry.name === 'grade' ? 'Average Grade' : 
+                 entry.name === 'submissions' ? 'Submissions' : 
+                 entry.name === 'totalActivities' ? 'Total Activities' : entry.name}:
               </span>
               <span className="text-sm font-medium ml-2">
                 {entry.name === 'grade' ? `${entry.value}%` : entry.value}
@@ -697,13 +772,16 @@ export default function AnalyticsTab() {
           {failingStudents.map((student) => {
             const attendanceSummary = calculateAttendanceRecord(student.studentId);
             const attendanceRate = attendanceSummary ? 
-              (attendanceSummary.present / attendanceSummary.totalDays) * 100 : 0;
+              ((attendanceSummary.present + attendanceSummary.excused) / attendanceSummary.totalDays) * 100 : 0;
+            
+            // Get display name with surname
+            const displayName = getStudentDisplayName(student.studentId, student.studentName);
             
             return (
               <div key={student.studentId} className="bg-white rounded p-3 border border-amber-100">
                 <div className="flex items-center justify-between mb-2">
                   <div>
-                    <span className="font-medium text-gray-800">Student ID: {student.studentId}</span>
+                    <span className="font-medium text-gray-800">{displayName}</span>
                     <p className="text-sm text-gray-600">{student.studentName}</p>
                   </div>
                   <span className={`px-2 py-1 rounded text-xs font-medium ${
@@ -727,7 +805,7 @@ export default function AnalyticsTab() {
                     </span>
                   </div>
                   
-                  {attendanceSummary && (
+                  {attendanceSummary && attendanceSummary.totalDays > 0 && (
                     <div className="flex justify-between">
                       <span>Attendance Rate:</span>
                       <span className={`font-medium ${
@@ -749,7 +827,7 @@ export default function AnalyticsTab() {
                 {attendanceSummary && attendanceSummary.totalDays > 0 && (
                   <div className="mt-2 pt-2 border-t border-gray-100">
                     <p className="text-xs font-medium text-gray-700 mb-1">Attendance Breakdown:</p>
-                    <div className="grid grid-cols-3 gap-1 text-xs text-center">
+                    <div className="grid grid-cols-4 gap-1 text-xs text-center">
                       <div className="bg-green-100 text-green-800 p-1 rounded">
                         <div className="font-bold">{attendanceSummary.present}</div>
                         <div>Present</div>
@@ -761,6 +839,10 @@ export default function AnalyticsTab() {
                       <div className="bg-red-100 text-red-800 p-1 rounded">
                         <div className="font-bold">{attendanceSummary.absent}</div>
                         <div>Absent</div>
+                      </div>
+                      <div className="bg-blue-100 text-blue-800 p-1 rounded">
+                        <div className="font-bold">{attendanceSummary.excused}</div>
+                        <div>Excused</div>
                       </div>
                     </div>
                   </div>
@@ -850,6 +932,24 @@ export default function AnalyticsTab() {
     );
   };
 
+  const reloadAllData = async () => {
+    setLoading(true);
+    try {
+      await fetchClassInfo();
+      const attendance = await fetchAttendanceData();
+      const activitiesResult = await fetchActivitiesData();
+      
+      if (activitiesResult && activitiesResult.success) {
+        await processAllData(activitiesResult.activities, activitiesResult.students, attendance);
+      }
+    } catch (error) {
+      console.error("Error reloading data:", error);
+      setError("Failed to reload data");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   if (loading) {
     return (
       <div>
@@ -859,9 +959,7 @@ export default function AnalyticsTab() {
           <div className="p-5 text-center">
             <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-[#00874E] border-r-transparent"></div>
             <p className="mt-3 text-gray-600">Loading Student Progress Analytics...</p>
-            {error && (
-              <p className="mt-2 text-sm text-red-600">Error: {error}</p>
-            )}
+            <p className="text-sm text-gray-500 mt-1">This may take a moment as we load all data</p>
           </div>
         </div>
       </div>
@@ -996,6 +1094,8 @@ export default function AnalyticsTab() {
             </div>
           </div>
 
+          {/* Debug Tools Section REMOVED */}
+
           <div className="mt-6 sm:mt-8">
             <div className="flex flex-col sm:flex-row gap-4">
               <div className="relative flex-1 max-w-md">
@@ -1061,7 +1161,8 @@ export default function AnalyticsTab() {
                 <FailingStudentsSummary />
               </div>
 
-              {analyticsData.summary.averageAttendanceRate !== undefined && (
+              {/* Always show attendance section if we have data */}
+              {analyticsData.summary.averageAttendanceRate > 0 ? (
                 <div className="bg-white rounded-lg shadow-md p-4 border-l-4 border-[#96CEB4] hover:shadow-lg transition-shadow">
                   <div className="flex items-center justify-between">
                     <div>
@@ -1083,6 +1184,23 @@ export default function AnalyticsTab() {
                     </div>
                   </div>
                 </div>
+              ) : (
+                <div className="bg-white rounded-lg shadow-md p-4 border-l-4 border-gray-300 hover:shadow-lg transition-shadow">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-sm font-semibold text-gray-600">Attendance Data</h3>
+                      <p className="text-2xl font-bold text-gray-400">Not Available</p>
+                      <p className="text-xs text-gray-500 mt-1">
+                        No attendance records found for this subject
+                      </p>
+                    </div>
+                    <Link to={`/Attendance?code=${subjectCode}`}>
+                      <button className="px-4 py-2 bg-[#00874E] text-white rounded hover:bg-[#006e3d] transition-colors text-sm">
+                        Take Attendance
+                      </button>
+                    </Link>
+                  </div>
+                </div>
               )}
 
               <div id="student-intervention">
@@ -1098,139 +1216,147 @@ export default function AnalyticsTab() {
                   Class average performance across different types of assessments and attendance
                 </p>
                 
-                <div className="h-80 min-h-0">
-                  <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
-                    <BarChart
-                      data={analyticsData.assessmentTypeBarData}
-                      margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
-                    >
-                      <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                      <XAxis 
-                        dataKey="type" 
-                        angle={-45}
-                        textAnchor="end"
-                        height={60}
-                        tick={{ fontSize: 12 }}
-                      />
-                      <YAxis 
-                        label={{ value: 'Average Performance (%)', angle: -90, position: 'insideLeft' }}
-                        domain={[0, 100]}
-                        tick={{ fontSize: 12 }}
-                      />
-                      <Tooltip content={<AssessmentTypeBarTooltip />} />
-                      <Bar 
-                        dataKey="average" 
-                        name="Average Performance"
-                        radius={[4, 4, 0, 0]}
-                      >
-                        {analyticsData.assessmentTypeBarData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.color || COLORS[index % COLORS.length]} />
-                        ))}
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-                
-                <div className="mt-6 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                  {analyticsData.assessmentTypeBarData.map((item, index) => (
-                    <div key={index} className="bg-gray-50 p-3 rounded-lg border border-gray-200">
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="font-medium text-gray-700 text-sm">{item.type}</span>
-                        <span className="text-xs px-2 py-0.5 bg-gray-200 text-gray-700 rounded">
-                          {item.students} students
-                        </span>
-                      </div>
-                      <div className="flex items-baseline">
-                        <span className="text-2xl font-bold text-[#465746]">{item.average}%</span>
-                        <span className="text-xs text-gray-500 ml-1">average</span>
-                      </div>
-                      <div className="mt-2 flex items-center">
-                        <div className="w-full bg-gray-200 rounded-full h-2">
-                          <div 
-                            className="h-2 rounded-full"
-                            style={{ 
-                              width: `${item.average}%`,
-                              backgroundColor: item.color || COLORS[index % COLORS.length]
-                            }}
-                          ></div>
-                        </div>
-                      </div>
+                {analyticsData.assessmentTypeBarData.length > 0 ? (
+                  <>
+                    <div className="h-80 min-h-0">
+                      <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
+                        <BarChart
+                          data={analyticsData.assessmentTypeBarData}
+                          margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
+                        >
+                          <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                          <XAxis 
+                            dataKey="type" 
+                            angle={-45}
+                            textAnchor="end"
+                            height={60}
+                            tick={{ fontSize: 12 }}
+                          />
+                          <YAxis 
+                            label={{ value: 'Average Performance (%)', angle: -90, position: 'insideLeft' }}
+                            domain={[0, 100]}
+                            tick={{ fontSize: 12 }}
+                          />
+                          <Tooltip content={<AssessmentTypeBarTooltip />} />
+                          <Bar 
+                            dataKey="average" 
+                            name="Average Performance"
+                            radius={[4, 4, 0, 0]}
+                          >
+                            {analyticsData.assessmentTypeBarData.map((entry, index) => (
+                              <Cell key={`cell-${index}`} fill={entry.color || COLORS[index % COLORS.length]} />
+                            ))}
+                          </Bar>
+                        </BarChart>
+                      </ResponsiveContainer>
                     </div>
-                  ))}
-                </div>
-                
-                <div className="mt-6 pt-6 border-t border-gray-200">
-                  <h4 className="text-sm font-semibold text-gray-700 mb-3">Insights & Recommendations:</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {analyticsData.assessmentTypeBarData
-                      .filter(item => item.average < 70)
-                      .map((item, index) => (
-                        <div key={index} className="bg-amber-50 border border-amber-100 rounded-lg p-4">
-                          <div className="flex items-center mb-2">
-                            <div 
-                              className="w-3 h-3 rounded-full mr-2"
-                              style={{ backgroundColor: item.color || COLORS[index % COLORS.length] }}
-                            ></div>
-                            <h5 className="font-medium text-amber-800">{item.type} Needs Attention</h5>
-                          </div>
-                          <p className="text-sm text-amber-700 mb-2">
-                            Average score of {item.average}% is below the 70% threshold.
-                          </p>
-                          <ul className="text-xs text-amber-600 list-disc pl-4 space-y-1">
-                            <li>Review difficulty level of {item.type.toLowerCase()} assessments</li>
-                            <li>Consider providing additional resources for {item.type.toLowerCase()}</li>
-                            <li>Schedule review sessions focusing on {item.type.toLowerCase()} topics</li>
-                            <li>Analyze individual student performance in this category</li>
-                          </ul>
-                        </div>
-                      ))}
                     
-                    {analyticsData.assessmentTypeBarData
-                      .filter(item => item.average >= 90)
-                      .map((item, index) => (
-                        <div key={index} className="bg-green-50 border border-green-100 rounded-lg p-4">
-                          <div className="flex items-center mb-2">
-                            <div 
-                              className="w-3 h-3 rounded-full mr-2"
-                              style={{ backgroundColor: item.color || COLORS[index % COLORS.length] }}
-                            ></div>
-                            <h5 className="font-medium text-green-800">{item.type} Strength</h5>
+                    <div className="mt-6 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                      {analyticsData.assessmentTypeBarData.map((item, index) => (
+                        <div key={index} className="bg-gray-50 p-3 rounded-lg border border-gray-200">
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="font-medium text-gray-700 text-sm">{item.type}</span>
+                            <span className="text-xs px-2 py-0.5 bg-gray-200 text-gray-700 rounded">
+                              {item.students} students
+                            </span>
                           </div>
-                          <p className="text-sm text-green-700 mb-2">
-                            Excellent average score of {item.average}% in this category.
-                          </p>
-                          <ul className="text-xs text-green-600 list-disc pl-4 space-y-1">
-                            <li>Students are performing well in {item.type.toLowerCase()}</li>
-                            <li>Consider maintaining current teaching methods for this category</li>
-                            <li>Use successful strategies from this category in other areas</li>
-                          </ul>
+                          <div className="flex items-baseline">
+                            <span className="text-2xl font-bold text-[#465746]">{item.average}%</span>
+                            <span className="text-xs text-gray-500 ml-1">average</span>
+                          </div>
+                          <div className="mt-2 flex items-center">
+                            <div className="w-full bg-gray-200 rounded-full h-2">
+                              <div 
+                                className="h-2 rounded-full"
+                                style={{ 
+                                  width: `${item.average}%`,
+                                  backgroundColor: item.color || COLORS[index % COLORS.length]
+                                }}
+                              ></div>
+                            </div>
+                          </div>
                         </div>
                       ))}
-                  </div>
-                  
-                  {analyticsData.assessmentTypeBarData
-                    .filter(item => item.type === 'Attendance' && item.average < 85)
-                    .map((item, index) => (
-                      <div key={index} className="mt-4 bg-blue-50 border border-blue-100 rounded-lg p-4">
-                        <div className="flex items-center mb-2">
-                          <div 
-                            className="w-3 h-3 rounded-full mr-2"
-                            style={{ backgroundColor: item.color || COLORS[5 % COLORS.length] }}
-                          ></div>
-                          <h5 className="font-medium text-blue-800">Attendance Analysis</h5>
-                        </div>
-                        <p className="text-sm text-blue-700 mb-2">
-                          Attendance rate of {item.average}% suggests potential room for improvement.
-                        </p>
-                        <ul className="text-xs text-blue-600 list-disc pl-4 space-y-1">
-                          <li>Monitor attendance patterns for specific days/times</li>
-                          <li>Consider implementing attendance incentives</li>
-                          <li>Review correlation between attendance and academic performance</li>
-                          <li>Address chronic absenteeism with early interventions</li>
-                        </ul>
+                    </div>
+                    
+                    <div className="mt-6 pt-6 border-t border-gray-200">
+                      <h4 className="text-sm font-semibold text-gray-700 mb-3">Insights & Recommendations:</h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {analyticsData.assessmentTypeBarData
+                          .filter(item => item.average < 70)
+                          .map((item, index) => (
+                            <div key={index} className="bg-amber-50 border border-amber-100 rounded-lg p-4">
+                              <div className="flex items-center mb-2">
+                                <div 
+                                  className="w-3 h-3 rounded-full mr-2"
+                                  style={{ backgroundColor: item.color || COLORS[index % COLORS.length] }}
+                                ></div>
+                                <h5 className="font-medium text-amber-800">{item.type} Needs Attention</h5>
+                              </div>
+                              <p className="text-sm text-amber-700 mb-2">
+                                Average score of {item.average}% is below the 70% threshold.
+                              </p>
+                              <ul className="text-xs text-amber-600 list-disc pl-4 space-y-1">
+                                <li>Review difficulty level of {item.type.toLowerCase()} assessments</li>
+                                <li>Consider providing additional resources for {item.type.toLowerCase()}</li>
+                                <li>Schedule review sessions focusing on {item.type.toLowerCase()} topics</li>
+                                <li>Analyze individual student performance in this category</li>
+                              </ul>
+                            </div>
+                          ))}
+                        
+                        {analyticsData.assessmentTypeBarData
+                          .filter(item => item.average >= 90)
+                          .map((item, index) => (
+                            <div key={index} className="bg-green-50 border border-green-100 rounded-lg p-4">
+                              <div className="flex items-center mb-2">
+                                <div 
+                                  className="w-3 h-3 rounded-full mr-2"
+                                  style={{ backgroundColor: item.color || COLORS[index % COLORS.length] }}
+                                ></div>
+                                <h5 className="font-medium text-green-800">{item.type} Strength</h5>
+                              </div>
+                              <p className="text-sm text-green-700 mb-2">
+                                Excellent average score of {item.average}% in this category.
+                              </p>
+                              <ul className="text-xs text-green-600 list-disc pl-4 space-y-1">
+                                <li>Students are performing well in {item.type.toLowerCase()}</li>
+                                <li>Consider maintaining current teaching methods for this category</li>
+                                <li>Use successful strategies from this category in other areas</li>
+                              </ul>
+                            </div>
+                          ))}
                       </div>
-                    ))}
-                </div>
+                      
+                      {analyticsData.assessmentTypeBarData
+                        .filter(item => item.type === 'Attendance' && item.average < 85)
+                        .map((item, index) => (
+                          <div key={index} className="mt-4 bg-blue-50 border border-blue-100 rounded-lg p-4">
+                            <div className="flex items-center mb-2">
+                              <div 
+                                className="w-3 h-3 rounded-full mr-2"
+                                style={{ backgroundColor: item.color || COLORS[5 % COLORS.length] }}
+                              ></div>
+                              <h5 className="font-medium text-blue-800">Attendance Analysis</h5>
+                            </div>
+                            <p className="text-sm text-blue-700 mb-2">
+                              Attendance rate of {item.average}% suggests potential room for improvement.
+                            </p>
+                            <ul className="text-xs text-blue-600 list-disc pl-4 space-y-1">
+                              <li>Monitor attendance patterns for specific days/times</li>
+                              <li>Consider implementing attendance incentives</li>
+                              <li>Review correlation between attendance and academic performance</li>
+                              <li>Address chronic absenteeism with early interventions</li>
+                            </ul>
+                          </div>
+                        ))}
+                    </div>
+                  </>
+                ) : (
+                  <div className="text-center py-8">
+                    <p className="text-gray-500">No assessment data available yet.</p>
+                  </div>
+                )}
               </div>
 
               <div className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow">
@@ -1271,19 +1397,23 @@ export default function AnalyticsTab() {
                       <Tooltip content={<CustomTooltip />} />
                       <Legend />
                       
-                      {analyticsData.students.map((student, index) => (
-                        <Line
-                          key={student.user_ID}
-                          type="monotone"
-                          dataKey={student.user_ID}
-                          name={`Student ${student.user_ID}`}
-                          stroke={COLORS[index % COLORS.length]}
-                          strokeWidth={1.5}
-                          dot={{ r: 2 }}
-                          activeDot={{ r: 4 }}
-                          connectNulls
-                        />
-                      ))}
+                      {analyticsData.students.map((student, index) => {
+                        const displayName = getStudentDisplayName(student.user_ID, student.user_Name);
+                        
+                        return (
+                          <Line
+                            key={student.user_ID}
+                            type="monotone"
+                            dataKey={student.user_ID}
+                            name={displayName}
+                            stroke={COLORS[index % COLORS.length]}
+                            strokeWidth={1.5}
+                            dot={{ r: 2 }}
+                            activeDot={{ r: 4 }}
+                            connectNulls
+                          />
+                        );
+                      })}
                       
                       {filteredLineChartData.some(d => d['Class Average'] !== undefined) && (
                         <Line
@@ -1419,13 +1549,13 @@ export default function AnalyticsTab() {
                             <span className="text-sm font-medium text-gray-700">Student Lines</span>
                             <p className="text-xs text-gray-600">
                               Each colored line represents one student's performance across all activities.
-                              Student IDs are shown instead of names.
+                              Names show as "Surname (Student ID)".
                             </p>
                           </div>
                         </div>
                         
                         <div className="text-xs text-blue-700 bg-blue-100 p-3 rounded border border-blue-200">
-                          <strong>Tip:</strong> Hover over any point to see the student's ID and exact score percentage.
+                          <strong>Tip:</strong> Hover over any point to see the student's surname, ID and exact score percentage.
                           The chart shows all {analyticsData.students.length} students in the class.
                         </div>
                       </div>
@@ -1568,141 +1698,181 @@ export default function AnalyticsTab() {
                     </span>
                   </div>
                   
-                  <div className="h-64 min-h-0">
-                    <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
-                      <BarChart 
-                        data={analyticsData.activityTypeData['Attendance'] || []}
-                        margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
-                      >
-                        <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
-                        <XAxis 
-                          dataKey="studentName" 
-                          tick={{ fontSize: 10 }}
-                          angle={-45}
-                          textAnchor="end"
-                          height={40}
-                        />
-                        <YAxis 
-                          domain={[0, 100]} 
-                          tick={{ fontSize: 10 }}
-                          label={{ value: 'Attendance Rate (%)', angle: -90, position: 'insideLeft' }}
-                        />
-                        <Tooltip 
-                          formatter={(value, name, props) => {
-                            if (name === 'average') {
-                              const fullName = props.payload.fullName || `Student ${props.payload.studentName}`;
-                              return [
-                                `${value}%`, 
-                                `Attendance Rate for ${fullName}`
-                              ];
-                            }
-                            return [value, name];
-                          }}
-                          labelFormatter={(label) => `Student ID: ${label}`}
-                        />
-                        <Bar 
-                          dataKey="average" 
-                          name="Attendance Rate"
-                          fill={COLORS[5 % COLORS.length]}
-                          radius={[2, 2, 0, 0]}
-                        />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
-                  
-                  <div className="mt-4 grid grid-cols-2 md:grid-cols-3 gap-4">
-                    <div className="bg-green-50 border border-green-100 rounded p-3">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium text-green-800">High Attendance</span>
-                        <span className="text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded">
-                          ≥90%
-                        </span>
+                  {analyticsData.activityTypeData['Attendance'] && analyticsData.activityTypeData['Attendance'].length > 0 ? (
+                    <>
+                      <div className="h-64 min-h-0">
+                        <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
+                          <BarChart 
+                            data={analyticsData.activityTypeData['Attendance']}
+                            margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
+                          >
+                            <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
+                            <XAxis 
+                              dataKey="studentName" 
+                              tick={{ fontSize: 10 }}
+                              angle={-45}
+                              textAnchor="end"
+                              height={40}
+                            />
+                            <YAxis 
+                              domain={[0, 100]} 
+                              tick={{ fontSize: 10 }}
+                              label={{ value: 'Attendance Rate (%)', angle: -90, position: 'insideLeft' }}
+                            />
+                            <Tooltip 
+                              formatter={(value, name, props) => {
+                                if (name === 'average') {
+                                  const fullName = props.payload.fullName || `Student ${props.payload.studentName}`;
+                                  const displayName = getStudentDisplayName(props.payload.studentName, fullName);
+                                  return [
+                                    `${value}%`, 
+                                    `Attendance Rate for ${displayName}`
+                                  ];
+                                }
+                                return [value, name];
+                              }}
+                              labelFormatter={(label) => {
+                                const student = analyticsData?.students?.find(s => s.user_ID === label);
+                                return student ? getStudentDisplayName(student.user_ID, student.user_Name) : `Student ${label}`;
+                              }}
+                            />
+                            <Bar 
+                              dataKey="average" 
+                              name="Attendance Rate"
+                              fill={COLORS[5 % COLORS.length]}
+                              radius={[2, 2, 0, 0]}
+                            />
+                          </BarChart>
+                        </ResponsiveContainer>
                       </div>
-                      <p className="text-2xl font-bold text-green-700 mt-1">
-                        {
-                          analyticsData.activityTypeData['Attendance']?.filter(
-                            item => item.average >= 90
-                          ).length || 0
-                        }
-                      </p>
-                      <p className="text-xs text-green-600 mt-1">students</p>
-                    </div>
-                    
-                    <div className="bg-yellow-50 border border-yellow-100 rounded p-3">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium text-yellow-800">Moderate</span>
-                        <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded">
-                          70-89%
-                        </span>
-                      </div>
-                      <p className="text-2xl font-bold text-yellow-700 mt-1">
-                        {
-                          analyticsData.activityTypeData['Attendance']?.filter(
-                            item => item.average >= 70 && item.average < 90
-                          ).length || 0
-                        }
-                      </p>
-                      <p className="text-xs text-yellow-600 mt-1">students</p>
-                    </div>
-                    
-                    <div className="bg-red-50 border border-red-100 rounded p-3">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium text-red-800">Low</span>
-                        <span className="text-xs bg-red-100 text-red-800 px-2 py-0.5 rounded">
-                          {'<'}70%
-                        </span>
-                      </div>
-                      <p className="text-2xl font-bold text-red-700 mt-1">
-                        {
-                          analyticsData.activityTypeData['Attendance']?.filter(
-                            item => item.average < 70
-                          ).length || 0
-                        }
-                      </p>
-                      <p className="text-xs text-red-600 mt-1">students</p>
-                    </div>
-                  </div>
-                  
-                  <div className="mt-4 pt-4 border-t border-gray-200">
-                    <h5 className="text-sm font-medium text-gray-700 mb-2">Attendance Insights:</h5>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      {analyticsData.activityTypeData['Attendance']?.some(item => item.average < 70) && (
-                        <div className="bg-amber-50 border border-amber-200 rounded p-3">
-                          <div className="flex items-center mb-1">
-                            <svg className="w-4 h-4 text-amber-600 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                              <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                            </svg>
-                            <span className="text-sm font-medium text-amber-800">Attendance Concerns</span>
-                          </div>
-                          <p className="text-xs text-amber-700">
-                            {
-                              analyticsData.activityTypeData['Attendance']?.filter(
-                                item => item.average < 70
-                              ).length || 0
-                            } students have attendance below 70%. Consider intervention.
-                          </p>
-                        </div>
-                      )}
                       
-                      {analyticsData.activityTypeData['Attendance']?.some(item => item.average >= 90) && (
-                        <div className="bg-green-50 border border-green-200 rounded p-3">
-                          <div className="flex items-center mb-1">
-                            <svg className="w-4 h-4 text-green-600 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                            </svg>
-                            <span className="text-sm font-medium text-green-800">Excellent Attendance</span>
+                      <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div className="bg-green-50 border border-green-100 rounded p-3">
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm font-medium text-green-800">High Attendance</span>
+                            <span className="text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded">
+                              ≥90%
+                            </span>
                           </div>
-                          <p className="text-xs text-green-700">
+                          <p className="text-2xl font-bold text-green-700 mt-1">
                             {
-                              analyticsData.activityTypeData['Attendance']?.filter(
+                              analyticsData.activityTypeData['Attendance'].filter(
                                 item => item.average >= 90
-                              ).length || 0
-                            } students maintain ≥90% attendance.
+                              ).length
+                            }
                           </p>
+                          <p className="text-xs text-green-600 mt-1">students</p>
                         </div>
-                      )}
+                        
+                        <div className="bg-yellow-50 border border-yellow-100 rounded p-3">
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm font-medium text-yellow-800">Moderate</span>
+                            <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded">
+                              70-89%
+                            </span>
+                          </div>
+                          <p className="text-2xl font-bold text-yellow-700 mt-1">
+                            {
+                              analyticsData.activityTypeData['Attendance'].filter(
+                                item => item.average >= 70 && item.average < 90
+                              ).length
+                            }
+                          </p>
+                          <p className="text-xs text-yellow-600 mt-1">students</p>
+                        </div>
+                        
+                        <div className="bg-orange-50 border border-orange-100 rounded p-3">
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm font-medium text-orange-800">Low</span>
+                            <span className="text-xs bg-orange-100 text-orange-800 px-2 py-0.5 rounded">
+                              50-69%
+                            </span>
+                          </div>
+                          <p className="text-2xl font-bold text-orange-700 mt-1">
+                            {
+                              analyticsData.activityTypeData['Attendance'].filter(
+                                item => item.average >= 50 && item.average < 70
+                              ).length
+                            }
+                          </p>
+                          <p className="text-xs text-orange-600 mt-1">students</p>
+                        </div>
+                        
+                        <div className="bg-red-50 border border-red-100 rounded p-3">
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm font-medium text-red-800">Critical</span>
+                            <span className="text-xs bg-red-100 text-red-800 px-2 py-0.5 rounded">
+                              {'<'}50%
+                            </span>
+                          </div>
+                          <p className="text-2xl font-bold text-red-700 mt-1">
+                            {
+                              analyticsData.activityTypeData['Attendance'].filter(
+                                item => item.average < 50
+                              ).length
+                            }
+                          </p>
+                          <p className="text-xs text-red-600 mt-1">students</p>
+                        </div>
+                      </div>
+                      
+                      <div className="mt-4 pt-4 border-t border-gray-200">
+                        <h5 className="text-sm font-medium text-gray-700 mb-2">Attendance Insights:</h5>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          {analyticsData.activityTypeData['Attendance'].some(item => item.average < 70) && (
+                            <div className="bg-amber-50 border border-amber-200 rounded p-3">
+                              <div className="flex items-center mb-1">
+                                <svg className="w-4 h-4 text-amber-600 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                  <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                                </svg>
+                                <span className="text-sm font-medium text-amber-800">Attendance Concerns</span>
+                              </div>
+                              <p className="text-xs text-amber-700">
+                                {
+                                  analyticsData.activityTypeData['Attendance'].filter(
+                                    item => item.average < 70
+                                  ).length
+                                } students have attendance below 70%. Consider intervention.
+                              </p>
+                            </div>
+                          )}
+                          
+                          {analyticsData.activityTypeData['Attendance'].some(item => item.average >= 90) && (
+                            <div className="bg-green-50 border border-green-200 rounded p-3">
+                              <div className="flex items-center mb-1">
+                                <svg className="w-4 h-4 text-green-600 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                                </svg>
+                                <span className="text-sm font-medium text-green-800">Excellent Attendance</span>
+                              </div>
+                              <p className="text-xs text-green-700">
+                                {
+                                  analyticsData.activityTypeData['Attendance'].filter(
+                                    item => item.average >= 90
+                                  ).length
+                                } students maintain ≥90% attendance.
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="text-center py-8">
+                      <svg className="w-16 h-16 mx-auto text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <h4 className="text-lg font-medium text-gray-700 mb-2">No Attendance Data</h4>
+                      <p className="text-gray-500 mb-4">
+                        No attendance records found for this subject. Take attendance to see analytics here.
+                      </p>
+                      <Link to={`/Attendance?code=${subjectCode}`}>
+                        <button className="px-4 py-2 bg-[#00874E] text-white rounded hover:bg-[#006e3d] transition-colors">
+                          Take Attendance
+                        </button>
+                      </Link>
                     </div>
-                  </div>
+                  )}
                 </div>
                 
                 {/* Other Assessment Types */}
@@ -1761,7 +1931,10 @@ export default function AnalyticsTab() {
                               <YAxis domain={[0, 100]} tick={{ fontSize: 10 }} />
                               <Tooltip 
                                 formatter={(value) => [`${value}%`, 'Grade']}
-                                labelFormatter={(label) => `Student ID: ${label}`}
+                                labelFormatter={(label) => {
+                                  const student = analyticsData?.students?.find(s => s.user_ID === label);
+                                  return student ? getStudentDisplayName(student.user_ID, student.user_Name) : `Student ${label}`;
+                                }}
                               />
                               <Bar 
                                 dataKey="average" 
@@ -1806,18 +1979,6 @@ export default function AnalyticsTab() {
                   <p className="mb-4 text-gray-600 max-w-md mx-auto">
                     Create activities and grade student submissions to generate comprehensive academic analytics.
                   </p>
-                  {error && (
-                    <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-                      <p className="text-red-600 font-medium">Error loading data:</p>
-                      <p className="text-sm text-red-500">{error}</p>
-                      <button 
-                        onClick={fetchAnalyticsData}
-                        className="mt-2 px-4 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200 transition-colors text-sm"
-                      >
-                        Retry
-                      </button>
-                    </div>
-                  )}
                   <div className="flex flex-col sm:flex-row gap-3 justify-center">
                     <Link to={`/ClassworkTab?code=${subjectCode}`}>
                       <button className="px-6 py-2 bg-[#00874E] text-white rounded hover:bg-[#006e3d] transition-colors">
@@ -1825,7 +1986,7 @@ export default function AnalyticsTab() {
                       </button>
                     </Link>
                     <button 
-                      onClick={fetchAnalyticsData}
+                      onClick={reloadAllData}
                       className="px-6 py-2 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition-colors"
                     >
                       Refresh Data

@@ -825,6 +825,14 @@ export default function AnalyticsIndividualInfo() {
                   {missedActivities.length}
                 </span>
               </div>
+              <div className="p-2 sm:p-3 bg-blue-50 rounded-md">
+                <p className="font-semibold text-blue-500 mb-1 sm:mb-2">
+                  Submission Rate
+                </p>
+                <span className="text-lg sm:text-xl lg:text-2xl font-bold">
+                  {submissionRate}%
+                </span>
+              </div>
             </div>
           </div>
 

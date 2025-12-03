@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Close from "../assets/Close.svg";
 import Add from "../assets/Add(Light).svg";
 import FileIcon from "../assets/File(Light).svg";
+import DownloadIcon from "../assets/Download(Light).svg";
 
 const StudentActivityDetails = ({ activity, isOpen, onClose, studentId }) => {
   const [selectedImage, setSelectedImage] = useState(null);
@@ -11,50 +12,75 @@ const StudentActivityDetails = ({ activity, isOpen, onClose, studentId }) => {
   const [studentFiles, setStudentFiles] = useState([]);
   const [isUploading, setIsUploading] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [activityDetails, setActivityDetails] = useState(null);
 
   // Localhost configuration - Updated path for student files
-  const BACKEND_URL = 'https://tracked.6minds.site/Student/SubjectsDB';
+  const BACKEND_URL = 'https://tracked.6minds.site/Student/SubjectDetailsStudentDB';
 
   useEffect(() => {
     if (isOpen && activity && studentId) {
-      fetchFiles();
+      fetchActivityDetails();
     }
   }, [isOpen, activity, studentId]);
 
-  const fetchFiles = async () => {
+  useEffect(() => {
+    // If studentId prop is not provided, try to get it from localStorage
+    if (!studentId) {
+      try {
+        const userDataString = localStorage.getItem('user');
+        if (userDataString) {
+          const userData = JSON.parse(userDataString);
+          const id = userData.id || userData.tracked_ID;
+          if (id) {
+            // You might want to set it in state or use it directly
+            console.log('Found student ID in localStorage:', id);
+          }
+        }
+      } catch (error) {
+        console.error('Error getting student ID from localStorage:', error);
+      }
+    }
+  }, [studentId]);
+
+  const fetchActivityDetails = async () => {
     if (!activity?.id || !studentId) return;
 
     setIsLoading(true);
     try {
-      // Fetch professor's uploaded files for this student and activity
-      const professorResponse = await fetch(
-        `${BACKEND_URL}/get-uploaded-files.php?activity_id=${activity.id}&student_id=${studentId}`
+      // Fetch detailed activity info with grade and files
+      const response = await fetch(
+        `${BACKEND_URL}/get_activity_details_student.php?activity_id=${activity.id}&student_id=${studentId}`
       );
       
-      if (professorResponse.ok) {
-        const professorResult = await professorResponse.json();
-        if (professorResult.success) {
-          // Filter to get only professor's uploads
-          const profFiles = professorResult.files.filter(file => 
-            file.uploaded_by === 'professor'
-          );
+      if (response.ok) {
+        const result = await response.json();
+        console.log('Activity details fetched:', result); // Debug log
+        if (result.success) {
+          setActivityDetails(result.activity);
+          
+          // Ensure professor_files is an array
+          const profFiles = result.professor_files || [];
+          console.log('Professor files:', profFiles); // Debug log
           setProfessorFiles(profFiles);
+          
+          // Ensure student_files is an array
+          const stuFiles = result.student_files || [];
+          console.log('Student files:', stuFiles); // Debug log
+          setStudentFiles(stuFiles);
+        } else {
+          console.error('Error fetching activity details:', result.message);
+          // Fallback to using the basic activity data
+          setActivityDetails(activity);
         }
-      }
-
-      // Fetch student's uploaded files for this activity
-      const studentResponse = await fetch(
-        `${BACKEND_URL}/get-student-files.php?activity_id=${activity.id}&student_id=${studentId}`
-      );
-      
-      if (studentResponse.ok) {
-        const studentResult = await studentResponse.json();
-        if (studentResult.success) {
-          setStudentFiles(studentResult.files);
-        }
+      } else {
+        console.error('HTTP error fetching activity details:', response.status);
+        // Fallback to using the basic activity data
+        setActivityDetails(activity);
       }
     } catch (error) {
-      console.error('Error fetching files:', error);
+      console.error('Error fetching activity details:', error);
+      // Fallback to using the basic activity data
+      setActivityDetails(activity);
     } finally {
       setIsLoading(false);
     }
@@ -125,17 +151,44 @@ const StudentActivityDetails = ({ activity, isOpen, onClose, studentId }) => {
     return 'text-green-600 font-semibold';
   };
 
+  useEffect(() => {
+  console.log('StudentActivityDetails - studentId:', studentId);
+  console.log('StudentActivityDetails - activity:', activity);
+  
+  // Try to get studentId from localStorage if not provided
+  if (!studentId) {
+    try {
+      const userDataString = localStorage.getItem('user');
+      if (userDataString) {
+        const userData = JSON.parse(userDataString);
+        const id = userData.id || userData.tracked_ID;
+        console.log('Found student ID in localStorage:', id);
+      }
+    } catch (error) {
+      console.error('Error getting student ID:', error);
+    }
+  }
+}, [studentId, activity]);
+
   const handleFileUpload = () => {
+    // Check if studentId exists
+    if (!studentId) {
+      alert('Student ID not found. Please refresh the page or log in again.');
+      return;
+    }
+    
+    console.log('Uploading for student:', studentId, 'activity:', activity?.id);
+    
     const input = document.createElement('input');
     input.type = 'file';
-    input.accept = '*/*'; // Accept all file types
+    input.accept = '*/*';
     input.multiple = false;
     
     input.onchange = async (e) => {
       const file = e.target.files[0];
       if (!file) return;
 
-      // Check file size (max 25MB)
+      // Check file size
       if (file.size > 25 * 1024 * 1024) {
         alert('File size must be less than 25MB');
         return;
@@ -147,24 +200,38 @@ const StudentActivityDetails = ({ activity, isOpen, onClose, studentId }) => {
         const formData = new FormData();
         formData.append('file', file);
         formData.append('activity_id', activity.id);
-        formData.append('student_id', studentId);
+        formData.append('student_id', studentId); // This was undefined
         formData.append('file_type', 'student');
 
+        // Log what we're sending (for debugging)
+        console.log('Uploading file for student:', studentId, 'activity:', activity.id);
+        
         const response = await fetch(`${BACKEND_URL}/upload-student-file.php`, {
           method: 'POST',
-          body: formData
+          body: formData,
         });
-
+        // First, check if response is OK
         if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
+          // Try to get error message from response
+          const text = await response.text();
+          console.error('Upload error response:', text);
+          
+          // Try to parse as JSON, if it fails, use text
+          try {
+            const errorData = JSON.parse(text);
+            throw new Error(errorData.message || `Upload failed with status ${response.status}`);
+          } catch {
+            throw new Error(`Upload failed: ${response.status} ${response.statusText}. Server returned: ${text.substring(0, 100)}`);
+          }
         }
 
+        // Try to parse as JSON
         const result = await response.json();
         
         if (result.success) {
           alert('File uploaded successfully!');
           // Refresh files list
-          fetchFiles();
+          fetchActivityDetails();
         } else {
           alert('Upload failed: ' + result.message);
         }
@@ -180,8 +247,32 @@ const StudentActivityDetails = ({ activity, isOpen, onClose, studentId }) => {
   };
 
   const handleViewFile = (file) => {
-    if (file.file_url) {
-      window.open(file.file_url, '_blank', 'noopener,noreferrer');
+    const fileUrl = file.file_url || file.url;
+    if (fileUrl) {
+      window.open(fileUrl, '_blank', 'noopener,noreferrer');
+    } else {
+      alert('No file URL available');
+    }
+  };
+
+  const handleDownloadFile = (file) => {
+    const fileUrl = file.file_url || file.url;
+    const fileName = file.original_name || file.file_name || 'download';
+    
+    if (fileUrl) {
+      // Create a temporary link element
+      const link = document.createElement('a');
+      link.href = fileUrl;
+      link.download = fileName;
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      
+      // Append to body, click, and remove
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } else {
+      alert('No file URL available for download');
     }
   };
 
@@ -207,8 +298,8 @@ const StudentActivityDetails = ({ activity, isOpen, onClose, studentId }) => {
       
       if (result.success) {
         alert('File deleted successfully');
-        // Remove from local state
-        setStudentFiles(prev => prev.filter(file => file.id !== fileId));
+        // Refresh the files list
+        fetchActivityDetails();
       } else {
         alert('Error deleting file: ' + result.message);
       }
@@ -257,8 +348,8 @@ const StudentActivityDetails = ({ activity, isOpen, onClose, studentId }) => {
       
       if (result.success) {
         alert('Activity marked as submitted successfully!');
-        // Close the modal
-        onClose();
+        // Refresh activity details
+        fetchActivityDetails();
       } else {
         alert('Submission failed: ' + result.message);
       }
@@ -268,9 +359,203 @@ const StudentActivityDetails = ({ activity, isOpen, onClose, studentId }) => {
     }
   };
 
-  // Removed the unused currentStudentFile variable
+  // Get file icon based on file type
+  const getFileIcon = (file) => {
+    const fileName = file.original_name || file.file_name || '';
+    const fileType = file.file_type || '';
+    
+    if (fileType.includes('image') || fileName.match(/\.(jpg|jpeg|png|gif|bmp|webp)$/i)) {
+      return '🖼️';
+    } else if (fileType.includes('pdf') || fileName.match(/\.pdf$/i)) {
+      return '📕';
+    } else if (fileType.includes('word') || fileName.match(/\.(doc|docx)$/i)) {
+      return '📝';
+    } else if (fileType.includes('excel') || fileName.match(/\.(xls|xlsx)$/i)) {
+      return '📊';
+    } else if (fileType.includes('powerpoint') || fileName.match(/\.(ppt|pptx)$/i)) {
+      return '📋';
+    } else if (fileType.includes('zip') || fileName.match(/\.(zip|rar|7z)$/i)) {
+      return '🗜️';
+    } else if (fileType.includes('text') || fileName.match(/\.(txt|rtf)$/i)) {
+      return '📄';
+    }
+    return '📎';
+  };
+
+  // Grade display section
+  const renderGradeSection = () => {
+    if (!activityDetails || !activityDetails.points) return null;
+    
+    const { grade, points } = activityDetails;
+    const currentActivity = activityDetails || activity;
+    
+    if (grade === null || grade === undefined || grade === '' || grade === '0') {
+      return (
+        <div className="mt-4">
+          <h4 className="font-medium text-gray-900 mb-1">Grade</h4>
+          <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
+            <p className="text-gray-600 text-sm">
+              Not graded yet. Your professor will grade your submission soon.
+            </p>
+          </div>
+        </div>
+      );
+    }
+    
+    const numericGrade = parseFloat(grade);
+    const totalPoints = points || currentActivity?.points || 100;
+    const percentage = totalPoints > 0 ? (numericGrade / totalPoints) * 100 : 0;
+    
+    let gradeColor = 'text-red-600';
+    let gradeStatus = 'Needs Improvement';
+    let gradeBgColor = 'bg-red-100';
+    
+    if (percentage >= 90) {
+      gradeColor = 'text-green-600';
+      gradeStatus = 'Excellent';
+      gradeBgColor = 'bg-green-100';
+    } else if (percentage >= 80) {
+      gradeColor = 'text-green-500';
+      gradeStatus = 'Very Good';
+      gradeBgColor = 'bg-green-100';
+    } else if (percentage >= 70) {
+      gradeColor = 'text-yellow-600';
+      gradeStatus = 'Good';
+      gradeBgColor = 'bg-yellow-100';
+    } else if (percentage >= 60) {
+      gradeColor = 'text-orange-600';
+      gradeStatus = 'Satisfactory';
+      gradeBgColor = 'bg-orange-100';
+    }
+    
+    return (
+      <div className="mt-4">
+        <h4 className="font-medium text-gray-900 mb-1">Your Grade</h4>
+        <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+          <div className="flex items-center justify-between mb-2">
+            <div>
+              <p className="text-2xl font-bold text-green-800">
+                {grade}/{totalPoints}
+              </p>
+              <p className="text-sm text-green-700">
+                {percentage.toFixed(1)}% • {gradeStatus}
+              </p>
+            </div>
+            <div className={`px-3 py-1 ${gradeBgColor} rounded-full`}>
+              <span className={`text-sm font-medium ${gradeColor}`}>
+                {gradeStatus}
+              </span>
+            </div>
+          </div>
+          
+          {/* Progress bar */}
+          <div className="w-full bg-gray-200 rounded-full h-2.5 mt-3">
+            <div 
+              className="bg-green-600 h-2.5 rounded-full transition-all duration-500"
+              style={{ width: `${Math.min(percentage, 100)}%` }}
+            ></div>
+          </div>
+          
+          <div className="flex justify-between text-xs text-gray-500 mt-1">
+            <span>0</span>
+            <span>{totalPoints} points</span>
+          </div>
+          
+          {/* Grade feedback based on percentage */}
+          <div className="mt-3 pt-3 border-t border-green-200">
+            <p className="text-sm text-green-800">
+              {percentage >= 90 
+                ? "Outstanding work! You've mastered this material."
+                : percentage >= 80
+                ? "Great job! Minor improvements could make it perfect."
+                : percentage >= 70
+                ? "Solid understanding. Focus on details and accuracy."
+                : percentage >= 60
+                ? "Satisfactory work. Review key concepts and practice more."
+                : "Room for improvement. Consider reviewing the material and seeking help if needed."
+              }
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // Render professor's files section
+  const renderProfessorFiles = () => {
+    if (professorFiles.length === 0) {
+      return (
+        <div className="text-center py-6">
+          <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-2">
+            <img src={FileIcon} alt="No file" className="w-6 h-6 text-green-400" />
+          </div>
+          <p className="text-green-700 text-sm font-medium">No files from professor yet</p>
+          <p className="text-green-600 text-xs mt-1">
+            Your professor hasn't uploaded any files for you yet.
+          </p>
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-3 max-h-60 overflow-y-auto pr-2">
+        {professorFiles.map((file, index) => (
+          <div key={file.id || index} className="flex items-center justify-between bg-white p-3 rounded-lg border border-green-200 hover:border-green-300 transition-colors">
+            <div className="flex items-center gap-3 flex-1 min-w-0">
+              <div className="bg-green-100 p-2 rounded flex-shrink-0">
+                <span className="text-green-600 text-lg">
+                  {getFileIcon(file)}
+                </span>
+              </div>
+              <div className="flex-1 min-w-0">
+                <p 
+                  className="text-sm font-medium text-gray-800 truncate cursor-pointer hover:text-green-700"
+                  onClick={() => handleViewFile(file)}
+                  title={file.original_name || 'Professor File'}
+                >
+                  {file.original_name || 'Professor File'}
+                </p>
+                <div className="flex items-center gap-2 text-xs text-gray-500 mt-1 flex-wrap">
+                  {file.file_size && (
+                    <>
+                      <span>{formatFileSize(file.file_size)}</span>
+                      <span>•</span>
+                    </>
+                  )}
+                  <span>
+                    {file.uploaded_at 
+                      ? new Date(file.uploaded_at).toLocaleDateString() 
+                      : 'Recently'
+                    }
+                  </span>
+                  <span className="text-green-600 font-medium">• Professor's File</span>
+                </div>
+              </div>
+            </div>
+            <div className="flex gap-2 flex-shrink-0">
+              <button
+                onClick={() => handleDownloadFile(file)}
+                className="p-2 text-green-600 hover:text-green-800 hover:bg-green-50 rounded transition-colors"
+                title="Download File"
+              >
+                <span className="text-lg">⬇️</span>
+              </button>
+              <button
+                onClick={() => handleViewFile(file)}
+                className="px-3 py-1 bg-green-600 text-white text-sm rounded hover:bg-green-700 cursor-pointer transition-colors"
+              >
+                View
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  };
 
   if (!isOpen || !activity) return null;
+
+  const currentActivity = activityDetails || activity;
 
   return (
     <>
@@ -281,13 +566,18 @@ const StudentActivityDetails = ({ activity, isOpen, onClose, studentId }) => {
           <div className="flex items-center justify-between p-4 sm:p-6 border-b border-gray-200 flex-shrink-0">
             <div className="flex-1 min-w-0 mr-4">
               <h2 className="text-lg sm:text-xl font-bold text-gray-900 truncate">
-                {activity.title}
+                {currentActivity.title}
               </h2>
               <div className="flex items-center gap-2 mt-1 flex-wrap">
-                <span className={`px-2 py-1 ${getActivityTypeColor(activity.activity_type)} text-xs font-medium rounded flex-shrink-0`}>
-                  {activity.activity_type}
+                <span className={`px-2 py-1 ${getActivityTypeColor(currentActivity.activity_type)} text-xs font-medium rounded flex-shrink-0`}>
+                  {currentActivity.activity_type}
                 </span>
-                <span className="text-sm text-gray-500 font-bold flex-shrink-0">#{activity.task_number}</span>
+                <span className="text-sm text-gray-500 font-bold flex-shrink-0">#{currentActivity.task_number}</span>
+                {activityDetails?.submitted === 1 && (
+                  <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">
+                    Submitted
+                  </span>
+                )}
               </div>
             </div>
             <button
@@ -299,245 +589,223 @@ const StudentActivityDetails = ({ activity, isOpen, onClose, studentId }) => {
           </div>
 
           {/* Content */}
-          <div className="flex-1 overflow-y-auto p-4 sm:p-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-              {/* Left Column - Activity Details */}
-              <div className="space-y-4 sm:space-y-6">
-                <h3 className="text-lg font-semibold text-gray-900">Activity Details</h3>
-                
-                <div className="space-y-4">
-                  {/* Deadline with color coding */}
-                  <div>
-                    <h4 className="font-medium text-gray-900 mb-1">Deadline</h4>
-                    <p className={`text-sm sm:text-base ${getDeadlineColorClass(activity.deadline)}`}>
-                      {formatDate(activity.deadline)}
-                      {(isDeadlinePassed(activity.deadline) || isDeadlineUrgent(activity.deadline)) && (
-                        <span className="ml-2 text-xs bg-red-100 text-red-800 px-2 py-1 rounded-full">
-                          {isDeadlinePassed(activity.deadline) ? 'Deadline Passed' : 'Deadline Approaching'}
-                        </span>
-                      )}
-                    </p>
-                  </div>
-
-                  {/* Points */}
-                  {activity.points > 0 && (
-                    <div>
-                      <h4 className="font-medium text-gray-900 mb-1">Points</h4>
-                      <p className="text-green-600 font-semibold text-sm sm:text-base">{activity.points} points</p>
-                    </div>
-                  )}
-
-                  {/* Instructions with Show More/Less */}
-                  <div>
-                    <h4 className="font-medium text-gray-900 mb-2">Instructions</h4>
-                    <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 sm:p-4">
-                      <div className={`text-gray-600 whitespace-pre-wrap break-words text-sm sm:text-base leading-relaxed ${
-                        !instructionExpanded && activity.instruction && activity.instruction.length > 200 
-                          ? 'max-h-24 overflow-hidden' 
-                          : ''
-                      }`}>
-                        {activity.instruction || 'No instructions provided.'}
-                      </div>
-                      {activity.instruction && activity.instruction.length > 200 && (
-                        <button
-                          onClick={() => setInstructionExpanded(!instructionExpanded)}
-                          className="text-blue-600 hover:text-blue-800 text-sm font-medium mt-2 cursor-pointer"
-                        >
-                          {instructionExpanded ? 'Show Less' : 'Show More'}
-                        </button>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Link */}
-                  {activity.link && (
-                    <div>
-                      <h4 className="font-medium text-gray-900 mb-1">Reference Link</h4>
-                      <a 
-                        href={activity.link} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="text-blue-600 hover:text-blue-800 break-words text-sm sm:text-base"
-                      >
-                        {activity.link}
-                      </a>
-                    </div>
-                  )}
-                </div>
+          {isLoading ? (
+            <div className="flex-1 flex items-center justify-center p-8">
+              <div className="text-center">
+                <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                <p className="text-gray-600">Loading activity details...</p>
               </div>
-
-              {/* Right Column - Submission Section */}
-              <div className="space-y-4 sm:space-y-6">
-                <h3 className="text-lg font-semibold text-gray-900">Submission</h3>
-                
-                <div className="space-y-4">
-                  {/* Professor's Submission Card */}
-                  <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                    <h4 className="font-medium text-green-900 mb-3 flex items-center gap-2">
-                      <span>Professor's Files for You</span>
-                      {professorFiles.length > 0 && (
-                        <span className="text-xs bg-green-200 text-green-800 px-2 py-1 rounded-full">
-                          {professorFiles.length} file{professorFiles.length !== 1 ? 's' : ''}
-                        </span>
-                      )}
-                    </h4>
+            </div>
+          ) : (
+            <div className="flex-1 overflow-y-auto p-4 sm:p-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+                {/* Left Column - Activity Details */}
+                <div className="space-y-4 sm:space-y-6">
+                  <h3 className="text-lg font-semibold text-gray-900">Activity Details</h3>
+                  
+                  <div className="space-y-4">
+                    {/* Grade Section */}
+                    {renderGradeSection()}
                     
-                    {isLoading ? (
-                      <div className="text-center py-6">
-                        <div className="w-8 h-8 border-2 border-green-600 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
-                        <p className="text-green-700 text-sm">Loading files...</p>
-                      </div>
-                    ) : professorFiles.length > 0 ? (
-                      <div className="space-y-3 max-h-60 overflow-y-auto pr-2">
-                        {professorFiles.map((file) => (
-                          <div key={file.id} className="flex items-center justify-between bg-white p-3 rounded-lg border border-green-200">
-                            <div className="flex items-center gap-3">
-                              <div className="bg-green-100 p-2 rounded">
-                                <span className="text-green-600">📄</span>
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <p 
-                                  className="text-sm font-medium text-gray-800 truncate cursor-pointer hover:text-green-700"
-                                  onClick={() => handleViewFile(file)}
-                                  title={file.original_name}
-                                >
-                                  {file.original_name}
-                                </p>
-                                <div className="flex items-center gap-2 text-xs text-gray-500 mt-1">
-                                  <span>{formatFileSize(file.file_size)}</span>
-                                  <span>•</span>
-                                  <span>{new Date(file.uploaded_at).toLocaleDateString()}</span>
-                                </div>
-                              </div>
-                            </div>
-                            <button
-                              onClick={() => handleViewFile(file)}
-                              className="px-3 py-1 bg-green-600 text-white text-sm rounded hover:bg-green-700 cursor-pointer transition-colors"
-                            >
-                              View
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="text-center py-6">
-                        <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-2">
-                          <img src={FileIcon} alt="No file" className="w-6 h-6 text-green-400" />
-                        </div>
-                        <p className="text-green-700 text-sm font-medium">No files from professor yet</p>
-                        <p className="text-green-600 text-xs mt-1">
-                          Your professor hasn't uploaded any files for you yet.
+                    {/* Deadline with color coding */}
+                    <div>
+                      <h4 className="font-medium text-gray-900 mb-1">Deadline</h4>
+                      <p className={`text-sm sm:text-base ${getDeadlineColorClass(currentActivity.deadline)}`}>
+                        {formatDate(currentActivity.deadline)}
+                        {(isDeadlinePassed(currentActivity.deadline) || isDeadlineUrgent(currentActivity.deadline)) && (
+                          <span className="ml-2 text-xs bg-red-100 text-red-800 px-2 py-1 rounded-full">
+                            {isDeadlinePassed(currentActivity.deadline) ? 'Deadline Passed' : 'Deadline Approaching'}
+                          </span>
+                        )}
+                      </p>
+                    </div>
+
+                    {/* Points */}
+                    {currentActivity.points > 0 && (
+                      <div>
+                        <h4 className="font-medium text-gray-900 mb-1">Points</h4>
+                        <p className="text-green-600 font-semibold text-sm sm:text-base">
+                          {currentActivity.points} points
                         </p>
                       </div>
                     )}
-                  </div>
 
-                  {/* Student's Submission Card */}
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                    <h4 className="font-medium text-blue-900 mb-3">Your Submission</h4>
-                    
-                    {isUploading ? (
-                      <div className="text-center py-6">
-                        <div className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
-                        <p className="text-blue-700 text-sm">Uploading file...</p>
-                      </div>
-                    ) : studentFiles.length > 0 ? (
-                      <div className="space-y-3">
-                        {/* Latest file preview */}
-                        <div className="bg-white rounded-lg border border-blue-300 p-4">
-                          <div className="flex items-center justify-between mb-2">
-                            <div className="flex items-center gap-2">
-                              <span className="text-blue-600">📄</span>
-                              <p className="text-sm font-medium text-gray-900">
-                                Latest Upload ({studentFiles.length} total)
-                              </p>
-                            </div>
-                            <button
-                              onClick={handleFileUpload}
-                              className="text-blue-600 hover:text-blue-800 text-sm font-medium"
-                            >
-                              Upload New
-                            </button>
-                          </div>
-                          
-                          <div className="space-y-2">
-                            {studentFiles.map((file, index) => (
-                              <div key={file.id} className="flex items-center justify-between bg-gray-50 p-2 rounded">
-                                <div className="flex items-center gap-3">
-                                  <div className={`p-2 rounded ${index === 0 ? 'bg-blue-100' : 'bg-gray-100'}`}>
-                                    <span className={index === 0 ? 'text-blue-600' : 'text-gray-600'}>📄</span>
-                                  </div>
-                                  <div className="flex-1 min-w-0">
-                                    <p 
-                                      className="text-sm font-medium text-gray-800 truncate cursor-pointer hover:text-blue-700"
-                                      onClick={() => handleViewFile(file)}
-                                      title={file.original_name}
-                                    >
-                                      {file.original_name}
-                                      {index === 0 && (
-                                        <span className="ml-2 text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full">
-                                          Latest
-                                        </span>
-                                      )}
-                                    </p>
-                                    <div className="flex items-center gap-2 text-xs text-gray-500">
-                                      <span>{formatFileSize(file.file_size)}</span>
-                                      <span>•</span>
-                                      <span>{new Date(file.uploaded_at).toLocaleDateString()}</span>
-                                    </div>
-                                  </div>
-                                </div>
-                                <div className="flex gap-2">
-                                  <button
-                                    onClick={() => handleViewFile(file)}
-                                    className="text-blue-600 hover:text-blue-800 text-sm px-2 py-1 hover:bg-blue-50 rounded"
-                                  >
-                                    View
-                                  </button>
-                                  <button
-                                    onClick={() => handleDeleteFile(file.id)}
-                                    className="text-red-600 hover:text-red-800 text-sm px-2 py-1 hover:bg-red-50 rounded"
-                                  >
-                                    Delete
-                                  </button>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
+                    {/* Instructions with Show More/Less */}
+                    <div>
+                      <h4 className="font-medium text-gray-900 mb-2">Instructions</h4>
+                      <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 sm:p-4">
+                        <div className={`text-gray-600 whitespace-pre-wrap break-words text-sm sm:text-base leading-relaxed ${
+                          !instructionExpanded && currentActivity.instruction && currentActivity.instruction.length > 200 
+                            ? 'max-h-24 overflow-hidden' 
+                            : ''
+                        }`}>
+                          {currentActivity.instruction || 'No instructions provided.'}
                         </div>
-                        
-                        <div className="text-xs text-gray-500">
-                          You can upload multiple files. The professor will see all uploaded files.
-                        </div>
+                        {currentActivity.instruction && currentActivity.instruction.length > 200 && (
+                          <button
+                            onClick={() => setInstructionExpanded(!instructionExpanded)}
+                            className="text-blue-600 hover:text-blue-800 text-sm font-medium mt-2 cursor-pointer"
+                          >
+                            {instructionExpanded ? 'Show Less' : 'Show More'}
+                          </button>
+                        )}
                       </div>
-                    ) : (
-                      <div 
-                        className="w-full h-40 bg-white border-2 border-dashed border-blue-300 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-blue-500 transition-colors p-4"
-                        onClick={handleFileUpload}
-                      >
-                        <img src={Add} alt="Add" className="w-10 h-10 text-blue-400 mb-3" />
-                        <p className="text-blue-700 font-medium text-sm text-center">Click to upload your work</p>
-                        <p className="text-blue-600 text-xs mt-1 text-center">All file types supported (Max 25MB)</p>
+                    </div>
+
+                    {/* Link */}
+                    {currentActivity.link && (
+                      <div>
+                        <h4 className="font-medium text-gray-900 mb-1">Reference Link</h4>
+                        <a 
+                          href={currentActivity.link} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="text-blue-600 hover:text-blue-800 break-words text-sm sm:text-base"
+                        >
+                          {currentActivity.link}
+                        </a>
                       </div>
                     )}
-                    
-                    {/* Upload Button */}
-                    {studentFiles.length === 0 && !isUploading && (
-                      <div className="mt-4">
+                  </div>
+                </div>
+
+                {/* Right Column - Submission Section */}
+                <div className="space-y-4 sm:space-y-6">
+                  <h3 className="text-lg font-semibold text-gray-900">Submission</h3>
+                  
+                  <div className="space-y-4">
+                    {/* Professor's Submission Card */}
+                    <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <h4 className="font-medium text-green-900 flex items-center gap-2">
+                          <span>Professor's Files for You</span>
+                          {professorFiles.length > 0 && (
+                            <span className="text-xs bg-green-200 text-green-800 px-2 py-1 rounded-full">
+                              {professorFiles.length} 
+                              file{professorFiles.length !== 1 ? 's' : ''}
+                            </span>
+                          )}
+                        </h4>
                         <button
-                          onClick={handleFileUpload}
-                          className="w-full py-2 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors cursor-pointer flex items-center justify-center gap-2"
+                          onClick={fetchActivityDetails}
+                          className="text-xs text-green-600 hover:text-green-800 font-medium cursor-pointer"
                         >
-                          <img src={Add} alt="Upload" className="w-4 h-4" />
-                          Upload Your File
+                          Refresh
                         </button>
                       </div>
-                    )}
+                      
+                      {renderProfessorFiles()}
+                    </div>
+
+                    {/* Student's Submission Card */}
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                      <h4 className="font-medium text-blue-900 mb-3">Your Submission</h4>
+                      
+                      {isUploading ? (
+                        <div className="text-center py-6">
+                          <div className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
+                          <p className="text-blue-700 text-sm">Uploading file...</p>
+                        </div>
+                      ) : studentFiles.length > 0 ? (
+                        <div className="space-y-3">
+                          {/* Latest file preview */}
+                          <div className="bg-white rounded-lg border border-blue-300 p-4">
+                            <div className="flex items-center justify-between mb-2">
+                              <div className="flex items-center gap-2">
+                                <span className="text-blue-600">📄</span>
+                                <p className="text-sm font-medium text-gray-900">
+                                  Your Uploads ({studentFiles.length} total)
+                                </p>
+                              </div>
+                              <button
+                                onClick={handleFileUpload}
+                                className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                              >
+                                Upload New
+                              </button>
+                            </div>
+                            
+                            <div className="space-y-2">
+                              {studentFiles.map((file, index) => (
+                                <div key={file.id} className="flex items-center justify-between bg-gray-50 p-2 rounded hover:bg-gray-100 transition-colors">
+                                  <div className="flex items-center gap-3">
+                                    <div className={`p-2 rounded ${index === 0 ? 'bg-blue-100' : 'bg-gray-100'}`}>
+                                      <span className={index === 0 ? 'text-blue-600' : 'text-gray-600'}>
+                                        {getFileIcon(file)}
+                                      </span>
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                      <p 
+                                        className="text-sm font-medium text-gray-800 truncate cursor-pointer hover:text-blue-700"
+                                        onClick={() => handleViewFile(file)}
+                                        title={file.original_name}
+                                      >
+                                        {file.original_name}
+                                        {index === 0 && (
+                                          <span className="ml-2 text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full">
+                                            Latest
+                                          </span>
+                                        )}
+                                      </p>
+                                      <div className="flex items-center gap-2 text-xs text-gray-500">
+                                        <span>{formatFileSize(file.file_size)}</span>
+                                        <span>•</span>
+                                        <span>{new Date(file.uploaded_at).toLocaleDateString()}</span>
+                                      </div>
+                                    </div>
+                                  </div>
+                                  <div className="flex gap-2">
+                                    <button
+                                      onClick={() => handleViewFile(file)}
+                                      className="text-blue-600 hover:text-blue-800 text-sm px-2 py-1 hover:bg-blue-50 rounded"
+                                    >
+                                      View
+                                    </button>
+                                    <button
+                                      onClick={() => handleDeleteFile(file.id)}
+                                      className="text-red-600 hover:text-red-800 text-sm px-2 py-1 hover:bg-red-50 rounded"
+                                    >
+                                      Delete
+                                    </button>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                          
+                          <div className="text-xs text-gray-500">
+                            You can upload multiple files. The professor will see all uploaded files.
+                          </div>
+                        </div>
+                      ) : (
+                        <div 
+                          className="w-full h-40 bg-white border-2 border-dashed border-blue-300 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-blue-500 transition-colors p-4"
+                          onClick={handleFileUpload}
+                        >
+                          <img src={Add} alt="Add" className="w-10 h-10 text-blue-400 mb-3" />
+                          <p className="text-blue-700 font-medium text-sm text-center">Click to upload your work</p>
+                          <p className="text-blue-600 text-xs mt-1 text-center">All file types supported (Max 25MB)</p>
+                        </div>
+                      )}
+                      
+                      {/* Upload Button */}
+                      {studentFiles.length === 0 && !isUploading && (
+                        <div className="mt-4">
+                          <button
+                            onClick={handleFileUpload}
+                            className="w-full py-2 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors cursor-pointer flex items-center justify-center gap-2"
+                          >
+                            <img src={Add} alt="Upload" className="w-4 h-4" />
+                            Upload Your File
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
-          </div>
+          )}
 
           {/* Footer with Submit and Close buttons */}
           <div className="flex justify-end gap-3 p-4 sm:p-6 border-t border-gray-200 bg-gray-50 flex-shrink-0">
@@ -547,12 +815,14 @@ const StudentActivityDetails = ({ activity, isOpen, onClose, studentId }) => {
             >
               Close
             </button>
-            <button
-              onClick={handleSubmit}
-              className="px-6 py-2 text-sm font-medium text-white bg-green-600 border border-transparent rounded-md hover:bg-green-700 cursor-pointer transition-colors"
-            >
-              Mark as Submitted
-            </button>
+            {activityDetails?.submitted !== 1 && studentFiles.length > 0 && (
+              <button
+                onClick={handleSubmit}
+                className="px-6 py-2 text-sm font-medium text-white bg-green-600 border border-transparent rounded-md hover:bg-green-700 cursor-pointer transition-colors"
+              >
+                Mark as Submitted
+              </button>
+            )}
           </div>
         </div>
       </div>
