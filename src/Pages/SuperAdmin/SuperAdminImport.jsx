@@ -1,15 +1,11 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Link } from "react-router-dom";
 import Lottie from "lottie-react";
 
 import Sidebar from "../../Components/Sidebar";
 import Header from "../../Components/Header";
-import Popup from "../../Components/Popup";
 
 import ArrowDown from "../../assets/ArrowDown(Light).svg";
 import Search from "../../assets/Search.svg";
-import ArchiveRow from "../../assets/ArchiveRow(Light).svg";
-import Details from "../../assets/Details(Light).svg";
 import Import from "../../assets/Import(Light).svg";
 import ArchiveWarningIcon from "../../assets/Warning(Yellow).svg";
 import SuccessIcon from "../../assets/Success(Green).svg";
@@ -21,18 +17,23 @@ import loadingAnimation from "../../assets/system-regular-716-spinner-three-dots
 export default function SuperAdminImports() {
   const [isOpen, setIsOpen] = useState(true);
   const [open, setOpen] = useState(false);
-  const [showPopup, setShowPopup] = useState(false);
   const [users, setUsers] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [usersPerPage] = useState(10);
   const [showActivateModal, setShowActivateModal] = useState(false);
   const [showResultModal, setShowResultModal] = useState(false);
-  const [resultData, setResultData] = useState({ type: "", title: "", message: "" });
+  const [resultData, setResultData] = useState({ 
+    type: "", 
+    title: "", 
+    message: "",
+    details: null 
+  });
   const [showImportModal, setShowImportModal] = useState(false);
   const [importFile, setImportFile] = useState(null);
   const [isImporting, setIsImporting] = useState(false);
   const [isActivating, setIsActivating] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
 
   const fileInputRef = useRef(null);
 
@@ -43,6 +44,7 @@ export default function SuperAdminImports() {
 
   const fetchUsers = () => {
     setIsLoading(true);
+    // Updated to fetch from the same source table as activation PHP
     fetch("https://tracked.6minds.site/SuperAdmin/SuperAdminImportDB/get_superadmin_user.php")
       .then((res) => {
         if (!res.ok) {
@@ -52,7 +54,9 @@ export default function SuperAdminImports() {
       })
       .then((data) => {
         if (Array.isArray(data)) {
-          setUsers(data);
+          // Filter to show only Admin users
+          const adminUsers = data.filter(user => user.user_Role === 'Admin');
+          setUsers(adminUsers);
         } else {
           console.error("Invalid data format:", data);
           setUsers([]);
@@ -80,7 +84,6 @@ export default function SuperAdminImports() {
   const handleFileSelect = (event) => {
     const file = event.target.files[0];
     if (file) {
-      // Enhanced file validation
       const validTypes = ['.sql', 'application/sql', 'text/sql', 'text/plain'];
       const maxSize = 10 * 1024 * 1024; // 10MB
       
@@ -148,7 +151,7 @@ export default function SuperAdminImports() {
             title: "Import Successful!",
             message: data.message
           });
-          fetchUsers(); // Refresh the user list
+          fetchUsers();
         } else {
           setResultData({
             type: "error",
@@ -192,71 +195,97 @@ export default function SuperAdminImports() {
     setShowActivateModal(true);
   };
 
-  const confirmActivateAccounts = () => {
-    setIsActivating(true);
+const confirmActivateAccounts = () => {
+  setIsActivating(true);
+  
+  // REMOVE the request body - the PHP fetches from database directly
+  fetch("https://tracked.6minds.site/SuperAdmin/SuperAdminDB/activate_admin_accounts.php", {
+    method: "POST",
+    headers: { 
+      "Content-Type": "application/json",
+      "Accept": "application/json"
+    }
+    // REMOVE the body: JSON.stringify(requestBody)
+  })
+  .then(async (res) => {
+    const text = await res.text();
+    console.log("Raw response text:", text);
+    console.log("Response status:", res.status);
     
-    fetch("https://tracked.6minds.site/SuperAdmin/SuperAdminImportDB/activate_admin_accounts.php", {
-      method: "POST",
-      headers: { 
-        "Content-Type": "application/json",
-        "Accept": "application/json"
-      },
-    })
-      .then(async (res) => {
-        const text = await res.text();
-        console.log("Raw response:", text);
-        
-        if (!res.ok) {
-          throw new Error(`HTTP error! status: ${res.status}`);
-        }
-        
-        try {
-          return JSON.parse(text);
-        } catch (e) {
-          console.error("JSON parse error:", e);
-          throw new Error("Invalid JSON response from server");
-        }
-      })
-      .then((data) => {
-        console.log("Parsed data:", data);
-        if (data.status === "success" || data.success) {
-          setResultData({
-            type: "success",
-            title: "Success!",
-            message: data.message || "Admin accounts activated successfully!"
-          });
-          fetchUsers(); // Refresh user list
-        } else {
-          setResultData({
-            type: "error",
-            title: "Activation Failed!",
-            message: data.message || "Unknown error occurred"
-          });
-        }
-        setShowResultModal(true);
-      })
-      .catch((err) => {
-        console.error("Error activating accounts:", err);
-        setResultData({
-          type: "error",
-          title: "Activation Error!",
-          message: `An error occurred while activating admin accounts: ${err.message}. Please check server logs and try again.`
-        });
-        setShowResultModal(true);
-      })
-      .finally(() => {
-        setIsActivating(false);
-        setShowActivateModal(false);
+    if (!res.ok) {
+      // Try to parse error message
+      let errorMsg = `HTTP error! status: ${res.status}`;
+      try {
+        const errorData = JSON.parse(text);
+        errorMsg = errorData.message || errorMsg;
+      } catch (e) {
+        console.error("Failed to parse error JSON:", e);
+      }
+      throw new Error(errorMsg);
+    }
+    
+    try {
+      return JSON.parse(text);
+    } catch (e) {
+      console.error("Failed to parse success JSON:", e);
+      throw new Error("Invalid JSON response from server: " + text.substring(0, 100));
+    }
+  })
+  .then((data) => {
+    console.log("Parsed data:", data);
+    if (data.status === "success") {
+      setResultData({
+        type: "success",
+        title: "Success!",
+        message: data.message || "Admin accounts activated successfully!",
+        details: data
       });
-  };
+      fetchUsers(); // Refresh the user list
+    } else {
+      setResultData({
+        type: "error",
+        title: "Activation Failed!",
+        message: data.message || "Unknown error occurred",
+        details: data
+      });
+    }
+    setShowResultModal(true);
+  })
+  .catch((err) => {
+    console.error("Error activating accounts:", err);
+    setResultData({
+      type: "error",
+      title: "Activation Error!",
+      message: `Error: ${err.message}\n\nPlease check:\n1. PHP file exists at correct location\n2. Server error logs\n3. Database connection\n4. PHPMailer configuration`
+    });
+    setShowResultModal(true);
+  })
+  .finally(() => {
+    setIsActivating(false);
+    setShowActivateModal(false);
+  });
+};
+
+  // Filter users based on search term
+  const filteredUsers = users.filter(user => {
+    if (!searchTerm) return true;
+    
+    const searchLower = searchTerm.toLowerCase();
+    return (
+      user.user_ID?.toString().toLowerCase().includes(searchLower) ||
+      user.user_firstname?.toLowerCase().includes(searchLower) ||
+      user.user_lastname?.toLowerCase().includes(searchLower) ||
+      user.user_Email?.toLowerCase().includes(searchLower) ||
+      user.user_Role?.toLowerCase().includes(searchLower) ||
+      user.user_Gender?.toLowerCase().includes(searchLower)
+    );
+  });
 
   // Pagination Logic
   const indexOfLastUser = currentPage * usersPerPage;
   const indexOfFirstUser = indexOfLastUser - usersPerPage;
-  const currentUsers = users.slice(indexOfFirstUser, indexOfLastUser);
-  const totalPages = Math.ceil(users.length / usersPerPage);
-
-  const adminUsers = users.filter(user => user.user_Role === 'Admin');
+  const currentUsers = filteredUsers.slice(indexOfFirstUser, indexOfLastUser);
+  const totalPages = Math.ceil(filteredUsers.length / usersPerPage);
 
   const handlePageChange = (pageNumber) => {
     setCurrentPage(pageNumber);
@@ -387,9 +416,9 @@ export default function SuperAdminImports() {
 
               <button
                 onClick={handleActivateAccounts}
-                disabled={adminUsers.length === 0 || isActivating}
+                disabled={users.length === 0 || isActivating}
                 className={`font-bold text-white px-3 sm:px-4 py-2 rounded-md shadow-md border-2 border-transparent text-xs sm:text-sm lg:text-base transition-all duration-200 cursor-pointer ${
-                  adminUsers.length === 0 || isActivating
+                  users.length === 0 || isActivating
                     ? "bg-gray-400 cursor-not-allowed"
                     : "bg-[#00A15D] hover:bg-[#00874E]"
                 }`}
@@ -404,6 +433,11 @@ export default function SuperAdminImports() {
                 type="text"
                 placeholder="Search..."
                 className="w-full h-9 sm:h-10 lg:h-11 rounded-md px-3 py-2 pr-10 shadow-md outline-none text-[#465746] bg-white text-xs sm:text-sm border-2 border-transparent focus:border-[#00874E] transition-all duration-200"
+                value={searchTerm}
+                onChange={(e) => {
+                  setSearchTerm(e.target.value);
+                  setCurrentPage(1); // Reset to first page when searching
+                }}
               />
               <button className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-[#465746]">
                 <img
@@ -457,14 +491,22 @@ export default function SuperAdminImports() {
                             <td className="py-3 px-2 sm:px-3 break-all sm:break-normal">
                               {user.user_Email}
                             </td>
-                            <td className="py-3 px-2 sm:px-3">{user.user_Role}</td>
+                            <td className="py-3 px-2 sm:px-3">
+                              <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
+                                user.user_Role === 'Admin' 
+                                  ? 'bg-green-100 text-green-800' 
+                                  : 'bg-blue-100 text-blue-800'
+                              }`}>
+                                {user.user_Role}
+                              </span>
+                            </td>
                             <td className="py-3 px-2 sm:px-3">{user.user_Gender}</td>
                           </tr>
                         ))
                       ) : (
                         <tr>
                           <td colSpan="5" className="text-center py-8 text-gray-500">
-                            No admin users found. Please import data first.
+                            {searchTerm ? "No admin users match your search." : "No admin users found. Please import data first."}
                           </td>
                         </tr>
                       )}
@@ -510,10 +552,46 @@ export default function SuperAdminImports() {
                     ))
                   ) : (
                     <div className="text-center py-8 text-gray-500">
-                      No admin users found. Please import data first.
+                      {searchTerm ? "No admin users match your search." : "No admin users found. Please import data first."}
                     </div>
                   )}
                 </div>
+
+                {/* Info Box */}
+                {!searchTerm && (
+                  <div className="mt-4 bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <div className="flex items-center">
+                      <div className="flex-shrink-0">
+                        <svg className="h-5 w-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                        </svg>
+                      </div>
+                      <div className="ml-3">
+                        <p className="text-sm text-blue-700">
+                          <span className="font-semibold">Found {users.length} Admin users</span>. Click "Activate Admin Accounts" to create login credentials for admins.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Search Results Info */}
+                {searchTerm && (
+                  <div className="mt-4 bg-gray-50 border border-gray-200 rounded-lg p-4">
+                    <div className="flex items-center">
+                      <div className="flex-shrink-0">
+                        <svg className="h-5 w-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clipRule="evenodd" />
+                        </svg>
+                      </div>
+                      <div className="ml-3">
+                        <p className="text-sm text-gray-700">
+                          <span className="font-semibold">Search results:</span> Found {filteredUsers.length} admin users matching "{searchTerm}"
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 {/* Pagination Controls */}
                 {totalPages > 1 && (
@@ -576,8 +654,6 @@ export default function SuperAdminImports() {
                 )}
               </>
             )}
-
-            {showPopup && <Popup setOpen={setShowPopup} />}
           </div>
         </div>
       </div>
@@ -717,14 +793,23 @@ export default function SuperAdminImports() {
               
               <div className="mt-4 mb-6">
                 <p className="text-sm text-gray-600 mb-3">
-                  Are you sure you want to activate all imported Admin accounts? This action will make all imported Admin accounts active in the system.
+                  This will activate all imported Admin accounts and send them email notifications with temporary passwords.
                 </p>
                 <div className="bg-gray-50 rounded-lg p-4 text-left">
                   <p className="text-base sm:text-lg font-semibold text-gray-900">
-                    This will affect {adminUsers.length} admin accounts
+                    This will affect {users.length} admin accounts
                   </p>
                   <p className="text-sm text-gray-600 mt-2">
-                    • Admins: {adminUsers.filter(user => user.user_Role === 'Admin').length}
+                    • Each admin will receive an email with temporary password
+                  </p>
+                  <p className="text-sm text-gray-600">
+                    • Accounts will be set to "Active" status in tracked_users
+                  </p>
+                  <p className="text-sm text-gray-600">
+                    • Password reset will be required on first login
+                  </p>
+                  <p className="text-sm text-gray-600">
+                    • Admin accounts gain access to Super Admin dashboard
                   </p>
                 </div>
               </div>
@@ -807,46 +892,64 @@ export default function SuperAdminImports() {
                 <p className="text-sm text-gray-600 mb-3 whitespace-pre-line">
                   {resultData.message}
                 </p>
-                {resultData.type === "success" && (
+                {resultData.type === "success" && resultData.details && (
                   <div className="bg-gray-50 rounded-lg p-4 text-left">
                     <p className="text-base sm:text-lg font-semibold text-gray-900">
-                      {resultData.title.includes("Import") ? "Database imported successfully!" : "Admin accounts have been activated successfully"}
+                      Admin Activation Summary
                     </p>
                     <p className="text-sm text-gray-600 mt-2">
-                      • Total users processed: {adminUsers.length}
+                      • Total admins found: {resultData.details.total_admins || users.length}
                     </p>
-                    {resultData.title.includes("Import") ? (
-                      <p className="text-sm text-gray-600">
-                        • Data has been successfully imported into the database
+                    <p className="text-sm text-gray-600">
+                      • Successfully processed: {resultData.details.processed || (resultData.details.newUsersActivated + resultData.details.existingUsersUpdated) || 0} admins
+                    </p>
+                    {resultData.details.newUsersActivated > 0 && (
+                      <p className="text-sm text-green-600">
+                        • New admins activated: {resultData.details.newUsersActivated}
                       </p>
-                    ) : (
-                      <>
-                        <p className="text-sm text-gray-600">
-                          • Emails sent with temporary passwords
-                        </p>
-                        <p className="text-sm text-gray-600">
-                          • Admins can now login with their temporary passwords
-                        </p>
-                      </>
+                    )}
+                    {resultData.details.existingUsersUpdated > 0 && (
+                      <p className="text-sm text-blue-600">
+                        • Existing admins updated: {resultData.details.existingUsersUpdated}
+                      </p>
+                    )}
+                    {resultData.details.activationEmailsSent > 0 && (
+                      <p className="text-sm text-green-600">
+                        • Activation emails sent: {resultData.details.activationEmailsSent}
+                      </p>
+                    )}
+                    {resultData.details.updateEmailsSent > 0 && (
+                      <p className="text-sm text-blue-600">
+                        • Update emails sent: {resultData.details.updateEmailsSent}
+                      </p>
+                    )}
+                    {resultData.details.errorCount > 0 && (
+                      <p className="text-sm text-yellow-600 mt-2">
+                        • {resultData.details.errorCount} operations had issues
+                      </p>
                     )}
                   </div>
                 )}
                 {resultData.type === "error" && (
                   <div className="bg-gray-50 rounded-lg p-4 text-left">
                     <p className="text-base sm:text-lg font-semibold text-gray-900">
-                      Operation failed
+                      Troubleshooting Tips:
                     </p>
                     <p className="text-sm text-gray-600 mt-2">
-                      • Please check if the server is running
+                      1. Check if the PHP file exists at the correct location
                     </p>
                     <p className="text-sm text-gray-600">
-                      • Verify the database connection
+                      2. Check server error logs for PHP errors
                     </p>
-                    {resultData.title.includes("Import") && (
-                      <p className="text-sm text-gray-600">
-                        • Ensure the SQL file is valid and properly formatted
-                      </p>
-                    )}
+                    <p className="text-sm text-gray-600">
+                      3. Verify database connection details
+                    </p>
+                    <p className="text-sm text-gray-600">
+                      4. Ensure the 'users' table has Admin accounts
+                    </p>
+                    <p className="text-sm text-gray-600">
+                      5. Check if PHPMailer is properly configured
+                    </p>
                   </div>
                 )}
               </div>

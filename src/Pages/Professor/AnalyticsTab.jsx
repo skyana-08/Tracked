@@ -32,7 +32,7 @@ export default function AnalyticsTab() {
   const [searchTerm, setSearchTerm] = useState("");
   const [analyticsData, setAnalyticsData] = useState(null);
   const [selectedActivityType, setSelectedActivityType] = useState('All');
-  const [setError] = useState(null);
+  const [error, setError] = useState(null);
   const [barChartSort, setBarChartSort] = useState('desc');
   const [failingStudents, setFailingStudents] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(true);
@@ -165,7 +165,7 @@ export default function AnalyticsTab() {
     }
   };
 
-  const processAllData = async (activities, students) => {
+  const processAllData = async (activities, students, attendance) => {
     // Store raw data for reprocessing if needed
     setActivitiesData(activities);
     setStudentsData(students);
@@ -177,6 +177,7 @@ export default function AnalyticsTab() {
   const processAnalyticsData = (activities, students) => {
     // Check if we have any data at all
     const hasActivities = activities && activities.length > 0;
+    const hasStudents = students && students.length > 0;
     const hasAttendance = attendanceData && attendanceData.length > 0;
     
     if (!hasActivities && !hasAttendance) {
@@ -398,7 +399,7 @@ export default function AnalyticsTab() {
     }
 
     return Object.entries(typeData)
-      .filter(([data]) => data.count > 0)
+      .filter(([type, data]) => data.count > 0)
       .map(([type, data]) => ({
         type: type,
         average: Math.round((data.total / data.count) * 100) / 100,
@@ -873,7 +874,7 @@ export default function AnalyticsTab() {
                     {student.averageGrade < 50 && (
                       <li>Provide additional resources or tutoring sessions</li>
                     )}
-                    {Object.entries(student.performanceByType).some(([grade]) => grade < 60) && (
+                    {Object.entries(student.performanceByType).some(([_, grade]) => grade < 60) && (
                       <li>Review specific activity types where student is struggling</li>
                     )}
                     {attendanceRate < 70 && student.submissionRate < 70 && (
@@ -1094,8 +1095,6 @@ export default function AnalyticsTab() {
             </div>
           </div>
 
-          {/* Debug Tools Section REMOVED */}
-
           <div className="mt-6 sm:mt-8">
             <div className="flex flex-col sm:flex-row gap-4">
               <div className="relative flex-1 max-w-md">
@@ -1208,7 +1207,7 @@ export default function AnalyticsTab() {
               </div>
 
               {/* Average Performance by Assessment Type Bar Graph */}
-              <div className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow">
+              {/* <div className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow">
                 <h3 className="text-lg font-semibold text-gray-700 mb-2">
                   Average Performance by Assessment Type
                 </h3>
@@ -1357,7 +1356,7 @@ export default function AnalyticsTab() {
                     <p className="text-gray-500">No assessment data available yet.</p>
                   </div>
                 )}
-              </div>
+              </div> */}
 
               <div className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow">
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
@@ -1578,7 +1577,7 @@ export default function AnalyticsTab() {
                           cx="50%"
                           cy="50%"
                           labelLine={false}
-                          label={({ percent }) => `${(percent * 100).toFixed(0)}%`}
+                          label={({ name, percent }) => `${(percent * 100).toFixed(0)}%`}
                           outerRadius={80}
                           fill="#8884d8"
                           dataKey="count"

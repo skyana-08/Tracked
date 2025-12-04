@@ -248,10 +248,6 @@ export default function SubjectAnnouncementStudent() {
 
           {/* Class Information */}
           <div className="flex flex-col gap-2 text-sm sm:text-base lg:text-[1.125rem] text-[#465746] mb-4 sm:mb-5">
-            <div className="flex flex-wrap items-center gap-1 sm:gap-3">
-              <span className="font-semibold">SUBJECT CODE:</span>
-              <span>{classInfo?.subject_code || subjectCode || 'Loading...'}</span>
-            </div>
 
             <div className="flex flex-wrap items-center gap-1 sm:gap-3">
               <span className="font-semibold">SUBJECT:</span>

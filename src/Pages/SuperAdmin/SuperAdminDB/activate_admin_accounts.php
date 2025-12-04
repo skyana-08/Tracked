@@ -57,11 +57,14 @@ define("SMTP_PORT", 587);
 define("SMTP_USER", "tracked.0725@gmail.com");
 define("SMTP_PASS", "nmvi itzx dqrh qimh");
 define("FROM_EMAIL", "tracked.0725@gmail.com");
-define("FROM_NAME", "TrackEd System");
+define("FROM_NAME", "TrackED System");
 
 // Initialize counters
-$successCount = 0;
+$newUsersCount = 0;
+$existingUsersCount = 0;
 $errorCount = 0;
+$activationEmailsSent = 0;
+$updateEmailsSent = 0;
 $errorMessages = [];
 
 try {
@@ -81,7 +84,7 @@ try {
         exit();
     }
 
-    // Process each admin
+    // Process each user
     while ($row = $result->fetch_assoc()) {
         $user_ID = $conn->real_escape_string($row['user_ID'] ?? '');
         $user_firstname = $conn->real_escape_string($row['user_firstname'] ?? '');
@@ -99,23 +102,17 @@ try {
         // Validate required fields
         if (empty($user_ID) || empty($user_Email) || empty($user_Role)) {
             $errorCount++;
-            $errorMessages[] = "Missing required fields for admin: $user_ID";
+            $errorMessages[] = "Missing required fields for user: $user_ID";
             continue;
         }
 
-        // Generate random password based on bday, role, and ID
-        $bday = str_replace("/", "", $user_bday);
-        $random = substr(str_shuffle("ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"), 0, 3);
-        $plain_password = $bday . $user_Role . $user_ID . $random;
-        $hashed_password = password_hash($plain_password, PASSWORD_DEFAULT);
-
-        // Check if the admin already exists in tracked_users
-        $check_sql = "SELECT tracked_ID FROM tracked_users WHERE tracked_ID = '$user_ID'";
+        // Check if the user already exists in tracked_users
+        $check_sql = "SELECT tracked_ID, tracked_Status FROM tracked_users WHERE tracked_ID = '$user_ID'";
         $check_result = $conn->query($check_sql);
 
         if (!$check_result) {
             $errorCount++;
-            $errorMessages[] = "Check query failed for admin $user_ID: " . $conn->error;
+            $errorMessages[] = "Check query failed for user $user_ID: " . $conn->error;
             continue;
         }
 
@@ -136,7 +133,11 @@ try {
         }
 
         if ($check_result->num_rows == 0) {
-            // Insert new record
+            // USER IS COMPLETELY NEW - NOT IN tracked_users AT ALL
+            // Generate password and insert as new active user
+            $plain_password = generatePassword($user_bday, $user_Role, $user_ID);
+            $hashed_password = password_hash($plain_password, PASSWORD_DEFAULT);
+
             $insert_sql = "INSERT INTO tracked_users (
                 tracked_ID, tracked_Role, tracked_email, tracked_password,
                 tracked_firstname, tracked_lastname, tracked_middlename,
@@ -151,24 +152,27 @@ try {
             )";
 
             if ($conn->query($insert_sql)) {
-                // Send email with temporary password
-                $emailSent = sendTemporaryPasswordEmail($user_Email, $user_firstname, $user_ID, $plain_password);
+                // Send ACTIVATION email for NEW users
+                $emailSent = sendActivationEmail($user_Email, $user_firstname, $user_ID, $plain_password);
                 if ($emailSent) {
-                    $successCount++;
+                    $activationEmailsSent++;
                 } else {
                     $errorCount++;
-                    $errorMessages[] = "Failed to send email to $user_Email";
+                    $errorMessages[] = "Failed to send activation email to $user_Email";
                 }
+                $newUsersCount++;
             } else {
                 $errorCount++;
-                $errorMessages[] = "Failed to insert admin $user_ID: " . $conn->error;
+                $errorMessages[] = "Failed to insert new user $user_ID: " . $conn->error;
             }
         } else {
-            // Update existing record
+            // USER ALREADY EXISTS IN tracked_users
+            $existing_user = $check_result->fetch_assoc();
+            
+            // Only update the user information - DO NOT change status or password
             $update_sql = "UPDATE tracked_users SET
                 tracked_Role = '$user_Role',
                 tracked_email = '$user_Email',
-                tracked_password = '$hashed_password',
                 tracked_firstname = '$user_firstname',
                 tracked_lastname = '$user_lastname',
                 tracked_middlename = '$user_middlename',
@@ -177,44 +181,65 @@ try {
                 tracked_semester = '$user_semester',
                 tracked_bday = $formatted_bday,
                 tracked_gender = '$user_Gender',
-                tracked_phone = '$user_phonenumber',
-                tracked_Status = 'Active',
-                temporary_password = '$plain_password'
+                tracked_phone = '$user_phonenumber'
             WHERE tracked_ID = '$user_ID'";
 
             if ($conn->query($update_sql)) {
-                // Send email with temporary password
-                $emailSent = sendTemporaryPasswordEmail($user_Email, $user_firstname, $user_ID, $plain_password);
+                // Send UPDATE email for existing users
+                $emailSent = sendUpdateEmail($user_Email, $user_firstname, $user_ID);
                 if ($emailSent) {
-                    $successCount++;
+                    $updateEmailsSent++;
                 } else {
-                    $errorCount++;
-                    $errorMessages[] = "Failed to send email to $user_Email";
+                    $errorMessages[] = "Failed to send update email to $user_Email (non-critical)";
                 }
+                $existingUsersCount++;
             } else {
                 $errorCount++;
-                $errorMessages[] = "Failed to update admin $user_ID: " . $conn->error;
+                $errorMessages[] = "Failed to update existing user $user_ID: " . $conn->error;
             }
         }
     }
 
     // Prepare response message
     $message = "Admin accounts activated successfully. ";
-    $message .= "Emails sent to $successCount admins. ";
+    $message .= "Total processed: " . ($newUsersCount + $existingUsersCount) . " users. ";
+    
+    if ($newUsersCount > 0) {
+        $message .= "$newUsersCount new admin accounts were activated ";
+        if ($activationEmailsSent > 0) {
+            $message .= "and activation emails were sent. ";
+        } else {
+            $message .= "but no activation emails were sent. ";
+        }
+    }
+    
+    if ($existingUsersCount > 0) {
+        $message .= "$existingUsersCount existing admin accounts were updated ";
+        if ($updateEmailsSent > 0) {
+            $message .= "and update notifications were sent. ";
+        } else {
+            $message .= "but no update notifications were sent. ";
+        }
+    }
+    
     if ($errorCount > 0) {
-        $message .= "$errorCount operations failed. ";
-        $message .= "First few errors: " . implode(", ", array_slice($errorMessages, 0, 5));
-        if (count($errorMessages) > 5) {
-            $message .= "... and " . (count($errorMessages) - 5) . " more";
+        $message .= "$errorCount errors occurred. ";
+        if (count($errorMessages) > 0) {
+            $message .= "First error: " . $errorMessages[0];
+            if (count($errorMessages) > 1) {
+                $message .= " (+ " . (count($errorMessages) - 1) . " more errors)";
+            }
         }
     }
 
     echo json_encode([
         "status" => "success", 
         "message" => $message,
-        "successCount" => $successCount,
-        "errorCount" => $errorCount,
-        "totalProcessed" => ($successCount + $errorCount)
+        "newAdminsActivated" => $newUsersCount,
+        "existingAdminsUpdated" => $existingUsersCount,
+        "activationEmailsSent" => $activationEmailsSent,
+        "updateEmailsSent" => $updateEmailsSent,
+        "errorCount" => $errorCount
     ]);
 
 } catch (Exception $e) {
@@ -228,7 +253,13 @@ try {
     $conn->close();
 }
 
-function sendTemporaryPasswordEmail($user_Email, $user_firstname, $user_ID, $plain_password) {
+function generatePassword($bday, $role, $user_ID) {
+    $bday = str_replace("/", "", $bday);
+    $random = substr(str_shuffle("ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"), 0, 3);
+    return $bday . $role . $user_ID . $random;
+}
+
+function sendActivationEmail($user_Email, $user_firstname, $user_ID, $plain_password) {
     try {
         $mail = new PHPMailer(true);
 
@@ -252,21 +283,21 @@ function sendTemporaryPasswordEmail($user_Email, $user_firstname, $user_ID, $pla
 
         // Email content
         $mail->isHTML(true);
-        $mail->Subject = "Your TrackEd Admin Account Has Been Activated";
+        $mail->Subject = "Your TrackED Admin Account Has Been Activated";
 
         $mail->Body = '
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f9f9f9;">
             <div style="background-color: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                <h2 style="color: #00A15D; text-align: center; margin-bottom: 20px;">Welcome to TrackEd Admin Portal!</h2>
+                <h2 style="color: #00A15D; text-align: center; margin-bottom: 20px;">Welcome to TrackED Admin!</h2>
                 
                 <p style="color: #333; font-size: 16px; margin-bottom: 20px;">Dear ' . htmlspecialchars($user_firstname) . ',</p>
                 
                 <p style="color: #333; font-size: 16px; line-height: 1.6; margin-bottom: 20px;">
-                    Your TrackEd Admin account has been successfully activated. Below are your login credentials:
+                    Your TrackED Admin account has been successfully activated. Below are your login credentials:
                 </p>
                 
                 <div style="background-color: #f5f5f5; padding: 20px; border-radius: 5px; margin: 20px 0;">
-                    <p style="margin: 10px 0;"><strong>Admin ID:</strong> ' . htmlspecialchars($user_ID) . '</p>
+                    <p style="margin: 10px 0;"><strong>User ID:</strong> ' . htmlspecialchars($user_ID) . '</p>
                     <p style="margin: 10px 0;"><strong>Temporary Password:</strong> <code style="background-color: #eee; padding: 5px 10px; border-radius: 3px; font-size: 16px;">' . htmlspecialchars($plain_password) . '</code></p>
                 </div>
                 
@@ -293,11 +324,85 @@ function sendTemporaryPasswordEmail($user_Email, $user_firstname, $user_ID, $pla
             </div>
         </div>';
 
-        $mail->AltBody = "Welcome to TrackEd Admin Portal!\n\nDear " . $user_firstname . ",\n\nYour TrackEd Admin account has been successfully activated.\n\nLogin Credentials:\nAdmin ID: " . $user_ID . "\nTemporary Password: " . $plain_password . "\n\nImportant: For security reasons, please change your password after your first login. You can use the 'Forgot Password' feature if needed, using this temporary password as your current password.\n\nLogin URL: https://tracked.6minds.site\n\nThis is a system generated message. Please do not reply.";
+        $mail->AltBody = "Welcome to TrackED Admin!\n\nDear " . $user_firstname . ",\n\nYour TrackED Admin account has been successfully activated.\n\nLogin Credentials:\nUser ID: " . $user_ID . "\nTemporary Password: " . $plain_password . "\n\nImportant: For security reasons, please change your password after your first login.\n\nLogin URL: https://tracked.6minds.site\n\nThis is a system generated message. Please do not reply.";
 
         return $mail->send();
     } catch (Exception $e) {
-        error_log("Email sending failed for $user_Email: " . $e->getMessage());
+        error_log("Admin activation email sending failed for $user_Email: " . $e->getMessage());
+        return false;
+    }
+}
+
+function sendUpdateEmail($user_Email, $user_firstname, $user_ID) {
+    try {
+        $mail = new PHPMailer(true);
+
+        // SMTP configuration
+        $mail->isSMTP();
+        $mail->Host = SMTP_HOST;
+        $mail->SMTPAuth = true;
+        $mail->Username = SMTP_USER;
+        $mail->Password = SMTP_PASS;
+        $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+        $mail->Port = SMTP_PORT;
+
+        // Debugging (optional - remove in production)
+        $mail->SMTPDebug = 0;
+        $mail->Debugoutput = 'error_log';
+
+        // Sender and recipient
+        $mail->setFrom(FROM_EMAIL, FROM_NAME);
+        $mail->addAddress($user_Email, $user_firstname);
+        $mail->addReplyTo(FROM_EMAIL, FROM_NAME);
+
+        // Email content
+        $mail->isHTML(true);
+        $mail->Subject = "Your TrackED Admin Account Information Has Been Updated";
+
+        $mail->Body = '
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f9f9f9;">
+            <div style="background-color: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                <h2 style="color: #00A15D; text-align: center; margin-bottom: 20px;">TrackED Admin Account Update</h2>
+                
+                <p style="color: #333; font-size: 16px; margin-bottom: 20px;">Dear ' . htmlspecialchars($user_firstname) . ',</p>
+                
+                <p style="color: #333; font-size: 16px; line-height: 1.6; margin-bottom: 20px;">
+                    Your TrackED Admin account information has been updated with the latest data from our records.
+                </p>
+                
+                <div style="background-color: #f5f5f5; padding: 20px; border-radius: 5px; margin: 20px 0;">
+                    <p style="margin: 10px 0;"><strong>User ID:</strong> ' . htmlspecialchars($user_ID) . '</p>
+                    <p style="margin: 10px 0;"><strong>Status:</strong> Your admin account remains active.</p>
+                </div>
+                
+                <div style="background-color: #e8f4fd; border: 1px solid #b3d7ff; border-radius: 5px; padding: 15px; margin: 20px 0;">
+                    <p style="color: #0c5460; margin: 0; font-size: 14px;">
+                        <strong>Note:</strong> Your login credentials (password) remain unchanged. 
+                        If you need to reset your password, please use the "Forgot Password" feature on the login page.
+                    </p>
+                </div>
+                
+                <p style="color: #666; font-size: 14px; line-height: 1.6; margin-bottom: 15px;">
+                    You can access your admin account at: <a href="https://tracked.6minds.site"> https://tracked.6minds.site </a>
+                </p>
+                
+                <p style="color: #666; font-size: 14px; line-height: 1.6; margin-bottom: 20px;">
+                    This is a system generated message. Please do not reply.
+                </p>
+                
+                <hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;">
+                
+                <p style="color: #999; font-size: 12px; line-height: 1.5;">
+                    If you are not the intended recipient of this message, please destroy it immediately.
+                </p>
+            </div>
+        </div>';
+
+        $mail->AltBody = "TrackED Admin Account Update\n\nDear " . $user_firstname . ",\n\nYour TrackED Admin account information has been updated with the latest data from our records.\n\nUser ID: " . $user_ID . "\nStatus: Your admin account remains active.\n\nNote: Your login credentials (password) remain unchanged. If you need to reset your password, please use the 'Forgot Password' feature on the login page.\n\nLogin URL: https://tracked.6minds.site\n\nThis is a system generated message. Please do not reply.";
+
+        return $mail->send();
+    } catch (Exception $e) {
+        error_log("Admin update email sending failed for $user_Email: " . $e->getMessage());
         return false;
     }
 }

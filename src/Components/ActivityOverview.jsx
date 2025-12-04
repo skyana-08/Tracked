@@ -20,6 +20,19 @@ export default function ActivityOverview({
   selectedSection = "",
   getCurrentSubjectName = () => ""
 }) {
+  // Debug: Check data structure
+  useEffect(() => {
+    console.log('📊 ActivityOverview Data:', {
+      quizzes: quizzesList.length,
+      assignments: assignmentsList.length,
+      activities: activitiesList.length,
+      projects: projectsList.length,
+      quizzesSample: quizzesList[0],
+      assignmentsSample: assignmentsList[0],
+      filter: selectedFilter
+    });
+  }, [quizzesList, assignmentsList, activitiesList, projectsList, selectedFilter]);
+
   // counts used for the left "Created Task" panel (number of tasks)
   const quizzesCount = quizzesList.length;
   const assignmentsCount = assignmentsList.length;
@@ -34,7 +47,7 @@ export default function ActivityOverview({
   const [activitySearchTerm, setActivitySearchTerm] = useState("");
   const itemsPerPage = 10;
 
-  // Gradient color palette for activity types (matching student version)
+  // Gradient color palette for activity types
   const activityTypeColors = {
     Overall: { 
       text: "text-[#2c5530]", 
@@ -63,72 +76,88 @@ export default function ActivityOverview({
     }
   };
 
-  // FIXED: Updated utility function to properly count pending tasks
+  // FIXED: Simple and reliable utility function to count statuses
   const sumStatusCounts = (list) => {
-    let submitted = 0, missed = 0, assigned = 0;
+    if (!Array.isArray(list) || list.length === 0) {
+      return { submitted: 0, assigned: 0, missed: 0 };
+    }
+
+    let submitted = 0;
+    let assigned = 0;
+    let missed = 0;
     
-    list.forEach(it => {
-      const isSubmitted = it.submitted === 1 || it.submitted === true;
-      const isMissing = it.missing === 1 || it.missing === true;
+    list.forEach(item => {
+      // Convert to numbers with safe defaults
+      const itemSubmitted = Number(item.submitted) || 0;
+      const itemPending = Number(item.pending) || 0;
+      const itemMissing = Number(item.missing) || 0;
       
-      if (isSubmitted) {
-        // All submitted activities (both on-time and late) count as Submitted
-        submitted++;
-      } else if (isMissing) {
-        missed++;
-      } else {
-        // If not submitted and not missing, it's assigned
-        assigned++;
-      }
+      submitted += itemSubmitted;
+      assigned += itemPending;
+      missed += itemMissing;
     });
     
+    console.log('🔢 sumStatusCounts result:', { submitted, assigned, missed });
     return { submitted, assigned, missed };
   };
 
-  // compute status counts depending on selected filter
+  // FIXED: Compute status counts based on selected filter
   const statusCounts = useMemo(() => {
-    if (!selectedFilter || selectedFilter === "") {
-      const q = sumStatusCounts(quizzesList);
-      const a = sumStatusCounts(assignmentsList);
-      const act = sumStatusCounts(activitiesList);
-      const p = sumStatusCounts(projectsList);
-      return {
-        submitted: q.submitted + a.submitted + act.submitted + p.submitted,
-        assigned:   q.assigned   + a.assigned   + act.assigned   + p.assigned,
-        missed:    q.missed    + a.missed    + act.missed    + p.missed,
-      };
-    } else if (selectedFilter === "Quizzes") {
-      return sumStatusCounts(quizzesList);
-    } else if (selectedFilter === "Assignment") {
-      return sumStatusCounts(assignmentsList);
-    } else if (selectedFilter === "Activities") {
-      return sumStatusCounts(activitiesList);
-    } else if (selectedFilter === "Projects") {
-      return sumStatusCounts(projectsList);
-    } else {
-      return { submitted: 0, assigned: 0, missed: 0 };
+    console.log('📈 Calculating statusCounts for filter:', selectedFilter);
+    
+    let result;
+    
+    switch(selectedFilter) {
+      case "Quizzes":
+        result = sumStatusCounts(quizzesList);
+        break;
+      case "Assignment":
+        result = sumStatusCounts(assignmentsList);
+        break;
+      case "Activities":
+        result = sumStatusCounts(activitiesList);
+        break;
+      case "Projects":
+        result = sumStatusCounts(projectsList);
+        break;
+      case "":
+      default:
+        // Combine all lists
+        const allActivities = [
+          ...quizzesList,
+          ...assignmentsList,
+          ...activitiesList,
+          ...projectsList
+        ];
+        result = sumStatusCounts(allActivities);
+        break;
     }
+    
+    console.log('📊 Final statusCounts:', result);
+    return result;
   }, [selectedFilter, quizzesList, assignmentsList, activitiesList, projectsList]);
 
-  // Fixed: Combine all activities when "Overall" is selected
+  // Combine activities based on filter
   const displayedList = useMemo(() => {
-    if (selectedFilter === 'Assignment') {
-      return assignmentsList || [];
-    } else if (selectedFilter === 'Activities') {
-      return activitiesList || [];
-    } else if (selectedFilter === 'Projects') {
-      return projectsList || [];
-    } else if (selectedFilter === '') {
-      // Overall view - combine all activity types
-      return [
-        ...(quizzesList || []),
-        ...(assignmentsList || []),
-        ...(activitiesList || []),
-        ...(projectsList || [])
-      ];
-    } else {
-      // Default to quizzes (for backward compatibility)
-      return quizzesList || [];
+    console.log('📋 Creating displayedList for filter:', selectedFilter);
+    
+    switch(selectedFilter) {
+      case 'Assignment':
+        return assignmentsList;
+      case 'Activities':
+        return activitiesList;
+      case 'Projects':
+        return projectsList;
+      case '':
+        // Overall - all activities
+        return [
+          ...quizzesList,
+          ...assignmentsList,
+          ...activitiesList,
+          ...projectsList
+        ];
+      default:
+        return quizzesList;
     }
   }, [selectedFilter, quizzesList, assignmentsList, activitiesList, projectsList]);
 
@@ -167,7 +196,7 @@ export default function ActivityOverview({
     }
   };
 
-  // Pagination calculations for activities (using filteredActivities)
+  // Pagination calculations
   const activityTotalPages = Math.ceil(filteredActivities.length / itemsPerPage);
   const activityStartIndex = (activityCurrentPage - 1) * itemsPerPage;
   const activityEndIndex = activityStartIndex + itemsPerPage;
@@ -198,37 +227,62 @@ export default function ActivityOverview({
     return "All Activities";
   };
 
-  // segments for pie: Completed, pending, Missed
-  const segments = useMemo(() => [
-    { label: "Submitted", value: statusCounts.completed},
-    { label: "Assigned", value: statusCounts.pending, color: "#2196F3" },
-    { label: "Missed", value: statusCounts.missed, color: "#EF4444" },
-  ], [statusCounts]);
+  // FIXED: Segments for pie chart with guaranteed numbers
+  const segments = useMemo(() => {
+    const segmentsData = [
+      { 
+        label: "Submitted", 
+        value: Math.max(0, statusCounts.submitted || 0), 
+        color: "#00A15D" 
+      },
+      { 
+        label: "Assigned", 
+        value: Math.max(0, statusCounts.assigned || 0), 
+        color: "#2196F3" 
+      },
+      { 
+        label: "Missed", 
+        value: Math.max(0, statusCounts.missed || 0), 
+        color: "#EF4444" 
+      },
+    ];
+    
+    console.log('📊 Pie chart segments:', segmentsData);
+    return segmentsData;
+  }, [statusCounts]);
 
-  // For SVG pie
+  // SVG pie chart constants
   const radius = 14;
   const circumference = 2 * Math.PI * radius;
 
-  // Animation effect when filter changes or component mounts
+  // Calculate total for segments
+  const statusTotal = useMemo(() => {
+    const total = segments.reduce((acc, segment) => acc + segment.value, 0);
+    console.log('📊 Total for pie chart:', total);
+    return total;
+  }, [segments]);
+
+  // Animation effect
   useEffect(() => {
     setAnimationProgress(0);
-    const duration = 300; // ms
+    const duration = 300;
     const steps = 60;
     const stepDuration = duration / steps;
     let currentStep = 0;
 
     const timer = setInterval(() => {
       currentStep++;
-      setAnimationProgress(currentStep / steps);
+      setAnimationProgress(Math.min(1, currentStep / steps));
       if (currentStep >= steps) {
         clearInterval(timer);
       }
     }, stepDuration);
 
     return () => clearInterval(timer);
-  }, [selectedFilter, quizzesList, assignmentsList, activitiesList, projectsList]);
+  }, [selectedFilter, statusCounts]);
 
   const toggleFilter = (label) => {
+    console.log('🔘 Toggling filter to:', label);
     if (label === "Overall") {
       setSelectedFilter("");
       return;
@@ -236,7 +290,7 @@ export default function ActivityOverview({
     setSelectedFilter((prev) => (prev === label ? "" : label));
   };
 
-  // Helper function to get styles for each task item (matching student version)
+  // Helper function to get styles for each task item
   const getTaskItemStyles = (label) => {
     const colors = activityTypeColors[label];
     const isSelected = (label === "Overall" && selectedFilter === "") || selectedFilter === label;
@@ -256,8 +310,106 @@ export default function ActivityOverview({
     };
   };
 
-  // total for the current segments (statusTotal)
-  const statusTotal = segments.reduce((acc, s) => acc + (s.value || 0), 0);
+  // Render the pie chart
+  const renderPieChart = () => {
+    console.log('🎨 Rendering pie chart with:', {
+      statusTotal,
+      segments,
+      animationProgress
+    });
+
+    if (statusTotal === 0) {
+      return (
+        <svg
+          className="w-full h-auto max-w-[280px] sm:max-w-[320px] md:max-w-[360px] lg:max-w-[400px]"
+          viewBox="0 0 32 32"
+        >
+          {/* Gray background circle */}
+          <circle r={radius} cx="16" cy="16" fill="transparent" stroke="#E5E7EB" strokeWidth="2.5" />
+          
+          {/* "No Data" text */}
+          <text
+            x="16"
+            y="16"
+            textAnchor="middle"
+            fontSize=".125rem"
+            fill="#666"
+            dominantBaseline="middle"
+          >
+            No Data
+          </text>
+        </svg>
+      );
+    }
+
+    let cumulativeAngle = 0;
+    
+    return (
+      <svg
+        className="w-full h-auto max-w-[280px] sm:max-w-[320px] md:max-w-[360px] lg:max-w-[400px]"
+        viewBox="0 0 32 32"
+      >
+        {/* Gray background circle */}
+        <circle r={radius} cx="16" cy="16" fill="transparent" stroke="#E5E7EB" strokeWidth="2.5" />
+        
+        {/* Pie segments */}
+        {segments.map((segment, index) => {
+          if (segment.value === 0) return null;
+          
+          const segmentAngle = (segment.value / statusTotal) * 360;
+          const animatedAngle = segmentAngle * animationProgress;
+          const startAngle = cumulativeAngle;
+          cumulativeAngle += segmentAngle;
+          
+          // Convert angles to radians for SVG arc
+          const startRad = (startAngle - 90) * (Math.PI / 180);
+          const endRad = ((startAngle + animatedAngle) - 90) * (Math.PI / 180);
+          
+          const x1 = 16 + radius * Math.cos(startRad);
+          const y1 = 16 + radius * Math.sin(startRad);
+          const x2 = 16 + radius * Math.cos(endRad);
+          const y2 = 16 + radius * Math.sin(endRad);
+          
+          const largeArcFlag = animatedAngle > 180 ? 1 : 0;
+          
+          return (
+            <path
+              key={index}
+              d={`M 16 16 L ${x1} ${y1} A ${radius} ${radius} 0 ${largeArcFlag} 1 ${x2} ${y2} Z`}
+              fill={segment.color}
+              stroke="white"
+              strokeWidth="0.5"
+              opacity="0.8"
+            />
+          );
+        })}
+        
+        {/* Center text */}
+        <text
+          x="16"
+          y="15"
+          textAnchor="middle"
+          fontSize=".125rem"
+          fontWeight="bold"
+          fill="#465746"
+          dominantBaseline="middle"
+        >
+          {selectedFilter || "OVERALL"}
+        </text>
+        
+        <text
+          x="16"
+          y="17"
+          textAnchor="middle"
+          fontSize=".1rem"
+          fill="#465746"
+          dominantBaseline="middle"
+        >
+          {statusTotal} total
+        </text>
+      </svg>
+    );
+  };
 
   // Pagination Component
   const Pagination = () => {
@@ -284,7 +436,6 @@ export default function ActivityOverview({
         </div>
         
         <div className="flex items-center gap-1">
-          {/* Previous Button */}
           <button
             onClick={() => handleActivityPageChange(activityCurrentPage - 1)}
             disabled={activityCurrentPage === 1}
@@ -297,7 +448,6 @@ export default function ActivityOverview({
             <img src={ArrowLeft} alt="Previous" className="w-5 h-5" />
           </button>
 
-          {/* Page Numbers */}
           {pageNumbers.map(page => (
             <button
               key={page}
@@ -312,7 +462,6 @@ export default function ActivityOverview({
             </button>
           ))}
 
-          {/* Next Button */}
           <button
             onClick={() => handleActivityPageChange(activityCurrentPage + 1)}
             disabled={activityCurrentPage === activityTotalPages}
@@ -343,13 +492,24 @@ export default function ActivityOverview({
 
         <hr className="border-[#465746]/30 mt-3 sm:mt-4 lg:mt-5" />
 
+        {/* Debug information - REMOVE IN PRODUCTION */}
+        <div className="mb-4 p-2 bg-blue-50 border border-blue-200 rounded text-xs">
+          <p className="font-bold text-blue-800">Debug Info:</p>
+          <p>Selected Filter: <strong>{selectedFilter || "Overall"}</strong></p>
+          <p>Status Counts: 
+            Submitted=<strong>{statusCounts.submitted}</strong>, 
+            Assigned=<strong>{statusCounts.assigned}</strong>, 
+            Missed=<strong>{statusCounts.missed}</strong>
+          </p>
+          <p>Pie Chart Total: <strong>{statusTotal}</strong></p>
+        </div>
+
         {/* Main Content Area */}
         <div className="flex flex-col lg:flex-row gap-4 sm:gap-5 mt-4 sm:mt-5">
-          {/* Created Task List - Updated with student version styling */}
+          {/* Created Task List */}
           <div className="bg-[#D4D4D4] p-4 sm:p-5 rounded-md text-sm sm:text-base lg:text-lg w-full lg:w-80 flex-shrink-0 order-2 lg:order-1">
             <p className="font-bold mb-3 text-[#2c5530]">Created Task</p>
 
-            {/* Overall */}
             <div
               onClick={() => toggleFilter("Overall")}
               className={getTaskItemStyles("Overall").container}
@@ -358,7 +518,6 @@ export default function ActivityOverview({
               <span className={getTaskItemStyles("Overall").count}>{totalTasksCount}</span>
             </div>
 
-            {/* Quizzes */}
             <div
               onClick={() => toggleFilter("Quizzes")}
               className={getTaskItemStyles("Quizzes").container}
@@ -367,7 +526,6 @@ export default function ActivityOverview({
               <span className={getTaskItemStyles("Quizzes").count}>{quizzesCount}</span>
             </div>
 
-            {/* Assignment */}
             <div
               onClick={() => toggleFilter("Assignment")}
               className={getTaskItemStyles("Assignment").container}
@@ -376,7 +534,6 @@ export default function ActivityOverview({
               <span className={getTaskItemStyles("Assignment").count}>{assignmentsCount}</span>
             </div>
 
-            {/* Activities */}
             <div
               onClick={() => toggleFilter("Activities")}
               className={getTaskItemStyles("Activities").container}
@@ -385,7 +542,6 @@ export default function ActivityOverview({
               <span className={getTaskItemStyles("Activities").count}>{activitiesCount}</span>
             </div>
 
-            {/* Projects */}
             <div
               onClick={() => toggleFilter("Projects")}
               className={getTaskItemStyles("Projects").container}
@@ -402,105 +558,51 @@ export default function ActivityOverview({
             </div>
           </div>
 
-          {/* PIE CHART - Updated to show status counts like student version */}
+          {/* PIE CHART SECTION - Fixed */}
           <div className="bg-[#D4D4D4] rounded-md text-sm sm:text-base lg:text-lg flex-1 p-4 sm:p-5 order-1 lg:order-2">
             <div className="flex flex-col items-center">
               {/* Chart Container */}
-              <div className="w-full max-w-md flex justify-center">
-                <svg
-                  className="w-full h-auto max-w-[280px] sm:max-w-[320px] md:max-w-[360px] lg:max-w-[400px]"
-                  viewBox="0 0 32 32"
-                >
-                  {/* base ring */}
-                  <circle r={radius} cx="16" cy="16" fill="transparent" stroke="#E5E7EB" strokeWidth="2.5" />
-
-                  {statusTotal === 0 ? (
-                    // No-data fallback: just show base ring
-                    null
-                  ) : (
-                    (() => {
-                      let cum = 0;
-                      return segments.map((seg, i) => {
-                        if (!seg || seg.value === 0) return null;
-                        const len = (seg.value / statusTotal) * circumference;
-                        const animatedLen = len * animationProgress;
-                        const dash = `${animatedLen} ${Math.max(0, circumference - animatedLen)}`;
-                        const dashOffset = -cum * animationProgress;
-                        cum += len;
-                        return (
-                          <circle
-                            key={i}
-                            r={radius}
-                            cx="16"
-                            cy="16"
-                            fill="transparent"
-                            stroke={seg.color}
-                            strokeWidth="2.5"
-                            strokeDasharray={dash}
-                            strokeDashoffset={dashOffset}
-                            strokeLinecap="butt"
-                            transform="rotate(-90 16 16)"
-                            style={{
-                              transition: 'stroke-dasharray 0.2s ease-out, stroke-dashoffset 0.2s ease-out'
-                            }}
-                          />
-                        );
-                      });
-                    })()
-                  )}
-
-                  {/* center labels */}
-                  <text
-                    x="16"
-                    y="15"
-                    textAnchor="middle"
-                    fontSize=".125rem"
-                    fontWeight="bold"
-                    fill="#465746"
-                  >
-                    {selectedFilter ? selectedFilter.toUpperCase() : "OVERALL:"}
-                  </text>
-
-                  <text
-                    x="16"
-                    y="18"
-                    textAnchor="middle"
-                    fontSize=".125rem"
-                    fill="#465746"
-                  >
-                    {statusTotal === 0 ? "No data" : "Overview"}
-                  </text>
-                </svg>
+              <div className="w-full max-w-md flex justify-center mb-6">
+                {renderPieChart()}
               </div>
 
               {/* LEGEND */}
               <div className="flex flex-wrap justify-center gap-3 sm:gap-4 lg:gap-6 mt-4 sm:mt-5 w-full">
-                {segments.map((item, i) => {
-                  return (
-                    <div key={i} className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm lg:text-base">
-                      <span
-                        className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full inline-block flex-shrink-0"
-                        style={{ backgroundColor: item.color }}
-                      />
-                      <span>{item.label}:</span>
-                      <span className="font-bold">{item.value}</span>
-                    </div>
-                  );
-                })}
+                {segments.map((item, i) => (
+                  <div key={i} className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm lg:text-base">
+                    <span
+                      className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full inline-block flex-shrink-0"
+                      style={{ backgroundColor: item.color }}
+                    />
+                    <span>{item.label}:</span>
+                    <span className="font-bold">{item.value}</span>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
         </div>
+
+        {/* Fallback message when no data */}
+        {statusTotal === 0 && (
+          <div className="text-center py-4 mt-4">
+            <p className="text-gray-500 text-sm">
+              No activity data available for {selectedFilter === '' ? 'Overall' : selectedFilter}
+            </p>
+            <p className="text-gray-400 text-xs mt-1">
+              Create activities in Classwork to see data here
+            </p>
+          </div>
+        )}
       </div>
 
-      {/* ACTIVITY LIST - Integrated into the same component */}
+      {/* ACTIVITY LIST */}
       <div className="bg-[#fff] p-4 sm:p-5 rounded-lg sm:rounded-xl shadow-md mt-4 sm:mt-5 text-[#465746]">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
           <p className={`font-bold text-base sm:text-lg lg:text-xl ${getDisplayedLabelColor()}`}>
             {displayedLabel} - {getCurrentSubjectDisplayName()}
           </p>
           
-          {/* Activity List Search */}
           <div className="relative w-full sm:w-64 lg:w-80">
             <input
               type="text"
@@ -536,58 +638,23 @@ export default function ActivityOverview({
                   </tr>
                 </thead>
                 <tbody>
-                  {currentActivities.map((item, index) => {
-                    // Determine status for each item
-                    const isSubmitted = item.submitted === 1 || item.submitted === true;
-                    const isMissing = item.missing === 1 || item.missing === true;
-                    const isAssigned = !isSubmitted && !isMissing;
-                    
-                    return (
-                      <tr key={item.id || index} className="border-b border-gray-100 hover:bg-gray-50">
-                        <td className="p-2 sm:p-3 whitespace-nowrap">{item.task}</td>
-                        <td className="p-2 sm:p-3">{item.title}</td>
-                        
-                        {/* Submitted Column */}
-                        <td className="p-2 sm:p-3 text-[#00A15D]">
-                          {isSubmitted ? (
-                            <img src={CheckSubmitted} alt="Submitted" className="w-5 h-5 sm:w-6 sm:h-6" />
-                          ) : (
-                            <span>-</span>
-                          )}
-                        </td>
-                        
-                        {/* Assigned Column */}
-                        <td className="p-2 sm:p-3 text-[#2196F3]">
-                          {isAssigned ? (
-                            <img src={CheckPending} alt="Assigned" className="w-4 h-4 sm:w-5 sm:h-5" />
-                          ) : (
-                            <span>-</span>
-                          )}
-                        </td>
-                        
-                        {/* Missed Column */}
-                        <td className="p-2 sm:p-3 text-[#FF6666]">
-                          {isMissing ? (
-                            <img src={Cross} alt="Missed" className="w-4 h-4 sm:w-5 sm:h-5" />
-                          ) : (
-                            <span>-</span>
-                          )}
-                        </td>
-                        
-                        <td className="p-2 sm:p-3 whitespace-nowrap">{item.deadline}</td>
-                      </tr>
-                    );
-                  })}
+                  {currentActivities.map((item, index) => (
+                    <tr key={item.id || index} className="border-b border-gray-100 hover:bg-gray-50">
+                      <td className="p-2 sm:p-3 whitespace-nowrap">{item.task}</td>
+                      <td className="p-2 sm:p-3">{item.title}</td>
+                      <td className="p-2 sm:p-3 text-[#00A15D] font-medium">{item.submitted || 0}</td>
+                      <td className="p-2 sm:p-3 text-[#2196F3] font-medium">{item.pending || 0}</td>
+                      <td className="p-2 sm:p-3 text-[#FF6666] font-medium">{item.missing || 0}</td>
+                      <td className="p-2 sm:p-3 whitespace-nowrap">{item.deadline}</td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>
           </div>
         )}
 
-        {/* Activity List Pagination */}
-        {currentActivities.length > 0 && (
-          <Pagination />
-        )}
+        {currentActivities.length > 0 && <Pagination />}
       </div>
     </div>
   );
